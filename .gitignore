@@ -39,3 +39,7 @@
 
 # debug information files
 *.dwo
+
+# libwebgpu specific
+/CMakeUserPresets.json
+/build
