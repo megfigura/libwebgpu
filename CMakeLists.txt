@@ -59,19 +59,19 @@ target_link_libraries(testapp
 # End temporary test app
 
 if (NOT CMAKE_OS STREQUAL "Emscripten")
-    target_include_directories(libwebgpu PUBLIC /home/meg/dev/local/include) # TODO
-    target_link_directories(libwebgpu PUBLIC /home/meg/dev/local/lib)
-    target_link_libraries(libwebgpu webgpu_dawn)
+        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
+        target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
+        target_link_libraries(libwebgpu webgpu_dawn)
 else()
-    target_include_directories(libwebgpu PUBLIC /home/meg/dev/emdawnwebgpu_pkg/include) # TODO
-	set_target_properties(testapp PROPERTIES SUFFIX ".html")
-    set(CMAKE_CXX_FLAGS --use-port=/home/meg/dev/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false)
-    target_link_options(testapp PRIVATE
-            --closure=1
-            -sASYNCIFY
-            -sUSE_SDL=3
-            # Comment for testapp, needed when building lib?
-            #--use-port=/home/meg/dev/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false
+        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/webgpu/include)
+        set_target_properties(testapp PROPERTIES SUFFIX ".html")
+        set(CMAKE_CXX_FLAGS --use-port=${CMAKE_CURRENT_SOURCE_DIR}/external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false)
+        target_link_options(testapp PRIVATE
+                --closure=1
+                -sASYNCIFY
+                -sUSE_SDL=3
+                # Comment for testapp, needed when building lib?
+                #--use-port=/home/meg/dev/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false
     )
 endif()
 

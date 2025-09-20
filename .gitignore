@@ -43,3 +43,4 @@
 # libwebgpu specific
 /CMakeUserPresets.json
 /build
+/external
