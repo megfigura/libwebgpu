@@ -84,7 +84,7 @@ Use the CMake and Ninja steps, but add `-DDAWN_USE_WAYLAND=ON -DDAWN_ENABLE_INST
 You can install system-wide, but I install to the `external` subdirectory of `libwebgpu`
 ```shell
 cd <root Dawn directory> # ../.. if coming from the build steps
-cmake --install out/Debug --prefix <libwebgpu root>/external/Emscripten/Debug
+cmake --install out/Debug --prefix <libwebgpu root>/external/Linux/Debug
 ```
 
 ## Download and install emdawnwebgpu port
