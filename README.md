@@ -9,14 +9,13 @@ If using Toolbox and you want to login to your Jetbrains account, make sure to i
 ## Useful packages
 ```shell
 sudo apt install curl wget zip unzip gpg vim xdg-utils xz-utils libwayland-dev libxkbcommon-dev
-sudo update-alternatives --config c++ # set to `clang++`
 ```
 
 ## Native tools
 Since the Emscripten toolchain uses Clang, we use it also for native builds. GCC also works but can give weird results with Clang-Tidy.
 ```shell
 sudo apt install clang cmake python3 pipx git ninja-build pkgconf cppcheck clang-tidy
-
+sudo update-alternatives --config c++ # set to `clang++`
 ```
 
 ## Emscripten
