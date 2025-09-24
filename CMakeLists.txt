@@ -58,10 +58,19 @@ target_link_libraries(testapp
 )
 # End temporary test app
 
-if (NOT CMAKE_OS STREQUAL "Emscripten")
+if (CMAKE_OS STREQUAL "Linux")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
+elseif (CMAKE_OS STREQUAL "Windows")
+        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
+        target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
+        target_link_libraries(libwebgpu webgpu_dawn)
+	target_link_options(testapp PRIVATE
+		--static
+	)
+
+
 else()
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/webgpu/include)
         set_target_properties(testapp PROPERTIES SUFFIX ".html")
@@ -72,10 +81,10 @@ else()
                 -sUSE_SDL=3
                 # Comment for testapp, needed when building lib?
                 #--use-port=/home/meg/dev/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false
-    )
+	)
 endif()
 
 # Not everything works in emscripten, so run tests, etc. in native mode instead
-if (NOT CMAKE_OS STREQUAL "Emscripten")
+if (CMAKE_OS STREQUAL "Linux")
 	include(cmake/dev-mode.cmake)
 endif()

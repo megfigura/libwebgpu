@@ -18,7 +18,10 @@ WebGpuInstance::~WebGpuInstance()
     wgpuInstanceRelease(m_instance);
 }
 
-WGPUInstance& WebGpuInstance::get()
+//WebGpuInstance::WebGpuInstance(const WebGpuInstance& other) = default;
+//WebGpuInstance& WebGpuInstance::operator=(const WebGpuInstance& other) = default;
+
+WGPUInstance WebGpuInstance::get() const
 {
     return m_instance;
 }
@@ -28,9 +31,10 @@ void WebGpuInstance::processEvents() const
     wgpuInstanceProcessEvents(m_instance);
 }
 
-Adapter WebGpuInstance::requestAdapter()
+Adapter WebGpuInstance::requestAdapter(WGPUSurface surface)
 {
 	WGPURequestAdapterOptions opts = WGPU_REQUEST_ADAPTER_OPTIONS_INIT;
+	opts.compatibleSurface = surface;
 
     struct UserData {
 		WGPUAdapter adapter = nullptr;

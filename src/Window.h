@@ -7,13 +7,16 @@ class WebGpuInstance;
 class Window
 {
 public:
-    Window(WebGpuInstance &instance);
+    explicit Window(const WebGpuInstance &instance);
     ~Window();
+
+    void processEvent(SDL_Event &event);
+    WGPUSurface getSurface() const;
 
 private:
     SDL_Window* m_window;
     WGPUSurface m_surface;
 
-    WGPUSurface getSurface(WebGpuInstance &instance);
-    WGPUSurface getSurface(WebGpuInstance &instance, WGPUChainedStruct* surfaceSourceDesc) const;
+    WGPUSurface getSurface(const WebGpuInstance &instance);
+    WGPUSurface getSurface(const WebGpuInstance &instance, WGPUChainedStruct* surfaceSourceDesc) const;
 };

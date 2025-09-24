@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <webgpu/webgpu.h>
 
 class Device;
@@ -10,7 +11,7 @@ public:
     explicit Adapter(const WGPUAdapter &adapter);
     ~Adapter();
 
-    Device requestDevice(const WebGpuInstance &instance);
+    std::unique_ptr<Device> requestDevice(const WebGpuInstance &instance, WGPUSurface surface);
 
     void print();
 

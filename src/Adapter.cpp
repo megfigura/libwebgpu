@@ -23,7 +23,7 @@ Adapter::~Adapter()
     }
 }
 
-Device Adapter::requestDevice(const WebGpuInstance &instance)
+std::unique_ptr<Device> Adapter::requestDevice(const WebGpuInstance &instance, WGPUSurface surface)
 {
 	struct UserData {
 		WGPUDevice device = nullptr;
@@ -60,7 +60,6 @@ Device Adapter::requestDevice(const WebGpuInstance &instance)
 	// Call to the WebGPU request adapter procedure
 	wgpuAdapterRequestDevice(m_adapter, &m_descriptor, callbackInfo);
 
-
 	// Hand the execution to the WebGPU instance until the request ended
 	instance.processEvents();
 	while (!userData.requestEnded)
@@ -69,7 +68,35 @@ Device Adapter::requestDevice(const WebGpuInstance &instance)
 		instance.processEvents();
 	}
 
-	return Device { userData.device };
+	WGPUSurfaceConfiguration config = WGPU_SURFACE_CONFIGURATION_INIT;
+
+	// Configuration of the textures created for the underlying swap chain
+	config.width = 640;
+	config.height = 480;
+	config.device = userData.device;
+	// We initialize an empty capability struct:
+	WGPUSurfaceCapabilities capabilities = WGPU_SURFACE_CAPABILITIES_INIT;
+
+	// We get the capabilities for a pair of (surface, adapter).
+	// If it works, this populates the `capabilities` structure
+	WGPUStatus status = wgpuSurfaceGetCapabilities(surface, m_adapter, &capabilities);
+	if (status != WGPUStatus_Success) {
+		// TODO
+		std::cout << "Uh oh" << std::endl;
+	}
+
+	// From the capabilities, we get the preferred format: it is always the first one!
+	// (NB: There is always at least 1 format if the GetCapabilities was successful)
+	config.format = capabilities.formats[0];
+
+	// We no longer need to access the capabilities, so we release their memory.
+	wgpuSurfaceCapabilitiesFreeMembers(capabilities);
+	config.presentMode = WGPUPresentMode_Fifo;
+	config.alphaMode = WGPUCompositeAlphaMode_Auto;
+
+	wgpuSurfaceConfigure(surface, &config);
+
+	return std::make_unique<Device>(userData.device);
 }
 
 void Adapter::print()

@@ -7,6 +7,8 @@ public:
     Device(const WGPUDevice &device);
     ~Device();
 
+    WGPUDevice get();
+
     void print();
 
 private:

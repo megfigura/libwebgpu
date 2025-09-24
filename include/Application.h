@@ -7,13 +7,7 @@ class Application
 public:
     int run() const;
 
-    /// Copy constructor
-    Application(Application const&);
-    /// Copy assignment
-    Application& operator=(Application const&);
-    /// Move constructor
     Application(Application&&) noexcept;
-    /// Move assignment
     Application& operator=(Application&&) noexcept;
 
     //protected:

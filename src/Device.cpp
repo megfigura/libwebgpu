@@ -16,6 +16,12 @@ Device::~Device()
     }
 }
 
+WGPUDevice Device::get()
+{
+	return m_device;
+}
+
+
 void Device::print()
 {
     WGPUSupportedFeatures features = WGPU_SUPPORTED_FEATURES_INIT;
