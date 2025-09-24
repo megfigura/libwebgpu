@@ -12,6 +12,7 @@ public:
     virtual ~ApplicationImpl();
 
     int run();
+    virtual void initLogging();
     virtual SDL_InitFlags getSdlInitFlags();
 
 private:

@@ -18,5 +18,5 @@ private:
     WGPUSurface m_surface;
 
     WGPUSurface getSurface(const WebGpuInstance &instance);
-    WGPUSurface getSurface(const WebGpuInstance &instance, WGPUChainedStruct* surfaceSourceDesc) const;
+    static WGPUSurface getSurface(const WebGpuInstance &instance, WGPUChainedStruct* surfaceSourceDesc);
 };

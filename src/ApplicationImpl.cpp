@@ -1,4 +1,6 @@
 #include <iostream>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include "Application.h"
 #include "ApplicationImpl.h"
 #include "WebGpuInstance.h"
@@ -18,9 +20,10 @@ Application::ApplicationImpl::~ApplicationImpl() = default;
 
 int Application::ApplicationImpl::run()
 {
+    initLogging();
     if (!SDL_Init(getSdlInitFlags()))
     {
-        std::cerr << "Could not init SDL: " << SDL_GetError() << std::endl;
+        spdlog::get("stderr")->critical("Could not init SDL: {}", SDL_GetError());
         return 1;
     }
 
@@ -33,8 +36,6 @@ int Application::ApplicationImpl::run()
     m_device = adapter.requestDevice(*m_instance, m_window->getSurface());
     m_device->print();
 
-
-
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
     emscripten_set_main_loop_arg(emscriptenMainLoop, this, 0, true);
@@ -44,9 +45,21 @@ int Application::ApplicationImpl::run()
     }
 #endif
 
-    std::cout << "Exiting" << std::endl;
+    spdlog::info("Exiting");
     return 0;
 }
+
+void Application::ApplicationImpl::initLogging()
+{
+    auto console = spdlog::stdout_color_mt("console");
+    console->set_level(spdlog::level::debug);
+    console->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
+    auto err_logger = spdlog::stderr_color_mt("stderr");
+    err_logger->set_level(spdlog::level::debug);
+    err_logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
+    spdlog::set_default_logger(console);
+}
+
 
 SDL_InitFlags Application::ApplicationImpl::getSdlInitFlags()
 {
@@ -118,10 +131,8 @@ bool Application::ApplicationImpl::mainLoop()
 
     // Finally submit the command queue
     WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
-    std::cout << "Submitting command..." << std::endl;
     wgpuQueueSubmit(queue, 1, &command);
     wgpuCommandBufferRelease(command);
-    std::cout << "Command submitted." << std::endl;
     // At the end of the frame
     wgpuTextureViewRelease(targetView);
 #ifndef __EMSCRIPTEN__

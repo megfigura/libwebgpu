@@ -1,6 +1,7 @@
 #include "Adapter.h"
 #include <iostream>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 #include "Device.h"
 #include "StringView.h"
@@ -40,10 +41,13 @@ std::unique_ptr<Device> Adapter::requestDevice(const WebGpuInstance &instance, W
 		void* /* userdata2 */
 	) {
 		UserData& userData = *reinterpret_cast<UserData*>(userdata1);
-		if (status == WGPURequestDeviceStatus_Success) {
+		if (status == WGPURequestDeviceStatus_Success)
+		{
 			userData.device = device;
-		} else {
-			std::cerr << "Error while requesting device: " << StringView(message) << std::endl;
+		}
+		else
+		{
+			spdlog::get("stderr")->error("Error while requesting device: {}", StringView(message).toString());
 		}
 		userData.requestEnded = true;
 	};
@@ -80,9 +84,9 @@ std::unique_ptr<Device> Adapter::requestDevice(const WebGpuInstance &instance, W
 	// We get the capabilities for a pair of (surface, adapter).
 	// If it works, this populates the `capabilities` structure
 	WGPUStatus status = wgpuSurfaceGetCapabilities(surface, m_adapter, &capabilities);
-	if (status != WGPUStatus_Success) {
-		// TODO
-		std::cout << "Uh oh" << std::endl;
+	if (status != WGPUStatus_Success)
+	{
+		spdlog::get("stderr")->error("wgpuSurfaceGetCapabilities failed");
 	}
 
 	// From the capabilities, we get the preferred format: it is always the first one!
@@ -106,12 +110,13 @@ void Adapter::print()
 
 	bool success = wgpuAdapterGetLimits(m_adapter, &supportedLimits) == WGPUStatus_Success;
 
-	if (success) {
-		std::cout << "Adapter limits:" << std::endl;
-		std::cout << " - maxTextureDimension1D: " << supportedLimits.maxTextureDimension1D << std::endl;
-		std::cout << " - maxTextureDimension2D: " << supportedLimits.maxTextureDimension2D << std::endl;
-		std::cout << " - maxTextureDimension3D: " << supportedLimits.maxTextureDimension3D << std::endl;
-		std::cout << " - maxTextureArrayLayers: " << supportedLimits.maxTextureArrayLayers << std::endl;
+	if (success)
+	{
+		spdlog::debug("Adapter limits:");
+		spdlog::debug(" - maxTextureDimension1D: {}", supportedLimits.maxTextureDimension1D);
+		spdlog::debug(" - maxTextureDimension2D: {}", supportedLimits.maxTextureDimension2D);
+		spdlog::debug(" - maxTextureDimension3D: {}", supportedLimits.maxTextureDimension3D);
+		spdlog::debug(" - maxTextureArrayLayers: {}", supportedLimits.maxTextureArrayLayers);
 	}
 	// Prepare the struct where features will be listed
 	WGPUSupportedFeatures features;
@@ -119,12 +124,13 @@ void Adapter::print()
 	// Get adapter features. This may allocate memory that we must later free with wgpuSupportedFeaturesFreeMembers()
 	wgpuAdapterGetFeatures(m_adapter, &features);
 
-	std::cout << "Adapter features:" << std::endl;
-	std::cout << std::hex; // Write integers as hexadecimal to ease comparison with webgpu.h literals
-	for (size_t i = 0; i < features.featureCount; ++i) {
-		std::cout << " - 0x" << features.features[i] << std::endl;
+	spdlog::debug("Adapter features:");
+	for (size_t i = 0; i < features.featureCount; ++i)
+	{
+		char str[256];
+		sprintf(str, "%x", features.features[i]);
+		spdlog::debug(" - 0x{}", str);
 	}
-	std::cout << std::dec; // Restore decimal numbers
 
 	// Free the memory that had potentially been allocated by wgpuAdapterGetFeatures()
 	wgpuSupportedFeaturesFreeMembers(features);
@@ -132,17 +138,20 @@ void Adapter::print()
 	WGPUAdapterInfo properties;
 	properties.nextInChain = nullptr;
 	wgpuAdapterGetInfo(m_adapter, &properties);
-	std::cout << "Adapter properties:" << std::endl;
-	std::cout << " - vendorID: " << properties.vendorID << std::endl;
-	std::cout << " - vendorName: " << StringView(properties.vendor) << std::endl;
-	std::cout << " - architecture: " << StringView(properties.architecture) << std::endl;
-	std::cout << " - deviceID: " << properties.deviceID << std::endl;
-	std::cout << " - name: " << StringView(properties.device) << std::endl;
-	std::cout << " - driverDescription: " << StringView(properties.description) << std::endl;
-	std::cout << std::hex;
-	std::cout << " - adapterType: 0x" << properties.adapterType << std::endl;
-	std::cout << " - backendType: 0x" << properties.backendType << std::endl;
-	std::cout << std::dec; // Restore decimal numbers
+	spdlog::debug("Adapter properties:");
+	spdlog::debug(" - vendorID: {}", properties.vendorID);
+	spdlog::debug(" - vendorName: {}", StringView(properties.vendor).toString());
+	spdlog::debug(" - architecture: {}", StringView(properties.architecture).toString());
+	spdlog::debug(" - deviceID: {}", properties.deviceID);
+	spdlog::debug(" - name: {}", StringView(properties.device).toString());
+	spdlog::debug(" - driverDescription: {}", StringView(properties.description).toString());
+
+	char str[256];
+	sprintf(str, "%x", properties.adapterType);
+	spdlog::debug(" - adapterType: 0x{}", str);
+
+	sprintf(str, "%x", properties.backendType);
+	spdlog::debug(" - backendType: 0x{}", str);
 	wgpuAdapterInfoFreeMembers(properties);
 }
 
@@ -168,10 +177,7 @@ WGPUDeviceDescriptor Adapter::createDeviceDescriptor()
 		void* /* userdata2 */
 	) {
 		// All we do is display a message when the device is lost
-		std::cout
-			<< "Device " << device << " was lost: reason " << reason
-			<< " (" << StringView(message) << ")"
-			<< std::endl;
+		spdlog::get("stderr")->error("Device was lost: {}", StringView(message).toString());
 	};
 	deviceDesc.deviceLostCallbackInfo.callback = onDeviceLost;
 	deviceDesc.deviceLostCallbackInfo.mode = WGPUCallbackMode_AllowProcessEvents;
@@ -182,10 +188,7 @@ WGPUDeviceDescriptor Adapter::createDeviceDescriptor()
 		void* /* userdata1 */,
 		void* /* userdata2 */
 	) {
-		std::cout
-			<< "Uncaptured error in device " << device << ": type " << type
-			<< " (" << StringView(message) << ")"
-			<< std::endl;
+		spdlog::get("stderr")->error("Uncaptured error in device: {}", StringView(message).toString());
 	};
 	deviceDesc.uncapturedErrorCallbackInfo.callback = onDeviceError;
 

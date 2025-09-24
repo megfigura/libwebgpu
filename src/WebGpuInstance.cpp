@@ -1,7 +1,5 @@
 #include "WebGpuInstance.h"
-
-#include <iostream>
-#include <ostream>
+#include <spdlog/spdlog.h>
 
 #include "Adapter.h"
 #include "StringView.h"
@@ -17,9 +15,6 @@ WebGpuInstance::~WebGpuInstance()
 {
     wgpuInstanceRelease(m_instance);
 }
-
-//WebGpuInstance::WebGpuInstance(const WebGpuInstance& other) = default;
-//WebGpuInstance& WebGpuInstance::operator=(const WebGpuInstance& other) = default;
 
 WGPUInstance WebGpuInstance::get() const
 {
@@ -56,7 +51,7 @@ Adapter WebGpuInstance::requestAdapter(WGPUSurface surface)
 		}
 		else
 		{
-			std::cerr << "Error while requesting adapter: " << StringView(message) << std::endl;
+			spdlog::get("stderr")->critical("Error while requesting adapter: {}", StringView(message).toString());
 		}
 		userData.requestEnded = true;
 	};

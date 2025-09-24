@@ -1,6 +1,6 @@
 #include "Device.h"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 Device::Device(const WGPUDevice& device)
 {
@@ -21,59 +21,61 @@ WGPUDevice Device::get()
 	return m_device;
 }
 
-
-void Device::print()
+void Device::print() const
 {
     WGPUSupportedFeatures features = WGPU_SUPPORTED_FEATURES_INIT;
 	wgpuDeviceGetFeatures(m_device, &features);
-	std::cout << "Device features:" << std::endl;
-	std::cout << std::hex;
-	for (size_t i = 0; i < features.featureCount; ++i) {
-		std::cout << " - 0x" << features.features[i] << std::endl;
+	spdlog::debug("Device features:");
+	for (size_t i = 0; i < features.featureCount; ++i)
+	{
+		char str[256];
+		sprintf(str, "%x", features.features[i]);
+		spdlog::debug(" - 0x{}", str);
 	}
-	std::cout << std::dec;
 	wgpuSupportedFeaturesFreeMembers(features);
 
 	WGPULimits limits = WGPU_LIMITS_INIT;
 	bool success = wgpuDeviceGetLimits(m_device, &limits) == WGPUStatus_Success;
 
-	if (success) {
-		std::cout << "Device limits:" << std::endl;
-		std::cout << " - maxTextureDimension1D: " << limits.maxTextureDimension1D << std::endl;
-		std::cout << " - maxTextureDimension2D: " << limits.maxTextureDimension2D << std::endl;
-		std::cout << " - maxTextureDimension3D: " << limits.maxTextureDimension3D << std::endl;
-		std::cout << " - maxTextureArrayLayers: " << limits.maxTextureArrayLayers << std::endl;
-		std::cout << " - maxBindGroups: " << limits.maxBindGroups << std::endl;
-		std::cout << " - maxBindGroupsPlusVertexBuffers: " << limits.maxBindGroupsPlusVertexBuffers << std::endl;
-		std::cout << " - maxBindingsPerBindGroup: " << limits.maxBindingsPerBindGroup << std::endl;
-		std::cout << " - maxDynamicUniformBuffersPerPipelineLayout: " << limits.maxDynamicUniformBuffersPerPipelineLayout << std::endl;
-		std::cout << " - maxDynamicStorageBuffersPerPipelineLayout: " << limits.maxDynamicStorageBuffersPerPipelineLayout << std::endl;
-		std::cout << " - maxSampledTexturesPerShaderStage: " << limits.maxSampledTexturesPerShaderStage << std::endl;
-		std::cout << " - maxSamplersPerShaderStage: " << limits.maxSamplersPerShaderStage << std::endl;
-		std::cout << " - maxStorageBuffersPerShaderStage: " << limits.maxStorageBuffersPerShaderStage << std::endl;
-		std::cout << " - maxStorageTexturesPerShaderStage: " << limits.maxStorageTexturesPerShaderStage << std::endl;
-		std::cout << " - maxUniformBuffersPerShaderStage: " << limits.maxUniformBuffersPerShaderStage << std::endl;
-		std::cout << " - maxUniformBufferBindingSize: " << limits.maxUniformBufferBindingSize << std::endl;
-		std::cout << " - maxStorageBufferBindingSize: " << limits.maxStorageBufferBindingSize << std::endl;
-		std::cout << " - minUniformBufferOffsetAlignment: " << limits.minUniformBufferOffsetAlignment << std::endl;
-		std::cout << " - minStorageBufferOffsetAlignment: " << limits.minStorageBufferOffsetAlignment << std::endl;
-		std::cout << " - maxVertexBuffers: " << limits.maxVertexBuffers << std::endl;
-		std::cout << " - maxBufferSize: " << limits.maxBufferSize << std::endl;
-		std::cout << " - maxVertexAttributes: " << limits.maxVertexAttributes << std::endl;
-		std::cout << " - maxVertexBufferArrayStride: " << limits.maxVertexBufferArrayStride << std::endl;
-		std::cout << " - maxInterStageShaderVariables: " << limits.maxInterStageShaderVariables << std::endl;
-		std::cout << " - maxColorAttachments: " << limits.maxColorAttachments << std::endl;
-		std::cout << " - maxColorAttachmentBytesPerSample: " << limits.maxColorAttachmentBytesPerSample << std::endl;
-		std::cout << " - maxComputeWorkgroupStorageSize: " << limits.maxComputeWorkgroupStorageSize << std::endl;
-		std::cout << " - maxComputeInvocationsPerWorkgroup: " << limits.maxComputeInvocationsPerWorkgroup << std::endl;
-		std::cout << " - maxComputeWorkgroupSizeX: " << limits.maxComputeWorkgroupSizeX << std::endl;
-		std::cout << " - maxComputeWorkgroupSizeY: " << limits.maxComputeWorkgroupSizeY << std::endl;
-		std::cout << " - maxComputeWorkgroupSizeZ: " << limits.maxComputeWorkgroupSizeZ << std::endl;
-		std::cout << " - maxComputeWorkgroupsPerDimension: " << limits.maxComputeWorkgroupsPerDimension << std::endl;
-		//std::cout << " - maxStorageBuffersInVertexStage: " << limits.maxStorageBuffersInVertexStage << std::endl;
-		//std::cout << " - maxStorageTexturesInVertexStage: " << limits.maxStorageTexturesInVertexStage << std::endl;
-		//std::cout << " - maxStorageBuffersInFragmentStage: " << limits.maxStorageBuffersInFragmentStage << std::endl;
-		//std::cout << " - maxStorageTexturesInFragmentStage: " << limits.maxStorageTexturesInFragmentStage << std::endl;
+	if (success)
+	{
+		spdlog::debug("Device limits:");
+		spdlog::debug(" - maxTextureDimension1D: {}", limits.maxTextureDimension1D);
+		spdlog::debug(" - maxTextureDimension1D: {}", limits.maxTextureDimension1D);
+		spdlog::debug(" - maxTextureDimension2D: {}", limits.maxTextureDimension2D);
+		spdlog::debug(" - maxTextureDimension3D: {}", limits.maxTextureDimension3D);
+		spdlog::debug(" - maxTextureArrayLayers: {}", limits.maxTextureArrayLayers);
+		spdlog::debug(" - maxBindGroups: {}", limits.maxBindGroups);
+		spdlog::debug(" - maxBindGroupsPlusVertexBuffers: {}", limits.maxBindGroupsPlusVertexBuffers);
+		spdlog::debug(" - maxBindingsPerBindGroup: {}", limits.maxBindingsPerBindGroup);
+		spdlog::debug(" - maxDynamicUniformBuffersPerPipelineLayout: {}", limits.maxDynamicUniformBuffersPerPipelineLayout);
+		spdlog::debug(" - maxDynamicStorageBuffersPerPipelineLayout: {}", limits.maxDynamicStorageBuffersPerPipelineLayout);
+		spdlog::debug(" - maxSampledTexturesPerShaderStage: {}", limits.maxSampledTexturesPerShaderStage);
+		spdlog::debug(" - maxSamplersPerShaderStage: {}", limits.maxSamplersPerShaderStage);
+		spdlog::debug(" - maxStorageBuffersPerShaderStage: {}", limits.maxStorageBuffersPerShaderStage);
+		spdlog::debug(" - maxStorageTexturesPerShaderStage: {}", limits.maxStorageTexturesPerShaderStage);
+		spdlog::debug(" - maxUniformBuffersPerShaderStage: {}", limits.maxUniformBuffersPerShaderStage);
+		spdlog::debug(" - maxUniformBufferBindingSize: {}", limits.maxUniformBufferBindingSize);
+		spdlog::debug(" - maxStorageBufferBindingSize: {}", limits.maxStorageBufferBindingSize);
+		spdlog::debug(" - minUniformBufferOffsetAlignment: {}", limits.minUniformBufferOffsetAlignment);
+		spdlog::debug(" - minStorageBufferOffsetAlignment: {}", limits.minStorageBufferOffsetAlignment);
+		spdlog::debug(" - maxVertexBuffers: {}", limits.maxVertexBuffers);
+		spdlog::debug(" - maxBufferSize: {}", limits.maxBufferSize);
+		spdlog::debug(" - maxVertexAttributes: {}", limits.maxVertexAttributes);
+		spdlog::debug(" - maxVertexBufferArrayStride: {}", limits.maxVertexBufferArrayStride);
+		spdlog::debug(" - maxInterStageShaderVariables: {}", limits.maxInterStageShaderVariables);
+		spdlog::debug(" - maxColorAttachments: {}", limits.maxColorAttachments);
+		spdlog::debug(" - maxColorAttachmentBytesPerSample: {}", limits.maxColorAttachmentBytesPerSample);
+		spdlog::debug(" - maxComputeWorkgroupStorageSize: {}", limits.maxComputeWorkgroupStorageSize);
+		spdlog::debug(" - maxComputeInvocationsPerWorkgroup: {}", limits.maxComputeInvocationsPerWorkgroup);
+		spdlog::debug(" - maxComputeWorkgroupSizeX: {}", limits.maxComputeWorkgroupSizeX);
+		spdlog::debug(" - maxComputeWorkgroupSizeY: {}", limits.maxComputeWorkgroupSizeY);
+		spdlog::debug(" - maxComputeWorkgroupSizeZ: {}", limits.maxComputeWorkgroupSizeZ);
+		spdlog::debug(" - maxComputeWorkgroupsPerDimension: {}", limits.maxComputeWorkgroupsPerDimension);
+		//spdlog::debug(" - maxStorageBuffersInVertexStage: {}", limits.maxStorageBuffersInVertexStage);
+		//spdlog::debug(" - maxStorageTexturesInVertexStage: {}", limits.maxStorageTexturesInVertexStage);
+		//spdlog::debug(" - maxStorageBuffersInFragmentStage: {}", limits.maxStorageBuffersInFragmentStage);
+		//spdlog::debug(" - maxStorageTexturesInFragmentStage: {}", limits.maxStorageTexturesInFragmentStage);
 	}
 }
 

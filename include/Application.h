@@ -13,6 +13,7 @@ public:
     //protected:
     Application();
     virtual ~Application();
+    virtual void initLogging();
     virtual SDL_InitFlags getSdlInitFlags();
 
 private:

@@ -8,6 +8,11 @@ Application::~Application() = default;
 Application::Application(Application&& other) noexcept = default;
 Application& Application::operator=(Application&& other) noexcept = default;
 
+void Application::initLogging()
+{
+    impl->initLogging();
+}
+
 SDL_InitFlags Application::getSdlInitFlags()
 {
     return impl->getSdlInitFlags();

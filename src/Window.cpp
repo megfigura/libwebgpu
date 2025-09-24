@@ -1,6 +1,6 @@
 #include "Window.h"
 #include <webgpu/webgpu.h>
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include "StringView.h"
 #include "WebGpuInstance.h"
@@ -55,9 +55,6 @@ WGPUSurface Window::getSurface(const WebGpuInstance &instance)
         waylandSurfaceDesc.surface = waylandSurface;
         return getSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&waylandSurfaceDesc));
     }
-
-    std::cerr << "Unknown SDL video driver: " << SDL_GetCurrentVideoDriver() << std::endl;
-    return nullptr;
 #elif _WIN32
     auto hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
     auto hinst = static_cast<HINSTANCE>(SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER, nullptr));
@@ -66,9 +63,12 @@ WGPUSurface Window::getSurface(const WebGpuInstance &instance)
     windowsSurfaceDesc.hinstance = hinst;
     return getSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&windowsSurfaceDesc));
 #endif
+
+    spdlog::get("stderr")->critical("Unknown SDL video driver: {}", SDL_GetCurrentVideoDriver());
+    return nullptr;
 }
 
-WGPUSurface Window::getSurface(const WebGpuInstance &instance, WGPUChainedStruct *surfaceSourceDesc) const
+WGPUSurface Window::getSurface(const WebGpuInstance &instance, WGPUChainedStruct *surfaceSourceDesc)
 {
     WGPUSurfaceDescriptor surfaceDescriptor = { surfaceSourceDesc, StringView("") };
     return wgpuInstanceCreateSurface(instance.get(), &surfaceDescriptor);
@@ -76,7 +76,7 @@ WGPUSurface Window::getSurface(const WebGpuInstance &instance, WGPUChainedStruct
 
 void Window::processEvent(SDL_Event& event)
 {
-    std::cout << "Got event: " << event.type << std::endl;
+    //std::cout << "Got event: " << event.type << std::endl;
 }
 
 WGPUSurface Window::getSurface() const

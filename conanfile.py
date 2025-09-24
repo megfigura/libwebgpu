@@ -9,6 +9,7 @@ class LibWebGpuRecipe(ConanFile):
 
     def requirements(self):
         self.requires("sdl/3.2.20")
+        self.requires("spdlog/1.15.3")
 
     def build_requirements(self):
         self.test_requires("catch2/3.7.1")

@@ -44,3 +44,4 @@
 /CMakeUserPresets.json
 /build
 /external
+/conan_provider.cmake

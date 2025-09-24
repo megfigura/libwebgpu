@@ -9,7 +9,7 @@ public:
 
     WGPUDevice get();
 
-    void print();
+    void print() const;
 
 private:
     WGPUDevice m_device;

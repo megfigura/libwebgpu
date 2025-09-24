@@ -19,6 +19,11 @@ WGPUStringView StringView::toWgpu() const
     return WGPUStringView { data, length };
 }
 
+std::string_view StringView::toString() const
+{
+    return std::string_view(data, length);
+}
+
 std::ostream& operator<<(std::ostream& os, const StringView &stringView)
 {
     os << std::string_view(stringView.data, stringView.length);

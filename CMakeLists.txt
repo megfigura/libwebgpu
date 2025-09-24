@@ -17,6 +17,7 @@ include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
 
 find_package(SDL3 REQUIRED)
+find_package(spdlog REQUIRED)
 
 add_library(libwebgpu
         include/Application.h
@@ -39,7 +40,9 @@ add_library(libwebgpu
 
 target_include_directories(libwebgpu PUBLIC include)
 target_link_libraries(libwebgpu
-        SDL3::SDL3)
+        SDL3::SDL3
+        spdlog::spdlog
+)
 set_target_properties(
         libwebgpu PROPERTIES
         VERSION "${PROJECT_VERSION}"
@@ -69,9 +72,7 @@ elseif (CMAKE_OS STREQUAL "Windows")
 	target_link_options(testapp PRIVATE
 		--static
 	)
-
-
-else()
+elseif (CMAKE_OS STREQUAL "Emscripten")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/webgpu/include)
         set_target_properties(testapp PROPERTIES SUFFIX ".html")
         set(CMAKE_CXX_FLAGS --use-port=${CMAKE_CURRENT_SOURCE_DIR}/external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false)
