@@ -11,7 +11,8 @@ public:
     ~Window();
 
     void processEvent(SDL_Event &event);
-    WGPUSurface getSurface() const;
+    [[nodiscard]] WGPUSurface getSurface() const;
+    [[nodiscard]] SDL_Window *getWindow() const;
 
 private:
     SDL_Window* m_window;

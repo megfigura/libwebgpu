@@ -13,7 +13,7 @@ sudo apt install gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix
 os=Windows
 compiler=gcc
 compiler.version=10
-compiler.cppstd=gnu17
+compiler.cppstd=20
 compiler.libcxx=libstdc++11
 arch=x86_64
 build_type=Release

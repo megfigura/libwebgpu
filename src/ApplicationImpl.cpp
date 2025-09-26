@@ -14,7 +14,6 @@
 #include <emscripten.h>
 #endif
 
-
 Application::ApplicationImpl::ApplicationImpl() = default;
 Application::ApplicationImpl::~ApplicationImpl() = default;
 
@@ -29,11 +28,9 @@ int Application::ApplicationImpl::run()
 
     m_instance = std::make_unique<WebGpuInstance>();
     m_window = std::make_unique<Window>(*m_instance);
-
-    Adapter adapter = m_instance->requestAdapter(m_window->getSurface());
-    adapter.print();
-
-    m_device = adapter.requestDevice(*m_instance, m_window->getSurface());
+    m_adapter = std::make_unique<Adapter>(*m_instance, *m_window);
+    m_device = std::make_unique<Device>(*m_instance, *m_adapter, *m_window);
+    m_adapter->print();
     m_device->print();
 
 #ifdef __EMSCRIPTEN__
@@ -45,21 +42,21 @@ int Application::ApplicationImpl::run()
     }
 #endif
 
+    get().setShuttingDown();
     spdlog::info("Exiting");
     return 0;
 }
 
 void Application::ApplicationImpl::initLogging()
 {
-    auto console = spdlog::stdout_color_mt("console");
+    const auto console = spdlog::stdout_color_mt("console");
     console->set_level(spdlog::level::debug);
     console->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
-    auto err_logger = spdlog::stderr_color_mt("stderr");
-    err_logger->set_level(spdlog::level::debug);
-    err_logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
+    const auto stdErr = spdlog::stderr_color_mt("stderr");
+    stdErr->set_level(spdlog::level::debug);
+    stdErr->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
     spdlog::set_default_logger(console);
 }
-
 
 SDL_InitFlags Application::ApplicationImpl::getSdlInitFlags()
 {
@@ -83,21 +80,41 @@ bool Application::ApplicationImpl::mainLoop()
 #endif
             return false;
 
+        case SDL_EVENT_KEY_DOWN:
+            if ((event.key.scancode == SDL_SCANCODE_RETURN) && (event.key.mod & SDL_KMOD_ALT))
+            {
+                SDL_SetWindowFullscreen(m_window->getWindow(), true);
+            }
+            if (event.key.scancode == SDL_SCANCODE_ESCAPE)
+            {
+                SDL_SetWindowFullscreen(m_window->getWindow(), false);
+            }
+            break;
+
         default:
             break;
         }
     }
 
-    WGPUSurfaceTexture surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
+    SDL_Keymod keyMod = SDL_GetModState();
+    const bool *keyboard = SDL_GetKeyboardState(nullptr);
+    if (keyMod & SDL_KMOD_ALT)
+    {
+        if (keyboard[SDL_SCANCODE_RETURN])
+        {
+            //spdlog::info("alt-enter");
+        }
+    }
+
+
+    auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
     wgpuSurfaceGetCurrentTexture(m_window->getSurface(), &surfaceTexture);
-    if (
-        surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal &&
-        surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal
-    )
+    if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal &&
+        surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
     {
         return false;
     }
-    WGPUTextureViewDescriptor viewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
+    auto viewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
     viewDescriptor.label = StringView("Surface texture view");
     viewDescriptor.dimension = WGPUTextureViewDimension_2D; // not to confuse with 2DArray
     WGPUTextureView targetView = wgpuTextureCreateView(surfaceTexture.texture, &viewDescriptor);
@@ -106,11 +123,11 @@ bool Application::ApplicationImpl::mainLoop()
     wgpuTextureRelease(surfaceTexture.texture);
 
     if (!targetView) return(false); // no surface texture, we skip this frame
-    WGPUCommandEncoderDescriptor encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
+    auto encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
     encoderDesc.label = StringView("My command encoder");
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device->get(), &encoderDesc);
-    WGPURenderPassDescriptor renderPassDesc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
-    WGPURenderPassColorAttachment colorAttachment = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
+    auto renderPassDesc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
+    auto colorAttachment = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
 
     colorAttachment.view = targetView;
     colorAttachment.loadOp = WGPULoadOp_Clear;
@@ -124,7 +141,7 @@ bool Application::ApplicationImpl::mainLoop()
     // Use the render pass here (we do nothing with the render pass for now)
     wgpuRenderPassEncoderEnd(renderPass);
     wgpuRenderPassEncoderRelease(renderPass);
-    WGPUCommandBufferDescriptor cmdBufferDescriptor = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
+    auto cmdBufferDescriptor = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
     cmdBufferDescriptor.label = StringView("Command buffer");
     WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
     wgpuCommandEncoderRelease(encoder); // release encoder after it's finished
@@ -135,6 +152,7 @@ bool Application::ApplicationImpl::mainLoop()
     wgpuCommandBufferRelease(command);
     // At the end of the frame
     wgpuTextureViewRelease(targetView);
+
 #ifndef __EMSCRIPTEN__
     wgpuSurfacePresent(m_window->getSurface());
 #endif

@@ -1,5 +1,6 @@
 #include "Window.h"
 #include <webgpu/webgpu.h>
+#include <SDL3/SDL.h>
 #include <spdlog/spdlog.h>
 
 #include "StringView.h"
@@ -83,3 +84,9 @@ WGPUSurface Window::getSurface() const
 {
     return m_surface;
 }
+
+SDL_Window *Window::getWindow() const
+{
+    return m_window;
+}
+

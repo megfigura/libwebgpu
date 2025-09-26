@@ -2,6 +2,7 @@
 #include "Application.h"
 
 class WebGpuInstance;
+class Adapter;
 class Device;
 class Window;
 
@@ -17,6 +18,7 @@ public:
 
 private:
     std::unique_ptr<WebGpuInstance> m_instance;
+    std::unique_ptr<Adapter> m_adapter;
     std::unique_ptr<Device> m_device;
     std::unique_ptr<Window> m_window;
 

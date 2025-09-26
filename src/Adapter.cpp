@@ -7,12 +7,11 @@
 #include "StringView.h"
 #include "Util.h"
 #include "WebGpuInstance.h"
+#include "Window.h"
 
-Adapter::Adapter(const WGPUAdapter &adapter)
+Adapter::Adapter(const WebGpuInstance &instance, const Window &window)
 {
-    m_adapter = adapter;
-	m_requiredLimits = WGPU_LIMITS_INIT;
-	m_descriptor = createDeviceDescriptor();
+    m_adapter = requestAdapter(instance, window.getSurface());
 }
 
 Adapter::~Adapter()
@@ -24,83 +23,61 @@ Adapter::~Adapter()
     }
 }
 
-std::unique_ptr<Device> Adapter::requestDevice(const WebGpuInstance &instance, WGPUSurface surface)
+WGPUAdapter Adapter::requestAdapter(const WebGpuInstance &instance, const WGPUSurface &surface)
 {
+	WGPURequestAdapterOptions opts = WGPU_REQUEST_ADAPTER_OPTIONS_INIT;
+	opts.compatibleSurface = surface;
+
 	struct UserData {
-		WGPUDevice device = nullptr;
+		WGPUAdapter adapter = nullptr;
 		bool requestEnded = false;
 	};
 	UserData userData;
 
-	// The callback
-	auto onDeviceRequestEnded = [](
-		WGPURequestDeviceStatus status,
-		WGPUDevice device,
+	auto onAdapterRequestEnded = [](
+		WGPURequestAdapterStatus status,
+		WGPUAdapter adapter,
 		WGPUStringView message,
 		void* userdata1,
 		void* /* userdata2 */
 	) {
 		UserData& userData = *reinterpret_cast<UserData*>(userdata1);
-		if (status == WGPURequestDeviceStatus_Success)
+		if (status == WGPURequestAdapterStatus_Success)
 		{
-			userData.device = device;
+			userData.adapter = adapter;
 		}
 		else
 		{
-			spdlog::get("stderr")->error("Error while requesting device: {}", StringView(message).toString());
+			spdlog::get("stderr")->critical("Error while requesting adapter: {}", StringView(message).toString());
 		}
 		userData.requestEnded = true;
 	};
 
 	// Build the callback info
-	WGPURequestDeviceCallbackInfo callbackInfo = {
+	WGPURequestAdapterCallbackInfo callbackInfo = {
 		/* nextInChain = */ nullptr,
 		/* mode = */ WGPUCallbackMode_AllowProcessEvents,
-		/* callback = */ onDeviceRequestEnded,
+		/* callback = */ onAdapterRequestEnded,
 		/* userdata1 = */ &userData,
 		/* userdata2 = */ nullptr
 	};
 
-	// Call to the WebGPU request adapter procedure
-	wgpuAdapterRequestDevice(m_adapter, &m_descriptor, callbackInfo);
+	wgpuInstanceRequestAdapter(instance.get(), &opts, callbackInfo);
 
-	// Hand the execution to the WebGPU instance until the request ended
 	instance.processEvents();
+
 	while (!userData.requestEnded)
 	{
 		Util::sleep(50);
 		instance.processEvents();
 	}
 
-	WGPUSurfaceConfiguration config = WGPU_SURFACE_CONFIGURATION_INIT;
+	return userData.adapter;
+}
 
-	// Configuration of the textures created for the underlying swap chain
-	config.width = 640;
-	config.height = 480;
-	config.device = userData.device;
-	// We initialize an empty capability struct:
-	WGPUSurfaceCapabilities capabilities = WGPU_SURFACE_CAPABILITIES_INIT;
-
-	// We get the capabilities for a pair of (surface, adapter).
-	// If it works, this populates the `capabilities` structure
-	WGPUStatus status = wgpuSurfaceGetCapabilities(surface, m_adapter, &capabilities);
-	if (status != WGPUStatus_Success)
-	{
-		spdlog::get("stderr")->error("wgpuSurfaceGetCapabilities failed");
-	}
-
-	// From the capabilities, we get the preferred format: it is always the first one!
-	// (NB: There is always at least 1 format if the GetCapabilities was successful)
-	config.format = capabilities.formats[0];
-
-	// We no longer need to access the capabilities, so we release their memory.
-	wgpuSurfaceCapabilitiesFreeMembers(capabilities);
-	config.presentMode = WGPUPresentMode_Fifo;
-	config.alphaMode = WGPUCompositeAlphaMode_Auto;
-
-	wgpuSurfaceConfigure(surface, &config);
-
-	return std::make_unique<Device>(userData.device);
+WGPUAdapter Adapter::get() const
+{
+	return m_adapter;
 }
 
 void Adapter::print()
@@ -153,44 +130,4 @@ void Adapter::print()
 	sprintf(str, "%x", properties.backendType);
 	spdlog::debug(" - backendType: 0x{}", str);
 	wgpuAdapterInfoFreeMembers(properties);
-}
-
-WGPUDeviceDescriptor Adapter::createDeviceDescriptor()
-{
-	WGPUDeviceDescriptor deviceDesc = WGPU_DEVICE_DESCRIPTOR_INIT;
-	// Any name works here, that's your call
-	deviceDesc.label = StringView("My Device").toWgpu();
-	std::vector<WGPUFeatureName> features;
-	// No required feature for now
-	deviceDesc.requiredFeatureCount = features.size();
-	deviceDesc.requiredFeatures = features.data();
-	// Make sure 'features' lives until the call to wgpuAdapterRequestDevice!
-	m_requiredLimits = WGPU_LIMITS_INIT;
-	deviceDesc.requiredLimits = &m_requiredLimits;
-	// Make sure that the 'requiredLimits' variable lives until the call to wgpuAdapterRequestDevice!
-	deviceDesc.defaultQueue.label = StringView("The Default Queue").toWgpu();
-	auto onDeviceLost = [](
-		WGPUDevice const * device,
-		WGPUDeviceLostReason reason,
-		struct WGPUStringView message,
-		void* /* userdata1 */,
-		void* /* userdata2 */
-	) {
-		// All we do is display a message when the device is lost
-		spdlog::get("stderr")->error("Device was lost: {}", StringView(message).toString());
-	};
-	deviceDesc.deviceLostCallbackInfo.callback = onDeviceLost;
-	deviceDesc.deviceLostCallbackInfo.mode = WGPUCallbackMode_AllowProcessEvents;
-	auto onDeviceError = [](
-		WGPUDevice const * device,
-		WGPUErrorType type,
-		struct WGPUStringView message,
-		void* /* userdata1 */,
-		void* /* userdata2 */
-	) {
-		spdlog::get("stderr")->error("Uncaptured error in device: {}", StringView(message).toString());
-	};
-	deviceDesc.uncapturedErrorCallbackInfo.callback = onDeviceError;
-
-	return deviceDesc;
 }

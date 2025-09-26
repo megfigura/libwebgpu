@@ -80,6 +80,7 @@ elseif (CMAKE_OS STREQUAL "Emscripten")
                 --closure=1
                 -sASYNCIFY
                 -sUSE_SDL=3
+                -sEXPORTED_FUNCTIONS=_main,requestFullscreen
                 # Comment for testapp, needed when building lib?
                 #--use-port=/home/meg/dev/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false
 	)
