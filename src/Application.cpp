@@ -33,6 +33,26 @@ Application& Application::get()
     return *theAppInstance;
 }
 
+std::shared_ptr<WebGpuInstance> Application::getInstance() const
+{
+    return impl->getInstance();
+}
+
+std::shared_ptr<Adapter> Application::getAdapter() const
+{
+    return impl->getAdapter();
+}
+
+std::shared_ptr<Device> Application::getDevice() const
+{
+    return impl->getDevice();
+}
+
+std::shared_ptr<Window> Application::getWindow() const
+{
+    return impl->getWindow();
+}
+
 void Application::initLogging()
 {
     impl->initLogging();

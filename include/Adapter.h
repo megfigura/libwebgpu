@@ -8,7 +8,7 @@ class Window;
 class Adapter
 {
 public:
-    Adapter(const WebGpuInstance &instance, const Window &window);
+    Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window);
     ~Adapter();
 
     [[nodiscard]] WGPUAdapter get() const;
@@ -16,5 +16,5 @@ public:
 
 private:
     WGPUAdapter m_adapter;
-    static WGPUAdapter requestAdapter(const WebGpuInstance &instance, const WGPUSurface &surface);
+    static WGPUAdapter requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const WGPUSurface& surface);
 };

@@ -3,6 +3,9 @@
 #include <SDL3/SDL.h>
 #include <spdlog/spdlog.h>
 
+#include "Adapter.h"
+#include "Application.h"
+#include "Device.h"
 #include "StringView.h"
 #include "WebGpuInstance.h"
 
@@ -17,10 +20,27 @@ namespace x11
 #include <windows.h>
 #endif
 
-Window::Window(const WebGpuInstance &instance)
+Window::Window(const std::shared_ptr<WebGpuInstance>& instance)
 {
-    m_window = SDL_CreateWindow("webgputest", 800, 600, 0);
+    int width = 800;
+    int height = 600;
+
+    // invalid so we resize the surface later
+    m_width = -1;
+    m_height = -1;
+
+    m_window = SDL_CreateWindow("webgputest", width, height, SDL_WINDOW_RESIZABLE);
     m_surface = getSurface(instance);
+
+    SDL_SetWindowFullscreenMode(m_window, nullptr);
+
+    // Size the surface to match the window size, but this can't be done until after the adapter and device have been created
+    SDL_Event initSurfaceEvent;
+    SDL_zero(initSurfaceEvent);
+    initSurfaceEvent.type = SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED;
+    initSurfaceEvent.window.data1 = 800;
+    initSurfaceEvent.window.data2 = 600;
+    SDL_PushEvent(&initSurfaceEvent);
 }
 
 Window::~Window()
@@ -28,7 +48,14 @@ Window::~Window()
     SDL_DestroyWindow(m_window);
 }
 
-WGPUSurface Window::getSurface(const WebGpuInstance &instance)
+void Window::sizeSurfaceToWindow()
+{
+    int width, height;
+    SDL_GetWindowSizeInPixels(m_window, &width, &height);
+    configureSurface(width, height);
+}
+
+WGPUSurface Window::getSurface(const std::shared_ptr<WebGpuInstance>& instance)
 {
 #ifdef __EMSCRIPTEN__
     WGPUEmscriptenSurfaceSourceCanvasHTMLSelector selector = WGPU_EMSCRIPTEN_SURFACE_SOURCE_CANVAS_HTML_SELECTOR_INIT;
@@ -56,6 +83,10 @@ WGPUSurface Window::getSurface(const WebGpuInstance &instance)
         waylandSurfaceDesc.surface = waylandSurface;
         return getSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&waylandSurfaceDesc));
     }
+
+    spdlog::get("stderr")->critical("Unknown SDL video driver: {}", SDL_GetCurrentVideoDriver());
+    return nullptr;
+
 #elif _WIN32
     auto hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
     auto hinst = static_cast<HINSTANCE>(SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER, nullptr));
@@ -63,21 +94,33 @@ WGPUSurface Window::getSurface(const WebGpuInstance &instance)
     windowsSurfaceDesc.hwnd = hwnd;
     windowsSurfaceDesc.hinstance = hinst;
     return getSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&windowsSurfaceDesc));
-#endif
 
-    spdlog::get("stderr")->critical("Unknown SDL video driver: {}", SDL_GetCurrentVideoDriver());
-    return nullptr;
+#else
+    return nulptr;
+#endif
 }
 
-WGPUSurface Window::getSurface(const WebGpuInstance &instance, WGPUChainedStruct *surfaceSourceDesc)
+WGPUSurface Window::getSurface(const std::shared_ptr<WebGpuInstance>& instance, WGPUChainedStruct *surfaceSourceDesc)
 {
     WGPUSurfaceDescriptor surfaceDescriptor = { surfaceSourceDesc, StringView("") };
-    return wgpuInstanceCreateSurface(instance.get(), &surfaceDescriptor);
+    return wgpuInstanceCreateSurface(instance->get(), &surfaceDescriptor);
 }
 
-void Window::processEvent(SDL_Event& event)
+void Window::processEvent(const SDL_Event& event)
 {
-    //std::cout << "Got event: " << event.type << std::endl;
+    switch (event.type)
+    {
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        {
+            const int width = event.window.data1;
+            const int height = event.window.data2;
+            configureSurface(width, height);
+        }
+        break;
+
+    default:
+        break;
+    }
 }
 
 WGPUSurface Window::getSurface() const
@@ -90,3 +133,42 @@ SDL_Window *Window::getWindow() const
     return m_window;
 }
 
+void Window::configureSurface(int width, int height)
+{
+    if ((m_width == width) && (m_height == height))
+    {
+        return;
+    }
+    m_width = width;
+    m_height = height;
+
+    spdlog::info("Resizing surface: {}x{}", width, height);
+
+    // Configuration of the textures created for the underlying swap chain
+    WGPUSurfaceConfiguration config = WGPU_SURFACE_CONFIGURATION_INIT;
+    config.width = width;
+    config.height = height;
+    config.device = Application::get().getDevice()->get();
+
+    // We initialize an empty capability struct:
+    WGPUSurfaceCapabilities capabilities = WGPU_SURFACE_CAPABILITIES_INIT;
+
+    // We get the capabilities for a pair of (surface, adapter).
+    // If it works, this populates the `capabilities` structure
+    WGPUStatus status = wgpuSurfaceGetCapabilities(getSurface(), Application::get().getAdapter()->get(), &capabilities);
+    if (status != WGPUStatus_Success)
+    {
+        spdlog::get("stderr")->error("wgpuSurfaceGetCapabilities failed");
+    }
+
+    // From the capabilities, we get the preferred format: it is always the first one!
+    // (NB: There is always at least 1 format if the GetCapabilities was successful)
+    config.format = capabilities.formats[0];
+
+    // We no longer need to access the capabilities, so we release their memory.
+    wgpuSurfaceCapabilitiesFreeMembers(capabilities);
+    config.presentMode = WGPUPresentMode_Fifo;
+    config.alphaMode = WGPUCompositeAlphaMode_Auto;
+
+    wgpuSurfaceConfigure(m_surface, &config);
+}

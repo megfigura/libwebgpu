@@ -9,9 +9,9 @@
 #include "WebGpuInstance.h"
 #include "Window.h"
 
-Device::Device(const WebGpuInstance &instance, const Adapter &adapter, const Window &window)
+Device::Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
 {
-    m_device = requestDevice(instance, adapter, window);
+    m_device = requestDevice(instance, adapter);
 }
 
 Device::~Device()
@@ -28,7 +28,7 @@ WGPUDevice Device::get() const
 	return m_device;
 }
 
-WGPUDevice Device::requestDevice(const WebGpuInstance &instance, const Adapter &adapter, const Window &window)
+WGPUDevice Device::requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
 {
 	struct UserData {
 		WGPUDevice device = nullptr;
@@ -68,43 +68,15 @@ WGPUDevice Device::requestDevice(const WebGpuInstance &instance, const Adapter &
 	// Call to the WebGPU request adapter procedure
 	constexpr auto requiredLimits = WGPU_LIMITS_INIT;
 	auto descriptor = createDeviceDescriptor(requiredLimits);
-	wgpuAdapterRequestDevice(adapter.get(), &descriptor, callbackInfo);
+	wgpuAdapterRequestDevice(adapter->get(), &descriptor, callbackInfo);
 
 	// Hand the execution to the WebGPU instance until the request ended
-	instance.processEvents();
+	instance->processEvents();
 	while (!userData.requestEnded)
 	{
 		Util::sleep(50);
-		instance.processEvents();
+		instance->processEvents();
 	}
-
-	WGPUSurfaceConfiguration config = WGPU_SURFACE_CONFIGURATION_INIT;
-
-	// Configuration of the textures created for the underlying swap chain
-	config.width = 640;
-	config.height = 480;
-	config.device = userData.device;
-	// We initialize an empty capability struct:
-	WGPUSurfaceCapabilities capabilities = WGPU_SURFACE_CAPABILITIES_INIT;
-
-	// We get the capabilities for a pair of (surface, adapter).
-	// If it works, this populates the `capabilities` structure
-	WGPUStatus status = wgpuSurfaceGetCapabilities(window.getSurface(), adapter.get(), &capabilities);
-	if (status != WGPUStatus_Success)
-	{
-		spdlog::get("stderr")->error("wgpuSurfaceGetCapabilities failed");
-	}
-
-	// From the capabilities, we get the preferred format: it is always the first one!
-	// (NB: There is always at least 1 format if the GetCapabilities was successful)
-	config.format = capabilities.formats[0];
-
-	// We no longer need to access the capabilities, so we release their memory.
-	wgpuSurfaceCapabilitiesFreeMembers(capabilities);
-	config.presentMode = WGPUPresentMode_Fifo;
-	config.alphaMode = WGPUCompositeAlphaMode_Auto;
-
-	wgpuSurfaceConfigure(window.getSurface(), &config);
 
 	return userData.device;
 }

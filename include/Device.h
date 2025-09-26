@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <webgpu/webgpu.h>
 
 class WebGpuInstance;
@@ -8,7 +9,7 @@ class Window;
 class Device
 {
 public:
-    Device(const WebGpuInstance &instance, const Adapter &adapter, const Window &window);
+    Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
     ~Device();
 
     [[nodiscard]] WGPUDevice get() const;
@@ -18,6 +19,6 @@ public:
 private:
     WGPUDevice m_device;
 
-    WGPUDevice requestDevice(const WebGpuInstance &instance, const Adapter &adapter, const Window &window);
+    WGPUDevice requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
     WGPUDeviceDescriptor createDeviceDescriptor(const WGPULimits &requiredLimits);
 };

@@ -9,9 +9,9 @@
 #include "WebGpuInstance.h"
 #include "Window.h"
 
-Adapter::Adapter(const WebGpuInstance &instance, const Window &window)
+Adapter::Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window)
 {
-    m_adapter = requestAdapter(instance, window.getSurface());
+    m_adapter = requestAdapter(instance, window->getSurface());
 }
 
 Adapter::~Adapter()
@@ -23,7 +23,7 @@ Adapter::~Adapter()
     }
 }
 
-WGPUAdapter Adapter::requestAdapter(const WebGpuInstance &instance, const WGPUSurface &surface)
+WGPUAdapter Adapter::requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const WGPUSurface &surface)
 {
 	WGPURequestAdapterOptions opts = WGPU_REQUEST_ADAPTER_OPTIONS_INIT;
 	opts.compatibleSurface = surface;
@@ -62,14 +62,14 @@ WGPUAdapter Adapter::requestAdapter(const WebGpuInstance &instance, const WGPUSu
 		/* userdata2 = */ nullptr
 	};
 
-	wgpuInstanceRequestAdapter(instance.get(), &opts, callbackInfo);
+	wgpuInstanceRequestAdapter(instance->get(), &opts, callbackInfo);
 
-	instance.processEvents();
+	instance->processEvents();
 
 	while (!userData.requestEnded)
 	{
 		Util::sleep(50);
-		instance.processEvents();
+		instance->processEvents();
 	}
 
 	return userData.adapter;

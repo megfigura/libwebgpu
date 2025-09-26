@@ -8,6 +8,7 @@
 #include "Adapter.h"
 #include "Device.h"
 #include "StringView.h"
+#include "Util.h"
 #include "Window.h"
 
 #ifdef __EMSCRIPTEN__
@@ -16,6 +17,26 @@
 
 Application::ApplicationImpl::ApplicationImpl() = default;
 Application::ApplicationImpl::~ApplicationImpl() = default;
+
+std::shared_ptr<WebGpuInstance> Application::ApplicationImpl::getInstance()
+{
+    return m_instance;
+}
+
+std::shared_ptr<Adapter> Application::ApplicationImpl::getAdapter()
+{
+    return m_adapter;
+}
+
+std::shared_ptr<Device> Application::ApplicationImpl::getDevice()
+{
+    return m_device;
+}
+
+std::shared_ptr<Window> Application::ApplicationImpl::getWindow()
+{
+    return m_window;
+}
 
 int Application::ApplicationImpl::run()
 {
@@ -26,10 +47,10 @@ int Application::ApplicationImpl::run()
         return 1;
     }
 
-    m_instance = std::make_unique<WebGpuInstance>();
-    m_window = std::make_unique<Window>(*m_instance);
-    m_adapter = std::make_unique<Adapter>(*m_instance, *m_window);
-    m_device = std::make_unique<Device>(*m_instance, *m_adapter, *m_window);
+    m_instance = std::make_shared<WebGpuInstance>();
+    m_window = std::make_shared<Window>(m_instance);
+    m_adapter = std::make_shared<Adapter>(m_instance, m_window);
+    m_device = std::make_shared<Device>(m_instance, m_adapter);
     m_adapter->print();
     m_device->print();
 
@@ -84,10 +105,12 @@ bool Application::ApplicationImpl::mainLoop()
             if ((event.key.scancode == SDL_SCANCODE_RETURN) && (event.key.mod & SDL_KMOD_ALT))
             {
                 SDL_SetWindowFullscreen(m_window->getWindow(), true);
+                SDL_SyncWindow(m_window->getWindow());
             }
             if (event.key.scancode == SDL_SCANCODE_ESCAPE)
             {
                 SDL_SetWindowFullscreen(m_window->getWindow(), false);
+                SDL_SyncWindow(m_window->getWindow());
             }
             break;
 
@@ -105,7 +128,6 @@ bool Application::ApplicationImpl::mainLoop()
             //spdlog::info("alt-enter");
         }
     }
-
 
     auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
     wgpuSurfaceGetCurrentTexture(m_window->getSurface(), &surfaceTexture);
@@ -154,6 +176,7 @@ bool Application::ApplicationImpl::mainLoop()
     wgpuTextureViewRelease(targetView);
 
 #ifndef __EMSCRIPTEN__
+    Util::sleep(100);
     wgpuSurfacePresent(m_window->getSurface());
 #endif
 

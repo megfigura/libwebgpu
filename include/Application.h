@@ -2,6 +2,11 @@
 #include <memory>
 #include <SDL3/SDL_init.h>
 
+class WebGpuInstance;
+class Adapter;
+class Device;
+class Window;
+
 class Application
 {
 public:
@@ -13,6 +18,11 @@ public:
     bool isShuttingDown() const;
 
     static Application& get();
+
+    std::shared_ptr<WebGpuInstance> getInstance() const;
+    std::shared_ptr<Adapter> getAdapter() const;
+    std::shared_ptr<Device> getDevice() const;
+    std::shared_ptr<Window> getWindow() const;
 
 protected:
     Application();

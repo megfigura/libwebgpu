@@ -23,19 +23,19 @@ add_library(libwebgpu
         include/Application.h
         include/StringView.h
         src/Adapter.cpp
-        src/Adapter.h
+        include/Adapter.h
         src/Application.cpp
         src/ApplicationImpl.cpp
         src/ApplicationImpl.h
         src/Device.cpp
-        src/Device.h
+        include/Device.h
         src/StringView.cpp
         src/Util.cpp
         src/Util.h
         src/Window.cpp
-        src/Window.h
+        include/Window.h
         src/WebGpuInstance.cpp
-        src/WebGpuInstance.h
+        include/WebGpuInstance.h
 )
 
 target_include_directories(libwebgpu PUBLIC include)
