@@ -8,12 +8,32 @@
 #include "Adapter.h"
 #include "Device.h"
 #include "StringView.h"
-#include "Util.h"
+#include "webgpu/Util.h"
 #include "Window.h"
+#include "input/Controller.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
+
+// TODO
+const char* shaderSource = R"(
+@vertex
+fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
+	if (in_vertex_index == 0u) {
+		return vec4f(-0.45, 0.5, 0.0, 1.0);
+	} else if (in_vertex_index == 1u) {
+		return vec4f(0.45, 0.5, 0.0, 1.0);
+	} else {
+		return vec4f(0.0, -0.5, 0.0, 1.0);
+	}
+}
+// Add this in the same shaderSource literal than the vertex entry point
+@fragment
+fn fs_main() -> @location(0) vec4f {
+	return vec4f(0.0, 0.4, 0.7, 1.0);
+}
+)";
 
 Application::ApplicationImpl::ApplicationImpl() = default;
 Application::ApplicationImpl::~ApplicationImpl() = default;
@@ -51,8 +71,36 @@ int Application::ApplicationImpl::run()
     m_window = std::make_shared<Window>(m_instance);
     m_adapter = std::make_shared<Adapter>(m_instance, m_window);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
+    m_controller = std::make_shared<Controller>();
     m_adapter->print();
     m_device->print();
+
+    // TODO
+    {
+        m_window->sizeSurfaceToWindow(); // TODO - need to init surface before pipeline
+
+        WGPUShaderSourceWGSL wgslDesc = WGPU_SHADER_SOURCE_WGSL_INIT;
+        wgslDesc.code = StringView(shaderSource);
+        WGPUShaderModuleDescriptor shaderDesc = WGPU_SHADER_MODULE_DESCRIPTOR_INIT;
+        shaderDesc.nextInChain = &wgslDesc.chain; // connect the chained extension
+        shaderDesc.label = StringView("Shader source from Application.cpp");
+        WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(m_device->get(), &shaderDesc);
+        WGPURenderPipelineDescriptor pipelineDesc = WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT;
+        pipelineDesc.vertex.module = shaderModule;
+        pipelineDesc.vertex.entryPoint = StringView("vs_main");
+        WGPUFragmentState fragmentState = WGPU_FRAGMENT_STATE_INIT;
+        fragmentState.module = shaderModule;
+        fragmentState.entryPoint = StringView("fs_main");
+        WGPUColorTargetState colorTarget = WGPU_COLOR_TARGET_STATE_INIT;
+        colorTarget.format = m_window->getTextureFormat();
+        WGPUBlendState blendState = WGPU_BLEND_STATE_INIT;
+        colorTarget.blend = &blendState;
+        fragmentState.targetCount = 1;
+        fragmentState.targets = &colorTarget;
+        pipelineDesc.fragment = &fragmentState;
+        m_pipeline = wgpuDeviceCreateRenderPipeline(m_device->get(), &pipelineDesc);
+        wgpuShaderModuleRelease(shaderModule);
+    }
 
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
@@ -91,7 +139,8 @@ bool Application::ApplicationImpl::mainLoop()
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        m_window->processEvent(event);
+        m_window->onEvent(event);
+        m_controller->onEvent(event);
 
         switch (event.type)
         {
@@ -101,41 +150,21 @@ bool Application::ApplicationImpl::mainLoop()
 #endif
             return false;
 
-        case SDL_EVENT_KEY_DOWN:
-            if ((event.key.scancode == SDL_SCANCODE_RETURN) && (event.key.mod & SDL_KMOD_ALT))
-            {
-                SDL_SetWindowFullscreen(m_window->getWindow(), true);
-                SDL_SyncWindow(m_window->getWindow());
-            }
-            if (event.key.scancode == SDL_SCANCODE_ESCAPE)
-            {
-                SDL_SetWindowFullscreen(m_window->getWindow(), false);
-                SDL_SyncWindow(m_window->getWindow());
-            }
-            break;
-
         default:
             break;
         }
     }
 
-    SDL_Keymod keyMod = SDL_GetModState();
-    const bool *keyboard = SDL_GetKeyboardState(nullptr);
-    if (keyMod & SDL_KMOD_ALT)
-    {
-        if (keyboard[SDL_SCANCODE_RETURN])
-        {
-            //spdlog::info("alt-enter");
-        }
-    }
+    m_controller->onFrame();
 
     auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
     wgpuSurfaceGetCurrentTexture(m_window->getSurface(), &surfaceTexture);
     if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal &&
         surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
     {
-        return false;
+        return true;
     }
+
     auto viewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
     viewDescriptor.label = StringView("Surface texture view");
     viewDescriptor.dimension = WGPUTextureViewDimension_2D; // not to confuse with 2DArray
@@ -144,7 +173,11 @@ bool Application::ApplicationImpl::mainLoop()
     // so we release it at the end of GetNextSurfaceViewData
     wgpuTextureRelease(surfaceTexture.texture);
 
-    if (!targetView) return(false); // no surface texture, we skip this frame
+    if (!targetView)
+    {
+        return(true); // no surface texture, we skip this frame
+    }
+
     auto encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
     encoderDesc.label = StringView("My command encoder");
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device->get(), &encoderDesc);
@@ -160,9 +193,11 @@ bool Application::ApplicationImpl::mainLoop()
     renderPassDesc.colorAttachments = &colorAttachment;
 
     WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
-    // Use the render pass here (we do nothing with the render pass for now)
+    wgpuRenderPassEncoderSetPipeline(renderPass, m_pipeline);
+    wgpuRenderPassEncoderDraw(renderPass, 3, 1, 0, 0);
     wgpuRenderPassEncoderEnd(renderPass);
     wgpuRenderPassEncoderRelease(renderPass);
+
     auto cmdBufferDescriptor = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
     cmdBufferDescriptor.label = StringView("Command buffer");
     WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);

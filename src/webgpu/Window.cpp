@@ -22,15 +22,15 @@ namespace x11
 
 Window::Window(const std::shared_ptr<WebGpuInstance>& instance)
 {
-    int width = 800;
-    int height = 600;
+    constexpr int width = 800;
+    constexpr int height = 600;
 
     // invalid so we resize the surface later
     m_width = -1;
     m_height = -1;
 
     m_window = SDL_CreateWindow("webgputest", width, height, SDL_WINDOW_RESIZABLE);
-    m_surface = getSurface(instance);
+    m_surface = createSurface(instance);
 
     SDL_SetWindowFullscreenMode(m_window, nullptr);
 
@@ -38,8 +38,8 @@ Window::Window(const std::shared_ptr<WebGpuInstance>& instance)
     SDL_Event initSurfaceEvent;
     SDL_zero(initSurfaceEvent);
     initSurfaceEvent.type = SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED;
-    initSurfaceEvent.window.data1 = 800;
-    initSurfaceEvent.window.data2 = 600;
+    initSurfaceEvent.window.data1 = width;
+    initSurfaceEvent.window.data2 = height;
     SDL_PushEvent(&initSurfaceEvent);
 }
 
@@ -55,7 +55,13 @@ void Window::sizeSurfaceToWindow()
     configureSurface(width, height);
 }
 
-WGPUSurface Window::getSurface(const std::shared_ptr<WebGpuInstance>& instance)
+void Window::setFullscreen(const bool isFullscreen) const
+{
+    SDL_SetWindowFullscreen(m_window, isFullscreen);
+    SDL_SyncWindow(m_window);
+}
+
+WGPUSurface Window::createSurface(const std::shared_ptr<WebGpuInstance>& instance)
 {
 #ifdef __EMSCRIPTEN__
     WGPUEmscriptenSurfaceSourceCanvasHTMLSelector selector = WGPU_EMSCRIPTEN_SURFACE_SOURCE_CANVAS_HTML_SELECTOR_INIT;
@@ -106,7 +112,7 @@ WGPUSurface Window::getSurface(const std::shared_ptr<WebGpuInstance>& instance, 
     return wgpuInstanceCreateSurface(instance->get(), &surfaceDescriptor);
 }
 
-void Window::processEvent(const SDL_Event& event)
+void Window::onEvent(const SDL_Event& event)
 {
     switch (event.type)
     {
@@ -131,6 +137,11 @@ WGPUSurface Window::getSurface() const
 SDL_Window *Window::getWindow() const
 {
     return m_window;
+}
+
+WGPUTextureFormat Window::getTextureFormat() const
+{
+    return m_surfaceFormat;
 }
 
 void Window::configureSurface(int width, int height)
@@ -164,6 +175,7 @@ void Window::configureSurface(int width, int height)
     // From the capabilities, we get the preferred format: it is always the first one!
     // (NB: There is always at least 1 format if the GetCapabilities was successful)
     config.format = capabilities.formats[0];
+    m_surfaceFormat = config.format;
 
     // We no longer need to access the capabilities, so we release their memory.
     wgpuSurfaceCapabilitiesFreeMembers(capabilities);

@@ -1,10 +1,13 @@
 #pragma once
+#include <webgpu/webgpu.h>
+
 #include "Application.h"
 
 class WebGpuInstance;
 class Adapter;
 class Device;
 class Window;
+class Controller;
 
 class Application::ApplicationImpl
 {
@@ -26,6 +29,8 @@ private:
     std::shared_ptr<Adapter> m_adapter;
     std::shared_ptr<Device> m_device;
     std::shared_ptr<Window> m_window;
+    std::shared_ptr<Controller> m_controller;
+    WGPURenderPipeline m_pipeline;
 
     bool mainLoop();
 };

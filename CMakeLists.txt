@@ -18,30 +18,37 @@ include(cmake/variables.cmake)
 
 find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(tomlplusplus REQUIRED)
 
 add_library(libwebgpu
-        include/Application.h
-        include/StringView.h
-        src/Adapter.cpp
         include/Adapter.h
+        include/Application.h
+        include/Device.h
+        include/StringView.h
+        include/Window.h
+        include/WebGpuInstance.h
+
         src/Application.cpp
         src/ApplicationImpl.cpp
         src/ApplicationImpl.h
-        src/Device.cpp
-        include/Device.h
-        src/StringView.cpp
-        src/Util.cpp
-        src/Util.h
-        src/Window.cpp
-        include/Window.h
-        src/WebGpuInstance.cpp
-        include/WebGpuInstance.h
+
+        src/input/Controller.cpp
+        src/input/Controller.h
+
+        src/webgpu/Adapter.cpp
+        src/webgpu/Device.cpp
+        src/webgpu/StringView.cpp
+        src/webgpu/Util.cpp
+        src/webgpu/Util.h
+        src/webgpu/WebGpuInstance.cpp
+        src/webgpu/Window.cpp
 )
 
 target_include_directories(libwebgpu PUBLIC include)
 target_link_libraries(libwebgpu
         SDL3::SDL3
         spdlog::spdlog
+        tomlplusplus::tomlplusplus
 )
 set_target_properties(
         libwebgpu PROPERTIES
