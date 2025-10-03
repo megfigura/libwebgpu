@@ -6,23 +6,27 @@ class WebGpuInstance;
 class Adapter;
 class Device;
 class Window;
+class Surface;
+class Controller;
 
 class Application
 {
 public:
-    int run() const;
+    [[nodiscard]] int run() const;
 
     Application(Application&&) noexcept;
     Application& operator=(Application&&) noexcept;
     void setShuttingDown();
-    bool isShuttingDown() const;
+    [[nodiscard]] bool isShuttingDown() const;
 
     static Application& get();
 
-    std::shared_ptr<WebGpuInstance> getInstance() const;
-    std::shared_ptr<Adapter> getAdapter() const;
-    std::shared_ptr<Device> getDevice() const;
-    std::shared_ptr<Window> getWindow() const;
+    [[nodiscard]] std::shared_ptr<WebGpuInstance> getInstance() const;
+    [[nodiscard]] std::shared_ptr<Adapter> getAdapter() const;
+    [[nodiscard]] std::shared_ptr<Device> getDevice() const;
+    [[nodiscard]] std::shared_ptr<Window> getWindow() const;
+    [[nodiscard]] std::shared_ptr<Surface> getSurface() const;
+    [[nodiscard]] std::shared_ptr<Controller> getController() const;
 
 protected:
     Application();

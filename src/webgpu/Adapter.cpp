@@ -5,13 +5,14 @@
 
 #include "Device.h"
 #include "StringView.h"
+#include "Surface.h"
 #include "Util.h"
 #include "WebGpuInstance.h"
 #include "Window.h"
 
-Adapter::Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window)
+Adapter::Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface>& surface)
 {
-    m_adapter = requestAdapter(instance, window->getSurface());
+    m_adapter = requestAdapter(instance, surface);
 }
 
 Adapter::~Adapter()
@@ -23,10 +24,10 @@ Adapter::~Adapter()
     }
 }
 
-WGPUAdapter Adapter::requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const WGPUSurface &surface)
+WGPUAdapter Adapter::requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface> &surface)
 {
 	WGPURequestAdapterOptions opts = WGPU_REQUEST_ADAPTER_OPTIONS_INIT;
-	opts.compatibleSurface = surface;
+	opts.compatibleSurface = surface->get();
 
 	struct UserData {
 		WGPUAdapter adapter = nullptr;

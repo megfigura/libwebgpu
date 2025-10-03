@@ -1,4 +1,3 @@
-#include <iostream>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "Application.h"
@@ -7,33 +6,15 @@
 
 #include "Adapter.h"
 #include "Device.h"
-#include "StringView.h"
-#include "webgpu/Util.h"
 #include "Window.h"
 #include "input/Controller.h"
+#include "webgpu/Frame.h"
+#include "webgpu/Pipeline.h"
+#include "webgpu/Surface.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
-
-// TODO
-const char* shaderSource = R"(
-@vertex
-fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
-	if (in_vertex_index == 0u) {
-		return vec4f(-0.45, 0.5, 0.0, 1.0);
-	} else if (in_vertex_index == 1u) {
-		return vec4f(0.45, 0.5, 0.0, 1.0);
-	} else {
-		return vec4f(0.0, -0.5, 0.0, 1.0);
-	}
-}
-// Add this in the same shaderSource literal than the vertex entry point
-@fragment
-fn fs_main() -> @location(0) vec4f {
-	return vec4f(0.0, 0.4, 0.7, 1.0);
-}
-)";
 
 Application::ApplicationImpl::ApplicationImpl() = default;
 Application::ApplicationImpl::~ApplicationImpl() = default;
@@ -58,6 +39,16 @@ std::shared_ptr<Window> Application::ApplicationImpl::getWindow()
     return m_window;
 }
 
+std::shared_ptr<Surface> Application::ApplicationImpl::getSurface()
+{
+    return m_surface;
+}
+
+std::shared_ptr<Controller> Application::ApplicationImpl::getController()
+{
+    return m_controller;
+}
+
 int Application::ApplicationImpl::run()
 {
     initLogging();
@@ -69,38 +60,17 @@ int Application::ApplicationImpl::run()
 
     m_instance = std::make_shared<WebGpuInstance>();
     m_window = std::make_shared<Window>(m_instance);
-    m_adapter = std::make_shared<Adapter>(m_instance, m_window);
+    m_surface = std::make_shared<Surface>(m_window, m_instance);
+    m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
     m_controller = std::make_shared<Controller>();
     m_adapter->print();
     m_device->print();
 
-    // TODO
-    {
-        m_window->sizeSurfaceToWindow(); // TODO - need to init surface before pipeline
+    m_surface->configureSurface(m_window->getWidth(), m_window->getHeight());
+    m_pipeline = std::make_shared<Pipeline>(m_device, m_surface);
 
-        WGPUShaderSourceWGSL wgslDesc = WGPU_SHADER_SOURCE_WGSL_INIT;
-        wgslDesc.code = StringView(shaderSource);
-        WGPUShaderModuleDescriptor shaderDesc = WGPU_SHADER_MODULE_DESCRIPTOR_INIT;
-        shaderDesc.nextInChain = &wgslDesc.chain; // connect the chained extension
-        shaderDesc.label = StringView("Shader source from Application.cpp");
-        WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(m_device->get(), &shaderDesc);
-        WGPURenderPipelineDescriptor pipelineDesc = WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT;
-        pipelineDesc.vertex.module = shaderModule;
-        pipelineDesc.vertex.entryPoint = StringView("vs_main");
-        WGPUFragmentState fragmentState = WGPU_FRAGMENT_STATE_INIT;
-        fragmentState.module = shaderModule;
-        fragmentState.entryPoint = StringView("fs_main");
-        WGPUColorTargetState colorTarget = WGPU_COLOR_TARGET_STATE_INIT;
-        colorTarget.format = m_window->getTextureFormat();
-        WGPUBlendState blendState = WGPU_BLEND_STATE_INIT;
-        colorTarget.blend = &blendState;
-        fragmentState.targetCount = 1;
-        fragmentState.targets = &colorTarget;
-        pipelineDesc.fragment = &fragmentState;
-        m_pipeline = wgpuDeviceCreateRenderPipeline(m_device->get(), &pipelineDesc);
-        wgpuShaderModuleRelease(shaderModule);
-    }
+    m_pipeline->setClearColor({0, 0, 0, 0});
 
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
@@ -157,63 +127,8 @@ bool Application::ApplicationImpl::mainLoop()
 
     m_controller->onFrame();
 
-    auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
-    wgpuSurfaceGetCurrentTexture(m_window->getSurface(), &surfaceTexture);
-    if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal &&
-        surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
-    {
-        return true;
-    }
-
-    auto viewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
-    viewDescriptor.label = StringView("Surface texture view");
-    viewDescriptor.dimension = WGPUTextureViewDimension_2D; // not to confuse with 2DArray
-    WGPUTextureView targetView = wgpuTextureCreateView(surfaceTexture.texture, &viewDescriptor);
-    // We no longer need the texture, only its view,
-    // so we release it at the end of GetNextSurfaceViewData
-    wgpuTextureRelease(surfaceTexture.texture);
-
-    if (!targetView)
-    {
-        return(true); // no surface texture, we skip this frame
-    }
-
-    auto encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
-    encoderDesc.label = StringView("My command encoder");
-    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device->get(), &encoderDesc);
-    auto renderPassDesc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
-    auto colorAttachment = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
-
-    colorAttachment.view = targetView;
-    colorAttachment.loadOp = WGPULoadOp_Clear;
-    colorAttachment.storeOp = WGPUStoreOp_Store;
-    colorAttachment.clearValue = WGPUColor{ 1.0, 0.8, 0.55, 1.0 };
-
-    renderPassDesc.colorAttachmentCount = 1;
-    renderPassDesc.colorAttachments = &colorAttachment;
-
-    WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
-    wgpuRenderPassEncoderSetPipeline(renderPass, m_pipeline);
-    wgpuRenderPassEncoderDraw(renderPass, 3, 1, 0, 0);
-    wgpuRenderPassEncoderEnd(renderPass);
-    wgpuRenderPassEncoderRelease(renderPass);
-
-    auto cmdBufferDescriptor = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
-    cmdBufferDescriptor.label = StringView("Command buffer");
-    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
-    wgpuCommandEncoderRelease(encoder); // release encoder after it's finished
-
-    // Finally submit the command queue
-    WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
-    wgpuQueueSubmit(queue, 1, &command);
-    wgpuCommandBufferRelease(command);
-    // At the end of the frame
-    wgpuTextureViewRelease(targetView);
-
-#ifndef __EMSCRIPTEN__
-    Util::sleep(100);
-    wgpuSurfacePresent(m_window->getSurface());
-#endif
+    Frame frame(m_device, m_surface, m_pipeline);
+    frame.draw();
 
     return true;
 }

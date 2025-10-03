@@ -42,6 +42,15 @@ add_library(libwebgpu
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
+        src/webgpu/Surface.cpp
+        src/webgpu/Surface.h
+        src/webgpu/Pipeline.cpp
+        src/webgpu/Pipeline.h
+        src/webgpu/Frame.cpp
+        src/webgpu/Frame.cpp
+        src/webgpu/Frame.h
+        src/webgpu/DepthTextureView.cpp
+        src/webgpu/DepthTextureView.h
 )
 
 target_include_directories(libwebgpu PUBLIC include)

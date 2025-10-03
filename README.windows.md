@@ -3,7 +3,7 @@
 ## From Linux
 Install MinGW:
 ```shell
-sudo apt install gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix
+sudo apt install g++-mingw-w64-ucrt64 gcc-mingw-w64-ucrt64
 ```
 
 ## Add Conan profile
@@ -19,8 +19,8 @@ arch=x86_64
 build_type=Release
 
 [buildenv]
-CC=x86_64-w64-mingw32-gcc-posix
-CXX=x86_64-w64-mingw32-g++-posix
+CC=x86_64-w64-mingw32ucrt-gcc
+CXX=x86_64-w64-mingw32ucrt-g++
 ```
 
 ## Build Dawn .dll

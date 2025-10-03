@@ -53,6 +53,16 @@ std::shared_ptr<Window> Application::getWindow() const
     return impl->getWindow();
 }
 
+std::shared_ptr<Surface> Application::getSurface() const
+{
+    return impl->getSurface();
+}
+
+std::shared_ptr<Controller> Application::getController() const
+{
+    return impl->getController();
+}
+
 void Application::initLogging()
 {
     impl->initLogging();
