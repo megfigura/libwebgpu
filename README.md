@@ -1,6 +1,8 @@
 # libwebgpu
 Utilities for WebGPU development
 
+Currently heavily based on: https://eliemichel.github.io/LearnWebGPU/index.html
+
 # Pre-reqs
 I'm using WSL2 with Debian along with CLion. [https://www.jetbrains.com/toolbox-app/](https://www.jetbrains.com/toolbox-app/)
 
