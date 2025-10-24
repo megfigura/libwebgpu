@@ -33,6 +33,11 @@ Application& Application::get()
     return *theAppInstance;
 }
 
+std::shared_ptr<Loader> Application::getResourceLoader() const
+{
+    return impl->getResourceLoader();
+}
+
 std::shared_ptr<WebGpuInstance> Application::getInstance() const
 {
     return impl->getInstance();

@@ -19,6 +19,12 @@ public:
     void setDepthFormat(const WGPUTextureFormat& format);
     const WGPUTextureView& getDepthTextureView();
 
+    const WGPUBuffer& getPointBuffer() const;
+    const WGPUBuffer& getIndexBuffer() const;
+    const WGPUBuffer& getUniformBuffer() const;
+    const WGPUBindGroup& getBindGroup() const;
+    float getCurrTime();
+
 private:
     std::shared_ptr<Device> m_device;
     std::shared_ptr<Surface> m_surface;
@@ -26,6 +32,15 @@ private:
     WGPUColor m_color;
     WGPUTextureFormat m_depthFormat;
     std::unique_ptr<DepthTextureView> m_depthTextureView;
+    WGPUBindGroupLayout m_bindGroupLayout;
+    WGPUPipelineLayout m_pipelineLayout;
+    WGPUBindGroup m_bindGroup;
+
+    WGPUBuffer m_pointBuffer;
+    WGPUBuffer m_indexBuffer;
+    WGPUBuffer m_uniformBuffer;
+    float m_currTime;
+
 
     WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
 };

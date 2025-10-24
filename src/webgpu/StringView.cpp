@@ -2,13 +2,17 @@
 #include <StringView.h>
 #include <string_view>
 
-StringView::StringView(const char *str) : WGPUStringView()
+StringView::StringView(const char *str, const size_t length) : WGPUStringView{ str, length }
 {
-    data = str;
-    length = strlen(str);
 }
 
-StringView::StringView(::WGPUStringView other)
+StringView::StringView(const std::string& other) : WGPUStringView()
+{
+    data = other.data();
+    length = other.length();
+}
+
+StringView::StringView(::WGPUStringView other) : WGPUStringView()
 {
     data = other.data;
     length = other.length;

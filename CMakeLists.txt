@@ -19,6 +19,7 @@ include(cmake/variables.cmake)
 find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(tomlplusplus REQUIRED)
+find_package(tl-expected REQUIRED)
 
 add_library(libwebgpu
         include/Adapter.h
@@ -35,29 +36,39 @@ add_library(libwebgpu
         src/input/Controller.cpp
         src/input/Controller.h
 
+        src/resource/Loader.cpp
+        src/resource/Loader.h
+        src/resource/RawResource.cpp
+        src/resource/RawResource.h
+        src/resource/Resource.cpp
+        src/resource/Resource.h
+        src/resource/StringResource.cpp
+        src/resource/StringResource.h
+
         src/webgpu/Adapter.cpp
+        src/webgpu/DepthTextureView.cpp
+        src/webgpu/DepthTextureView.h
         src/webgpu/Device.cpp
+        src/webgpu/Frame.cpp
+        src/webgpu/Frame.h
+        src/webgpu/Pipeline.cpp
+        src/webgpu/Pipeline.h
         src/webgpu/StringView.cpp
+        src/webgpu/Surface.cpp
+        src/webgpu/Surface.h
         src/webgpu/Util.cpp
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
-        src/webgpu/Surface.cpp
-        src/webgpu/Surface.h
-        src/webgpu/Pipeline.cpp
-        src/webgpu/Pipeline.h
-        src/webgpu/Frame.cpp
-        src/webgpu/Frame.cpp
-        src/webgpu/Frame.h
-        src/webgpu/DepthTextureView.cpp
-        src/webgpu/DepthTextureView.h
 )
 
 target_include_directories(libwebgpu PUBLIC include)
+target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(libwebgpu
         SDL3::SDL3
         spdlog::spdlog
         tomlplusplus::tomlplusplus
+        tl::expected
 )
 set_target_properties(
         libwebgpu PROPERTIES
@@ -85,8 +96,8 @@ elseif (CMAKE_OS STREQUAL "Windows")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
-	target_link_options(testapp PRIVATE
-		--static
+        target_link_options(testapp PRIVATE
+		    --static
 	)
 elseif (CMAKE_OS STREQUAL "Emscripten")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/webgpu/include)
@@ -97,6 +108,7 @@ elseif (CMAKE_OS STREQUAL "Emscripten")
                 -sASYNCIFY
                 -sUSE_SDL=3
                 -sEXPORTED_FUNCTIONS=_main,requestFullscreen
+                --embed-file ${CMAKE_CURRENT_SOURCE_DIR}/resources@resources
                 # Comment for testapp, needed when building lib?
                 #--use-port=/home/meg/dev/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false
 	)

@@ -8,6 +8,7 @@
 #include "Device.h"
 #include "Window.h"
 #include "input/Controller.h"
+#include "resource/Loader.h"
 #include "webgpu/Frame.h"
 #include "webgpu/Pipeline.h"
 #include "webgpu/Surface.h"
@@ -18,6 +19,11 @@
 
 Application::ApplicationImpl::ApplicationImpl() = default;
 Application::ApplicationImpl::~ApplicationImpl() = default;
+
+std::shared_ptr<Loader> Application::ApplicationImpl::getResourceLoader()
+{
+    return m_resourceLoader;
+}
 
 std::shared_ptr<WebGpuInstance> Application::ApplicationImpl::getInstance()
 {
@@ -58,6 +64,7 @@ int Application::ApplicationImpl::run()
         return 1;
     }
 
+    m_resourceLoader = std::make_shared<Loader>("resources");
     m_instance = std::make_shared<WebGpuInstance>();
     m_window = std::make_shared<Window>(m_instance);
     m_surface = std::make_shared<Surface>(m_window, m_instance);
@@ -70,7 +77,7 @@ int Application::ApplicationImpl::run()
     m_surface->configureSurface(m_window->getWidth(), m_window->getHeight());
     m_pipeline = std::make_shared<Pipeline>(m_device, m_surface);
 
-    m_pipeline->setClearColor({0, 0, 0, 0});
+    m_pipeline->setClearColor({0, 0, 1, 1});
 
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };

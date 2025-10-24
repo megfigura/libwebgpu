@@ -15,6 +15,12 @@ Frame::Frame(const std::shared_ptr<Device>& device, const std::shared_ptr<Surfac
     m_pipeline = pipeline;
 }
 
+struct UniformStruct
+{
+    float time;
+    float opacity;
+};
+
 bool Frame::draw()
 {
     auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
@@ -53,6 +59,7 @@ bool Frame::draw()
     depthStencilAttachment.depthClearValue = 1.0f;
     depthStencilAttachment.depthLoadOp = WGPULoadOp_Clear;
     depthStencilAttachment.depthStoreOp = WGPUStoreOp_Store;
+    depthStencilAttachment.depthReadOnly = false;
 
     auto renderPassDesc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
     renderPassDesc.colorAttachmentCount = 1;
@@ -61,7 +68,16 @@ bool Frame::draw()
 
     WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
     wgpuRenderPassEncoderSetPipeline(renderPass, m_pipeline->get());
-    wgpuRenderPassEncoderDraw(renderPass, 3, 1, 0, 0);
+    wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, m_pipeline->getPointBuffer(), 0, wgpuBufferGetSize(m_pipeline->getPointBuffer()));
+    wgpuRenderPassEncoderSetIndexBuffer(renderPass, m_pipeline->getIndexBuffer(), WGPUIndexFormat_Uint16, 0, wgpuBufferGetSize(m_pipeline->getIndexBuffer()));
+    wgpuRenderPassEncoderSetBindGroup(renderPass, 0, m_pipeline->getBindGroup(), 0, nullptr);
+
+    WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
+
+    UniformStruct u = { m_pipeline->getCurrTime(), (float)(0.5 + sin(m_pipeline->getCurrTime()) / 2.0) };
+    wgpuQueueWriteBuffer(queue, m_pipeline->getUniformBuffer(), 0, &u, sizeof(u));
+
+    wgpuRenderPassEncoderDrawIndexed(renderPass, 18, 1, 0, 0, 0);
     wgpuRenderPassEncoderEnd(renderPass);
     wgpuRenderPassEncoderRelease(renderPass);
 
@@ -70,14 +86,15 @@ bool Frame::draw()
     WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
     wgpuCommandEncoderRelease(encoder); // release encoder after it's finished
 
-    WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
+
+
     wgpuQueueSubmit(queue, 1, &command);
     wgpuCommandBufferRelease(command);
 
     wgpuTextureViewRelease(targetView);
 
 #ifndef __EMSCRIPTEN__
-    Util::sleep(100);
+    Util::sleep(50);
     m_surface->present();
 #endif
 

@@ -2,6 +2,7 @@
 #include <memory>
 #include <SDL3/SDL_init.h>
 
+class Loader;
 class WebGpuInstance;
 class Adapter;
 class Device;
@@ -21,6 +22,7 @@ public:
 
     static Application& get();
 
+    [[nodiscard]] std::shared_ptr<Loader> getResourceLoader() const;
     [[nodiscard]] std::shared_ptr<WebGpuInstance> getInstance() const;
     [[nodiscard]] std::shared_ptr<Adapter> getAdapter() const;
     [[nodiscard]] std::shared_ptr<Device> getDevice() const;

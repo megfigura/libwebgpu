@@ -3,6 +3,7 @@
 
 #include "Application.h"
 
+class Loader;
 class WebGpuInstance;
 class Adapter;
 class Device;
@@ -17,6 +18,7 @@ public:
     ApplicationImpl();
     virtual ~ApplicationImpl();
 
+    std::shared_ptr<Loader> getResourceLoader();
     std::shared_ptr<WebGpuInstance> getInstance();
     std::shared_ptr<Adapter> getAdapter();
     std::shared_ptr<Device> getDevice();
@@ -29,6 +31,7 @@ public:
     virtual SDL_InitFlags getSdlInitFlags();
 
 private:
+    std::shared_ptr<Loader> m_resourceLoader;
     std::shared_ptr<WebGpuInstance> m_instance;
     std::shared_ptr<Adapter> m_adapter;
     std::shared_ptr<Device> m_device;
