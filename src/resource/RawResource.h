@@ -9,9 +9,8 @@
 class RawResource : public Resource
 {
 public:
-    explicit RawResource(const std::filesystem::path& filename);
-    [[nodiscard]] bool isValid() const override;
-    [[nodiscard]] std::string getError() const override;
+    explicit RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename);
+    [[nodiscard]] bool isLoadable(std::string& error) const override;
     [[nodiscard]] tl::expected<std::shared_ptr<std::vector<char>>, std::string> getBytes() const;
 
 private:

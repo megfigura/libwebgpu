@@ -8,18 +8,19 @@
 #include <utility>
 #include <spdlog/spdlog.h>
 
-RawResource::RawResource(const std::filesystem::path& filename) : Resource(filename), m_data(loadResource(filename))
+RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename), m_data(loadResource(filename))
 {
 }
 
-bool RawResource::isValid() const
+bool RawResource::isLoadable(std::string& error) const
 {
-    return m_data.has_value();
-}
+    if (!m_data.has_value())
+    {
+        error = m_data.error();
+        return false;
+    }
 
-std::string RawResource::getError() const
-{
-    return m_data.error();
+    return true;
 }
 
 tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::getBytes() const

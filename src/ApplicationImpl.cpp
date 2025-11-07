@@ -3,7 +3,6 @@
 #include "Application.h"
 #include "ApplicationImpl.h"
 #include "WebGpuInstance.h"
-
 #include "Adapter.h"
 #include "Device.h"
 #include "Window.h"
@@ -71,13 +70,39 @@ int Application::ApplicationImpl::run()
     m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
     m_controller = std::make_shared<Controller>();
-    m_adapter->print();
-    m_device->print();
+
+    //m_adapter->print();
+    //m_device->print();
 
     m_surface->configureSurface(m_window->getWidth(), m_window->getHeight());
-    m_pipeline = std::make_shared<Pipeline>(m_device, m_surface);
 
-    m_pipeline->setClearColor({0, 0, 1, 1});
+    WGPUTextureFormat depthFormat  = WGPUTextureFormat_Depth24Plus;
+    m_depthTextureView = std::make_unique<TextureView>(m_device, StringView("depth texture"), depthFormat, m_surface->getWidth(), m_surface->getHeight());
+
+    auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
+    wgpuSurfaceGetCurrentTexture(m_surface->get(), &surfaceTexture);
+    WGPUTextureFormat surfaceTextureFormat = wgpuTextureGetFormat(surfaceTexture.texture);
+    m_msaaTextureView = std::make_unique<TextureView>(m_device, StringView("msaa texture"), surfaceTextureFormat, m_surface->getWidth(), m_surface->getHeight());
+    wgpuTextureRelease(surfaceTexture.texture);
+
+    // TODO
+    auto gltfRes = m_resourceLoader->getGltf("models/AntiqueCamera/AntiqueCamera.gltf");
+    if (!gltfRes.has_value())
+    {
+        spdlog::error("Failed to load model: {}", gltfRes.error());
+    }
+    else
+    {
+        for (auto& node : gltfRes.value<>()->getNodes())
+        {
+            for (auto& primitive : node.mesh.m_primitives)
+            {
+                std::shared_ptr<Pipeline> pipeline = std::make_shared<Pipeline>(node, primitive, m_device, m_surface);
+                m_pipelines.push_back(pipeline);
+            }
+        }
+        gltfRes.value<>()->loadBuffers(m_device);
+    }
 
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
@@ -134,7 +159,7 @@ bool Application::ApplicationImpl::mainLoop()
 
     m_controller->onFrame();
 
-    Frame frame(m_device, m_surface, m_pipeline);
+    Frame frame(m_device, m_surface, m_pipelines, m_depthTextureView, m_msaaTextureView);
     frame.draw();
 
     return true;

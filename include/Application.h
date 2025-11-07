@@ -2,6 +2,7 @@
 #include <memory>
 #include <SDL3/SDL_init.h>
 
+class TextureView;
 class Loader;
 class WebGpuInstance;
 class Adapter;

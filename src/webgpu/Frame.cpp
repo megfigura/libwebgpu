@@ -1,18 +1,54 @@
 #include "Frame.h"
 
+#include <glm/mat4x4.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include "Application.h"
 #include "Device.h"
 #include "Pipeline.h"
 #include "StringView.h"
 #include "Surface.h"
 #include "Util.h"
+#include "resource/Loader.h"
 
-Frame::Frame(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::shared_ptr<Pipeline>& pipeline)
+// TODO - should take collection of render passes?
+Frame::Frame(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::vector<std::shared_ptr<Pipeline>>& pipelines, const std::shared_ptr<TextureView>& depthTextureView, const std::shared_ptr<TextureView>& msaaTextureView)
 {
     m_device = device;
     m_surface = surface;
-    m_pipeline = pipeline;
+    m_pipelines = pipelines;
+    m_color = { 0, 0, 0, 1.0 };
+    m_depthFormat = WGPUTextureFormat_Depth24Plus;
+    m_depthTextureView = depthTextureView;
+    m_msaaTextureView = msaaTextureView;
+
+    for (auto pipeline : m_pipelines)
+    {
+        pipeline->setDepthFormat(m_depthFormat);
+    }
+}
+
+void Frame::setClearColor(const WGPUColor& color)
+{
+    m_color = color;
+}
+
+const WGPUColor& Frame::getClearColor() const
+{
+    return m_color;
+}
+
+void Frame::setDepthFormat(const WGPUTextureFormat& format)
+{
+    m_depthFormat = format;
+    m_depthTextureView = nullptr;
+
+    for (auto pipeline : m_pipelines)
+    {
+        pipeline->setDepthFormat(m_depthFormat);
+    }
 }
 
 struct UniformStruct
@@ -28,34 +64,28 @@ bool Frame::draw()
     if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal &&
         surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
     {
+        spdlog::info("Skipping draw");
+        wgpuTextureRelease(surfaceTexture.texture);
         return true;
     }
 
-    auto viewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
-    viewDescriptor.label = StringView("Surface texture view");
-    viewDescriptor.dimension = WGPUTextureViewDimension_2D; // not to confuse with 2DArray
-    WGPUTextureView targetView = wgpuTextureCreateView(surfaceTexture.texture, &viewDescriptor);
-    // We no longer need the texture, only its view,
-    // so we release it at the end of GetNextSurfaceViewData
-    wgpuTextureRelease(surfaceTexture.texture);
-
-    if (!targetView)
-    {
-        return(true); // no surface texture, we skip this frame
-    }
+    auto canvasViewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
+    canvasViewDescriptor.dimension = WGPUTextureViewDimension_2D; // not to confuse with 2DArray
+    WGPUTextureView surfaceTextureView = wgpuTextureCreateView(surfaceTexture.texture, &canvasViewDescriptor);
 
     auto encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
     encoderDesc.label = StringView("My command encoder");
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device->get(), &encoderDesc);
 
     auto colorAttachment = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
-    colorAttachment.view = targetView;
+    colorAttachment.view = m_msaaTextureView->update(m_surface->getWidth(), m_surface->getHeight())->get();
     colorAttachment.loadOp = WGPULoadOp_Clear;
     colorAttachment.storeOp = WGPUStoreOp_Store;
-    colorAttachment.clearValue = m_pipeline->getClearColor();
+    colorAttachment.clearValue = getClearColor();
+    colorAttachment.resolveTarget = surfaceTextureView;
 
     WGPURenderPassDepthStencilAttachment depthStencilAttachment = WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
-    depthStencilAttachment.view = m_pipeline->getDepthTextureView();
+    depthStencilAttachment.view = m_depthTextureView->update(m_surface->getWidth(), m_surface->getHeight())->get();
     depthStencilAttachment.depthClearValue = 1.0f;
     depthStencilAttachment.depthLoadOp = WGPULoadOp_Clear;
     depthStencilAttachment.depthStoreOp = WGPUStoreOp_Store;
@@ -66,18 +96,35 @@ bool Frame::draw()
     renderPassDesc.colorAttachments = &colorAttachment;
     renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
 
-    WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
-    wgpuRenderPassEncoderSetPipeline(renderPass, m_pipeline->get());
-    wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, m_pipeline->getPointBuffer(), 0, wgpuBufferGetSize(m_pipeline->getPointBuffer()));
-    wgpuRenderPassEncoderSetIndexBuffer(renderPass, m_pipeline->getIndexBuffer(), WGPUIndexFormat_Uint16, 0, wgpuBufferGetSize(m_pipeline->getIndexBuffer()));
-    wgpuRenderPassEncoderSetBindGroup(renderPass, 0, m_pipeline->getBindGroup(), 0, nullptr);
-
     WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
+    WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
 
-    UniformStruct u = { m_pipeline->getCurrTime(), (float)(0.5 + sin(m_pipeline->getCurrTime()) / 2.0) };
-    wgpuQueueWriteBuffer(queue, m_pipeline->getUniformBuffer(), 0, &u, sizeof(u));
+    for (auto pipeline : m_pipelines)
+    {
+        wgpuRenderPassEncoderSetPipeline(renderPass, pipeline->get());
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, pipeline->getPointBuffer(), 0, wgpuBufferGetSize(pipeline->getPointBuffer()));
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 1, pipeline->getNormalBuffer(), 0, wgpuBufferGetSize(pipeline->getNormalBuffer()));
+        wgpuRenderPassEncoderSetIndexBuffer(renderPass, pipeline->getIndexBuffer(), WGPUIndexFormat_Uint16, 0, wgpuBufferGetSize(pipeline->getIndexBuffer()));
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, pipeline->getCameraBindGroup(), 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, pipeline->getModelBindGroup(), 0, nullptr);
 
-    wgpuRenderPassEncoderDrawIndexed(renderPass, 18, 1, 0, 0, 0);
+        glm::mat4x4 modelMatrix = pipeline->m_node.matrix;
+        glm::mat4x4 normalMatrix = pipeline->m_node.normalMatrix;
+
+        glm::mat4x4 projection = glm::perspectiveZO(60.0f * 3.14159f / 180.0f, 800.0f/600.0f, 0.01f, 100.0f);
+
+        float x = 10.0f * sin(pipeline->getCurrTime() / 10.0f);
+        glm::mat4x4 view = glm::lookAt(glm::vec3(x, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 1, 0));
+
+        Camera camera{projection, view, glm::vec3(0, 0, 0), pipeline->getCurrTime()};
+        Model model{modelMatrix, normalMatrix};
+
+        wgpuQueueWriteBuffer(queue, pipeline->getCameraUniformBuffer(), 0, &camera, sizeof(camera));
+        wgpuQueueWriteBuffer(queue, pipeline->getModelUniformBuffer(), 0, &model, sizeof(model));
+
+        wgpuRenderPassEncoderDrawIndexed(renderPass, pipeline->m_primitive.m_vertexCount, 1, 0, 0, 0);
+    }
+
     wgpuRenderPassEncoderEnd(renderPass);
     wgpuRenderPassEncoderRelease(renderPass);
 
@@ -86,12 +133,11 @@ bool Frame::draw()
     WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
     wgpuCommandEncoderRelease(encoder); // release encoder after it's finished
 
-
-
     wgpuQueueSubmit(queue, 1, &command);
     wgpuCommandBufferRelease(command);
 
-    wgpuTextureViewRelease(targetView);
+    wgpuTextureRelease(surfaceTexture.texture);
+    wgpuTextureViewRelease(surfaceTextureView);
 
 #ifndef __EMSCRIPTEN__
     Util::sleep(50);

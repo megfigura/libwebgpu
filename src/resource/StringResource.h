@@ -6,8 +6,7 @@ class StringResource : public Resource
 {
 public:
     explicit StringResource(const RawResource& rawResource);
-    [[nodiscard]] bool isValid() const override;
-    [[nodiscard]] std::string getError() const override;
+    [[nodiscard]] bool isLoadable(std::string& error) const override;
 
     [[nodiscard]] tl::expected<StringView, std::string> getStringView() const;
     [[nodiscard]] tl::expected<std::string, std::string> getString() const;

@@ -20,6 +20,8 @@ find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(tomlplusplus REQUIRED)
 find_package(tl-expected REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(glm REQUIRED)
 
 add_library(libwebgpu
         include/Adapter.h
@@ -36,6 +38,8 @@ add_library(libwebgpu
         src/input/Controller.cpp
         src/input/Controller.h
 
+        src/resource/GltfResource.cpp
+        src/resource/GltfResource.h
         src/resource/Loader.cpp
         src/resource/Loader.h
         src/resource/RawResource.cpp
@@ -46,21 +50,25 @@ add_library(libwebgpu
         src/resource/StringResource.h
 
         src/webgpu/Adapter.cpp
-        src/webgpu/DepthTextureView.cpp
-        src/webgpu/DepthTextureView.h
         src/webgpu/Device.cpp
         src/webgpu/Frame.cpp
         src/webgpu/Frame.h
+        src/webgpu/GLTypes.h
+        src/webgpu/GpuBuffer.cpp
+        src/webgpu/GpuBuffer.h
         src/webgpu/Pipeline.cpp
         src/webgpu/Pipeline.h
         src/webgpu/StringView.cpp
         src/webgpu/Surface.cpp
         src/webgpu/Surface.h
+        src/webgpu/TextureView.cpp
+        src/webgpu/TextureView.h
         src/webgpu/Util.cpp
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
 )
+target_compile_definitions(libwebgpu PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE) # TODO?
 
 target_include_directories(libwebgpu PUBLIC include)
 target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -69,6 +77,8 @@ target_link_libraries(libwebgpu
         spdlog::spdlog
         tomlplusplus::tomlplusplus
         tl::expected
+        nlohmann_json::nlohmann_json
+        glm::glm
 )
 set_target_properties(
         libwebgpu PROPERTIES
@@ -92,6 +102,8 @@ if (CMAKE_OS STREQUAL "Linux")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
+        target_compile_options(libwebgpu PUBLIC -fsanitize=undefined)
+        target_link_options(libwebgpu PUBLIC -fsanitize=undefined)
 elseif (CMAKE_OS STREQUAL "Windows")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)

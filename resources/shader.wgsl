@@ -1,39 +1,47 @@
+struct Camera {
+  projection : mat4x4f,
+  view : mat4x4f,
+  position : vec3f,
+  time : f32
+};
+@group(0) @binding(0) var<uniform> camera : Camera;
+
+struct Model {
+  worldMat : mat4x4f,
+  normalMat : mat4x4f
+};
+@group(1) @binding(0) var<uniform> model : Model;
+
 struct VertexInput {
   @location(0) position: vec3f,
-  @location(1) color: vec3f,
+  @location(1) normal: vec3f,
 };
 
 struct VertexOutput {
   @builtin(position) position: vec4f,
-  @location(0) color: vec4f,
+  @location(0) normal: vec3f,
 };
 
-struct UniformInput {
-  @location(0) uTime: f32,
-  @location(1) opacity: f32,
-};
-
-@group(0) @binding(0)
-var<uniform> uniformStruct: UniformInput;
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
-	var out: VertexOutput;
-	let ratio = 800.0 / 600.0;
-	let angle = uniformStruct.uTime;
-	let alpha = cos(angle);
-	let beta = sin(angle);
-	var position = vec3f(
-		in.position.x,
-		alpha * in.position.y + beta * in.position.z,
-		alpha * in.position.z - beta * in.position.y,
-	);
-	out.position = vec4f(position.x, position.y * ratio, position.z * 0.5 + 0.5, 1.0);
-	out.color = vec4f(in.color[0] * uniformStruct.opacity, in.color[1] * uniformStruct.opacity, in.color[2] * uniformStruct.opacity, uniformStruct.opacity);
+	var out : VertexOutput;
+	out.position = camera.projection * camera.view * model.worldMat * vec4f(in.position, 1);
+	out.normal = (camera.view * model.normalMat * vec4f(in.normal, 0)).xyz;
 	return out;
 }
-// Add this in the same shaderSource literal than the vertex entry point
+
+// Some hardcoded lighting
+const lightDir = vec3f(0.25, 0.5, 1);
+const lightColor = vec3f(1);
+const ambientColor = vec3f(0.1);
+
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-	//return vec4f(0.5 + ((in.color[0] * sin(uTime)) / 2.0), 0.5 + ((in.color[1] * cos(uTime)) / 2.0), 0.5 + ((in.color[2] * sin(uTime) * sin(uTime)) / 2.0), 0.01);
-	return vec4f(in.color);
+	// An extremely simple directional lighting model, just to give our model some shape.
+    let N = normalize(in.normal);
+    let L = normalize(lightDir);
+    let NDotL = max(dot(N, L), 0.0);
+    let surfaceColor = ambientColor + NDotL;
+
+    return vec4f(surfaceColor, 1);
 }

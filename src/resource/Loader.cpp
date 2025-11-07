@@ -8,21 +8,7 @@
 Loader::Loader(const std::string& directory)
 {
     m_dir = directory;
-
-    for (const auto& dirEntry : std::filesystem::directory_iterator(directory))
-    {
-        auto ext = dirEntry.path().extension();
-        if (ext == ".wgsl")
-        {
-            StringResource res(RawResource(dirEntry.path()));
-            if (!res.isValid())
-            {
-                spdlog::warn("Resource did not load: " + res.getError());
-            }
-
-            m_shaders.insert(std::make_pair(res.getName(), res));
-        }
-    }
+    loadDir(directory);
 }
 
 tl::expected<StringResource, std::string> Loader::getShader(const std::string& name)
@@ -36,3 +22,85 @@ tl::expected<StringResource, std::string> Loader::getShader(const std::string& n
     return tl::make_unexpected("No such shader " + name);
 }
 
+tl::expected<std::shared_ptr<GltfResource>, std::string> Loader::getGltf(const std::string& name)
+{
+    auto it = m_gltfs.find(name);
+    if (it != m_gltfs.end())
+    {
+        return it->second;
+    }
+
+    return tl::make_unexpected("No such model " + name);
+}
+
+std::vector<std::shared_ptr<GltfResource>> Loader::getGltfs()
+{
+    std::vector<std::shared_ptr<GltfResource>> v;
+    v.reserve(m_gltfs.size());
+    for (const auto& val : m_gltfs | std::views::values)
+    {
+        v.push_back(val);
+    }
+
+    return v;
+}
+
+tl::expected<RawResource, std::string> Loader::getBin(const std::string& name)
+{
+    auto it = m_bins.find(name);
+    if (it != m_bins.end())
+    {
+        return it->second;
+    }
+
+    return tl::make_unexpected("No such bin " + name);
+}
+
+void Loader::loadDir(const std::filesystem::path& dir)
+{
+    for (const auto& dirEntry : std::filesystem::directory_iterator(dir))
+    {
+        if (dirEntry.is_directory())
+        {
+            loadDir(dirEntry);
+        }
+        else
+        {
+            auto ext = dirEntry.path().extension();
+            if (ext == ".wgsl")
+            {
+                RawResource raw{m_dir, dirEntry.path()};
+                StringResource res{RawResource{m_dir, dirEntry.path()}};
+                std::string error;
+                if (!res.isLoadable(error))
+                {
+                    spdlog::warn("Resource did not load: " + error);
+                }
+
+                m_shaders.insert(std::make_pair(res.getName(), res));
+            }
+            else if ((ext == ".gltf") || (ext == ".glb"))
+            {
+                auto res = std::make_shared<GltfResource>(m_dir, dirEntry.path());
+                std::string error;
+                if (!res->isLoadable(error))
+                {
+                    spdlog::warn("Resource did not load: " + error);
+                }
+
+                m_gltfs.insert(std::make_pair(res->getName(), res));
+            }
+            else if (ext == ".bin")
+            {
+                RawResource res{m_dir, dirEntry.path()};
+                std::string error;
+                if (!res.isLoadable(error))
+                {
+                    spdlog::warn("Resource did not load: " + error);
+                }
+
+                m_bins.insert(std::make_pair(res.getName(), res));
+            }
+        }
+    }
+}

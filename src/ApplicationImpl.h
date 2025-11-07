@@ -38,7 +38,10 @@ private:
     std::shared_ptr<Window> m_window;
     std::shared_ptr<Surface> m_surface;
     std::shared_ptr<Controller> m_controller;
-    std::shared_ptr<Pipeline> m_pipeline;
+    std::vector<std::shared_ptr<Pipeline>> m_pipelines;
+
+    std::shared_ptr<TextureView> m_depthTextureView;
+    std::shared_ptr<TextureView> m_msaaTextureView;
 
     bool mainLoop();
 };

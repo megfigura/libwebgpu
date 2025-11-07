@@ -28,6 +28,11 @@ WGPUDevice Device::get() const
 	return m_device;
 }
 
+WGPUQueue Device::getQueue() const
+{
+	return wgpuDeviceGetQueue(m_device);
+}
+
 WGPUDevice Device::requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
 {
 	struct UserData {

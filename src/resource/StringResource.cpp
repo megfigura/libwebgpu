@@ -1,17 +1,12 @@
 #include "StringResource.h"
 
-StringResource::StringResource(const RawResource& rawResource) : Resource(rawResource.getFilename()), m_rawResource(rawResource)
+StringResource::StringResource(const RawResource& rawResource) : Resource(rawResource), m_rawResource(rawResource)
 {
 }
 
-bool StringResource::isValid() const
+bool StringResource::isLoadable(std::string& error) const
 {
-    return m_rawResource.isValid();
-}
-
-std::string StringResource::getError() const
-{
-    return m_rawResource.getError();
+    return m_rawResource.isLoadable(error);
 }
 
 tl::expected<StringView, std::string> StringResource::getStringView() const

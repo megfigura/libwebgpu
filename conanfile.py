@@ -12,6 +12,8 @@ class LibWebGpuRecipe(ConanFile):
         self.requires("spdlog/1.15.3")
         self.requires("tomlplusplus/3.4.0")
         self.requires("tl-expected/20190710")
+        self.requires("nlohmann_json/3.12.0")
+        self.requires("glm/1.0.1")
 
     def build_requirements(self):
         self.test_requires("catch2/3.7.1")

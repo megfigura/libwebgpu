@@ -13,6 +13,7 @@ public:
     ~Device();
 
     [[nodiscard]] WGPUDevice get() const;
+    [[nodiscard]] WGPUQueue getQueue() const;
 
     void print() const;
 
