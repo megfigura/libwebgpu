@@ -18,7 +18,6 @@ include(cmake/variables.cmake)
 
 find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(tomlplusplus REQUIRED)
 find_package(tl-expected REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(glm REQUIRED)
@@ -75,7 +74,6 @@ target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(libwebgpu
         SDL3::SDL3
         spdlog::spdlog
-        tomlplusplus::tomlplusplus
         tl::expected
         nlohmann_json::nlohmann_json
         glm::glm
@@ -105,16 +103,16 @@ if (CMAKE_OS STREQUAL "Linux")
         target_compile_options(libwebgpu PUBLIC -fsanitize=undefined)
         target_link_options(libwebgpu PUBLIC -fsanitize=undefined)
 elseif (CMAKE_OS STREQUAL "Windows")
-        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
-        target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
+        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/include)
+        target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
         target_link_options(testapp PRIVATE
 		    --static
 	)
 elseif (CMAKE_OS STREQUAL "Emscripten")
-        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/webgpu/include)
+        target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/emdawnwebgpu_pkg/webgpu/include)
         set_target_properties(testapp PROPERTIES SUFFIX ".html")
-        set(CMAKE_CXX_FLAGS --use-port=${CMAKE_CURRENT_SOURCE_DIR}/external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false)
+        set(CMAKE_CXX_FLAGS --use-port=${CMAKE_CURRENT_SOURCE_DIR}/external/${CMAKE_OS}/Release/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false)
         target_link_options(testapp PRIVATE
                 --closure=1
                 -sASYNCIFY

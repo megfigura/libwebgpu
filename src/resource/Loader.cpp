@@ -5,7 +5,7 @@
 
 #include "StringResource.h"
 
-Loader::Loader(const std::string& directory)
+Loader::Loader(const std::filesystem::path& directory)
 {
     m_dir = directory;
     loadDir(directory);

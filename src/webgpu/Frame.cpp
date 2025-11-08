@@ -140,7 +140,7 @@ bool Frame::draw()
     wgpuTextureViewRelease(surfaceTextureView);
 
 #ifndef __EMSCRIPTEN__
-    Util::sleep(50);
+    //Util::sleep(50);
     m_surface->present();
 #endif
 

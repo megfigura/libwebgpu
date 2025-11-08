@@ -63,7 +63,7 @@ int Application::ApplicationImpl::run()
         return 1;
     }
 
-    m_resourceLoader = std::make_shared<Loader>("resources");
+    m_resourceLoader = std::make_shared<Loader>(std::filesystem::absolute("resources"));
     m_instance = std::make_shared<WebGpuInstance>();
     m_window = std::make_shared<Window>(m_instance);
     m_surface = std::make_shared<Surface>(m_window, m_instance);

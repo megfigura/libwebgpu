@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <SDL3/SDL_events.h>
-#include <toml++/toml.hpp>
 
 class Controller
 {
@@ -13,5 +12,4 @@ public:
     void onFrame();
 
 private:
-    toml::parse_result config;
 };

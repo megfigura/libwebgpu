@@ -6,7 +6,7 @@
 class Loader
 {
 public:
-    explicit Loader(const std::string& directory);
+    explicit Loader(const std::filesystem::path& directory);
     tl::expected<StringResource, std::string> getShader(const std::string& name);
     tl::expected<std::shared_ptr<GltfResource>, std::string> getGltf(const std::string& name);
     std::vector<std::shared_ptr<GltfResource>> getGltfs(); // TODO - do for all resources(?)

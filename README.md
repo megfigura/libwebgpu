@@ -79,7 +79,7 @@ STRIP=emstrip
 
 ## Build Dawn Native
 [https://github.com/google/dawn/blob/main/docs/building.md](https://github.com/google/dawn/blob/main/docs/building.md).
-Use the CMake and Ninja steps, but add `-DDAWN_USE_WAYLAND=ON -DDAWN_ENABLE_INSTALL=ON` to the CMake command.
+Use the CMake and Ninja steps, but add `-DDAWN_USE_WAYLAND=ON -DDAWN_ENABLE_INSTALL=ON` (along with default `-GNinja` and `-DCMAKE_BUILD_TYPE=[Release|Debug]`) to the CMake command.
 
 ## Install Dawn Native
 [https://github.com/google/dawn/blob/main/docs/quickstart-cmake.md#build-and-install-dawn-with-cmake](https://github.com/google/dawn/blob/main/docs/quickstart-cmake.md#build-and-install-dawn-with-cmake).
