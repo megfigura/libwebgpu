@@ -11,6 +11,7 @@
 #include "StringView.h"
 #include "Surface.h"
 #include "Util.h"
+#include "input/Controller.h"
 #include "resource/Loader.h"
 
 // TODO - should take collection of render passes?
@@ -99,6 +100,13 @@ bool Frame::draw()
     WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
     WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
 
+    glm::mat4x4 projection = glm::perspectiveZO(60.0f * 3.14159f / 180.0f, 800.0f/600.0f, 0.01f, 100.0f);
+
+    float x = 10.0f * sin(Application::get().getController()->m_pos);
+    glm::mat4x4 view = glm::lookAt(glm::vec3(x, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 1, 0));
+
+    Camera camera{projection, view, glm::vec3(0, 0, 0), m_pipelines.at(0)->getCurrTime()};
+
     for (auto pipeline : m_pipelines)
     {
         wgpuRenderPassEncoderSetPipeline(renderPass, pipeline->get());
@@ -111,12 +119,6 @@ bool Frame::draw()
         glm::mat4x4 modelMatrix = pipeline->m_node.matrix;
         glm::mat4x4 normalMatrix = pipeline->m_node.normalMatrix;
 
-        glm::mat4x4 projection = glm::perspectiveZO(60.0f * 3.14159f / 180.0f, 800.0f/600.0f, 0.01f, 100.0f);
-
-        float x = 10.0f * sin(pipeline->getCurrTime() / 10.0f);
-        glm::mat4x4 view = glm::lookAt(glm::vec3(x, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 1, 0));
-
-        Camera camera{projection, view, glm::vec3(0, 0, 0), pipeline->getCurrTime()};
         Model model{modelMatrix, normalMatrix};
 
         wgpuQueueWriteBuffer(queue, pipeline->getCameraUniformBuffer(), 0, &camera, sizeof(camera));

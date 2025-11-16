@@ -6,10 +6,8 @@ StringView::StringView(const char *str, const size_t length) : WGPUStringView{ s
 {
 }
 
-StringView::StringView(const std::string& other) : WGPUStringView()
+StringView::StringView(const std::string_view other) : WGPUStringView { other.data(), other.size() }
 {
-    data = other.data();
-    length = other.length();
 }
 
 StringView::StringView(::WGPUStringView other) : WGPUStringView()

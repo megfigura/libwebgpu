@@ -8,6 +8,8 @@ namespace gltf
 {
     struct Accessor;
     struct Gltf;
+    struct Node;
+    struct Mesh;
 }
 
 class RawResource;
@@ -46,7 +48,6 @@ class GltfResource : public Resource
 public:
     explicit GltfResource(const std::filesystem::path& resourceDir, const std::filesystem::path& path);
     [[nodiscard]] nlohmann::json getJson() const;
-    [[nodiscard]] GpuBuffer getBuffer(int index) const;
     [[nodiscard]] std::vector<Node> getNodes() const;
     bool isLoadable(std::string& error) const override;
     void loadBuffers(const std::shared_ptr<Device>& device);
@@ -58,4 +59,5 @@ private:
 
     std::shared_ptr<GpuBuffer> createGpuBuffer(const gltf::Gltf& gltf, const gltf::Accessor& accessor, WGPUBufferUsage usage) const;
     static glm::mat4x4 fromVector(std::vector<float> v);
+    Node loadNode(const gltf::Gltf& gltf, const gltf::Node& gNode, const gltf::Mesh& gMesh) const;
 };

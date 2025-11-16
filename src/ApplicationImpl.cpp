@@ -2,6 +2,9 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "Application.h"
 #include "ApplicationImpl.h"
+
+#include <unistd.h>
+
 #include "WebGpuInstance.h"
 #include "Adapter.h"
 #include "Device.h"
@@ -65,7 +68,7 @@ int Application::ApplicationImpl::run()
 
     m_resourceLoader = std::make_shared<Loader>(std::filesystem::absolute("resources"));
     m_instance = std::make_shared<WebGpuInstance>();
-    m_window = std::make_shared<Window>(m_instance);
+    m_window = std::make_shared<Window>();
     m_surface = std::make_shared<Surface>(m_window, m_instance);
     m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
@@ -104,6 +107,8 @@ int Application::ApplicationImpl::run()
         gltfRes.value<>()->loadBuffers(m_device);
     }
 
+    m_lastFrameTimestamp = m_lastTickTimestamp = SDL_GetTicksNS();
+
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
     emscripten_set_main_loop_arg(emscriptenMainLoop, this, 0, true);
@@ -134,8 +139,23 @@ SDL_InitFlags Application::ApplicationImpl::getSdlInitFlags()
     return SDL_INIT_VIDEO;
 }
 
+Uint64 accumulator = 0;
+
 bool Application::ApplicationImpl::mainLoop()
 {
+    Uint64 now = SDL_GetTicksNS();
+    Uint64 frameNanos = now - m_lastFrameTimestamp;
+    accumulator += frameNanos;
+
+    int twentyMillis = 20000000;
+    int ticks = 0;
+    while (accumulator >= twentyMillis)
+    {
+        accumulator -= twentyMillis;
+        ticks++;
+    }
+    //spdlog::info("Ticks: {}", ticks);
+
     m_instance->processEvents();
 
     SDL_Event event;
@@ -146,21 +166,43 @@ bool Application::ApplicationImpl::mainLoop()
 
         switch (event.type)
         {
-        case SDL_EVENT_QUIT:
+            case SDL_EVENT_QUIT:
 #ifdef __EMSCRIPTEN__
-            emscripten_cancel_main_loop();
+                emscripten_cancel_main_loop();
 #endif
-            return false;
+                return false;
 
-        default:
-            break;
+            default:
+                break;
         }
     }
 
-    m_controller->onFrame();
+    std::vector<ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, twentyMillis, ticks);
+    /*
+    for (int iState = 0; iState < controllerTickStates.size(); iState++)
+    {
+        ControllerState& controllerState = controllerTickStates.at(iState);
+        KeyboardState& kbState = controllerState.keyboardState;
+        for (int iKey = 0; iKey < kbState.activeNanos.size(); iKey++)
+        {
+            if (kbState.activeNanos.at(iKey) != 0)
+            {
+                spdlog::info("Tick: {}, key: {}, {}ms, isNew: {}", iState, SDL_GetScancodeName(static_cast<SDL_Scancode>(iKey)), kbState.activeNanos.at(iKey) / 1000000, kbState.isNew.at(iKey) == true);
+            }
+        }
+    }
+    */
+
+    for (ControllerState& state : controllerTickStates)
+    {
+        m_controller->m_pos += (static_cast<float>(state.keyboardState.activeNanos[SDL_SCANCODE_W]) / 500000000.0f);
+    }
 
     Frame frame(m_device, m_surface, m_pipelines, m_depthTextureView, m_msaaTextureView);
     frame.draw();
 
-    return true;
+    m_lastFrameTimestamp = now;
+    m_lastTickTimestamp += (ticks * twentyMillis);
+
+    return !get().isShuttingDown();
 }

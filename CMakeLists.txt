@@ -34,8 +34,18 @@ add_library(libwebgpu
         src/ApplicationImpl.cpp
         src/ApplicationImpl.h
 
+        src/input/Action.cpp
+        src/input/Action.h
+        src/input/ActionEvent.cpp
+        src/input/ActionEvent.h
+        src/input/Axis.cpp
+        src/input/Axis.h
+        src/input/AxisEvent.cpp
+        src/input/AxisEvent.h
         src/input/Controller.cpp
         src/input/Controller.h
+        src/input/KeyMap.cpp
+        src/input/KeyMap.h
 
         src/resource/GltfResource.cpp
         src/resource/GltfResource.h
@@ -66,6 +76,16 @@ add_library(libwebgpu
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
+        src/webgpu/Camera.cpp
+        src/webgpu/Camera.h
+        src/physics/Player.cpp
+        src/physics/Player.h
+        src/physics/PhysicsObject.cpp
+        src/physics/PhysicsObject.h
+        src/game/TickGroup.cpp
+        src/game/TickGroup.h
+        src/game/TickableObject.cpp
+        src/game/TickableObject.h
 )
 target_compile_definitions(libwebgpu PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE) # TODO?
 
@@ -100,12 +120,13 @@ if (CMAKE_OS STREQUAL "Linux")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
-        target_compile_options(libwebgpu PUBLIC -fsanitize=undefined)
+        #target_compile_options(libwebgpu PUBLIC -fsanitize=undefined -O3)
         target_link_options(libwebgpu PUBLIC -fsanitize=undefined)
 elseif (CMAKE_OS STREQUAL "Windows")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
+        target_compile_options(libwebgpu PRIVATE -O3)
         target_link_options(testapp PRIVATE
 		    --static
 	)
@@ -113,6 +134,7 @@ elseif (CMAKE_OS STREQUAL "Emscripten")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/emdawnwebgpu_pkg/webgpu/include)
         set_target_properties(testapp PROPERTIES SUFFIX ".html")
         set(CMAKE_CXX_FLAGS --use-port=${CMAKE_CURRENT_SOURCE_DIR}/external/${CMAKE_OS}/Release/emdawnwebgpu_pkg/emdawnwebgpu.port.py:cpp_bindings=false)
+        target_compile_options(libwebgpu PRIVATE -O3)
         target_link_options(testapp PRIVATE
                 --closure=1
                 -sASYNCIFY

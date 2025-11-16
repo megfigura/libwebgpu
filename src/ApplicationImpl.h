@@ -43,5 +43,8 @@ private:
     std::shared_ptr<TextureView> m_depthTextureView;
     std::shared_ptr<TextureView> m_msaaTextureView;
 
+    Uint64 m_lastFrameTimestamp;
+    Uint64 m_lastTickTimestamp;
+
     bool mainLoop();
 };

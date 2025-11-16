@@ -5,11 +5,11 @@
 class StringView : public WGPUStringView
 {
 public:
-    explicit StringView(const char *str, const size_t length);
-    explicit StringView(const std::string& other);
+    explicit StringView(const char *str, size_t length);
+    explicit StringView(std::string_view other);
     explicit StringView(::WGPUStringView other);
 
-    WGPUStringView toWgpu() const;
-    std::string_view toString() const;
+    [[nodiscard]] WGPUStringView toWgpu() const;
+    [[nodiscard]] std::string_view toString() const;
     friend std::ostream& operator<<(std::ostream& os, const StringView &stringView);
 };

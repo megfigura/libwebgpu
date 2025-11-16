@@ -8,13 +8,12 @@
 #include "Surface.h"
 #include "WebGpuInstance.h"
 
-Window::Window(const std::shared_ptr<WebGpuInstance>& instance)
+Window::Window() : m_isFullscreen{false}, m_isMouseCaptured{false}
 {
     constexpr int width = 800;
     constexpr int height = 600;
 
     m_window = SDL_CreateWindow("webgputest", width, height, SDL_WINDOW_RESIZABLE);
-
     SDL_SetWindowFullscreenMode(m_window, nullptr);
 }
 
@@ -23,10 +22,30 @@ Window::~Window()
     SDL_DestroyWindow(m_window);
 }
 
-void Window::setFullscreen(const bool isFullscreen) const
+bool Window::isFullscreen() const
+{
+    return m_isFullscreen;
+}
+
+void Window::setFullscreen(const bool isFullscreen)
 {
     SDL_SetWindowFullscreen(m_window, isFullscreen);
     SDL_SyncWindow(m_window);
+    m_isFullscreen = isFullscreen;
+}
+
+bool Window::isMouseCaptured() const
+{
+    return m_isMouseCaptured;
+}
+
+void Window::setMouseCapture(bool capture)
+{
+    if (capture != m_isMouseCaptured)
+    {
+        SDL_SetWindowRelativeMouseMode(m_window, capture);
+        m_isMouseCaptured = capture;
+    }
 }
 
 int Window::getWidth() const

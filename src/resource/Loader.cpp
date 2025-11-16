@@ -56,6 +56,17 @@ tl::expected<RawResource, std::string> Loader::getBin(const std::string& name)
     return tl::make_unexpected("No such bin " + name);
 }
 
+tl::expected<StringResource, std::string> Loader::getConfig(const std::string& name)
+{
+    auto it = m_configs.find(name);
+    if (it != m_configs.end())
+    {
+        return it->second;
+    }
+
+    return tl::make_unexpected("No such config " + name);
+}
+
 void Loader::loadDir(const std::filesystem::path& dir)
 {
     for (const auto& dirEntry : std::filesystem::directory_iterator(dir))
@@ -79,7 +90,7 @@ void Loader::loadDir(const std::filesystem::path& dir)
 
                 m_shaders.insert(std::make_pair(res.getName(), res));
             }
-            else if ((ext == ".gltf") || (ext == ".glb"))
+            else if((ext == ".gltf") || (ext == ".glb"))
             {
                 auto res = std::make_shared<GltfResource>(m_dir, dirEntry.path());
                 std::string error;
@@ -90,7 +101,7 @@ void Loader::loadDir(const std::filesystem::path& dir)
 
                 m_gltfs.insert(std::make_pair(res->getName(), res));
             }
-            else if (ext == ".bin")
+            else if(ext == ".bin")
             {
                 RawResource res{m_dir, dirEntry.path()};
                 std::string error;
@@ -100,6 +111,18 @@ void Loader::loadDir(const std::filesystem::path& dir)
                 }
 
                 m_bins.insert(std::make_pair(res.getName(), res));
+            }
+            else if(ext == ".config")
+            {
+                RawResource raw{m_dir, dirEntry.path()};
+                StringResource res{RawResource{m_dir, dirEntry.path()}};
+                std::string error;
+                if (!res.isLoadable(error))
+                {
+                    spdlog::warn("Resource did not load: " + error);
+                }
+
+                m_configs.insert(std::make_pair(res.getName(), res));
             }
         }
     }

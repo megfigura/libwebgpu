@@ -150,56 +150,61 @@ GltfResource::GltfResource(const std::filesystem::path& resourceDir, const std::
         auto gNode = gltf.nodes.at(iNode);
         auto gMesh = gltf.meshes.at(gNode.mesh);
 
-        glm::mat4x4 matrix;
-        if (gNode.matrix.size() == 16)
-        {
-            matrix = fromVector(gNode.matrix);
-        }
-        else
-        {
-            auto t = glm::identity<glm::mat4x4>();
-            if (gNode.translation.size() == 3)
-            {
-                t = glm::translate(glm::mat4(1.0f), {gNode.translation.at(0), gNode.translation.at(1), gNode.translation.at(2)});
-            }
-            auto r = glm::identity<glm::mat4x4>();
-            if (gNode.rotation.size() == 4)
-            {
-                r = glm::mat4_cast(glm::quat(gNode.rotation.at(1), gNode.rotation.at(2), gNode.rotation.at(3), gNode.rotation.at(0)));
-            }
-            auto s = glm::identity<glm::mat4x4>();
-            if (gNode.scale.size() == 3)
-            {
-                s = glm::scale(glm::mat4(1.0f), {gNode.scale.at(0), gNode.scale.at(1), gNode.scale.at(2)});
-            }
-
-            matrix = t * r * s;
-        }
-
-        glm::mat4x4 normalMatrix = matrix;
-        normalMatrix[3][0] = 0.0f;
-        normalMatrix[3][1] = 0.0f;
-        normalMatrix[3][2] = 0.0f;
-        normalMatrix = glm::transpose(glm::inverse(normalMatrix));
-
-        Node node{matrix, normalMatrix};
-
-        for (auto gMeshPrimitive : gMesh.primitives)
-        {
-            auto gPositionAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("POSITION"));
-            std::shared_ptr<GpuBuffer> vertexBuffer = createGpuBuffer(gltf, gPositionAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
-
-            auto gIndexAccessor = gltf.accessors.at(gMeshPrimitive.indices);
-            std::shared_ptr<GpuBuffer> indexBuffer = createGpuBuffer(gltf, gIndexAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Index);
-
-            auto gNormalAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("NORMAL"));
-            std::shared_ptr<GpuBuffer> normalBuffer = createGpuBuffer(gltf, gNormalAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
-
-            node.mesh.addPrimitive({gIndexAccessor.count, vertexBuffer, indexBuffer, normalBuffer});
-        }
-
-        m_nodes.push_back(node);
+        m_nodes.push_back(loadNode(gltf, gNode, gMesh));
     }
+}
+
+Node GltfResource::loadNode(const gltf::Gltf& gltf, const gltf::Node& gNode, const gltf::Mesh& gMesh) const
+{
+    glm::mat4x4 matrix;
+    if (gNode.matrix.size() == 16)
+    {
+        matrix = fromVector(gNode.matrix);
+    }
+    else
+    {
+        auto t = glm::identity<glm::mat4x4>();
+        if (gNode.translation.size() == 3)
+        {
+            t = glm::translate(glm::mat4(1.0f), {gNode.translation.at(0), gNode.translation.at(1), gNode.translation.at(2)});
+        }
+        auto r = glm::identity<glm::mat4x4>();
+        if (gNode.rotation.size() == 4)
+        {
+            r = glm::mat4_cast(glm::quat(gNode.rotation.at(1), gNode.rotation.at(2), gNode.rotation.at(3), gNode.rotation.at(0)));
+        }
+        auto s = glm::identity<glm::mat4x4>();
+        if (gNode.scale.size() == 3)
+        {
+            s = glm::scale(glm::mat4(1.0f), {gNode.scale.at(0), gNode.scale.at(1), gNode.scale.at(2)});
+        }
+
+        matrix = t * r * s;
+    }
+
+    glm::mat4x4 normalMatrix = matrix;
+    normalMatrix[3][0] = 0.0f;
+    normalMatrix[3][1] = 0.0f;
+    normalMatrix[3][2] = 0.0f;
+    normalMatrix = glm::transpose(glm::inverse(normalMatrix));
+
+    Node node{matrix, normalMatrix};
+
+    for (auto gMeshPrimitive : gMesh.primitives)
+    {
+        auto gPositionAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("POSITION"));
+        std::shared_ptr<GpuBuffer> vertexBuffer = createGpuBuffer(gltf, gPositionAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
+
+        auto gIndexAccessor = gltf.accessors.at(gMeshPrimitive.indices);
+        std::shared_ptr<GpuBuffer> indexBuffer = createGpuBuffer(gltf, gIndexAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Index);
+
+        auto gNormalAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("NORMAL"));
+        std::shared_ptr<GpuBuffer> normalBuffer = createGpuBuffer(gltf, gNormalAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
+
+        node.mesh.addPrimitive({gIndexAccessor.count, vertexBuffer, indexBuffer, normalBuffer});
+    }
+
+    return node;
 }
 
 std::shared_ptr<GpuBuffer> GltfResource::createGpuBuffer(const gltf::Gltf& gltf, const gltf::Accessor& accessor, const WGPUBufferUsage usage) const
