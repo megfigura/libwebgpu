@@ -5,17 +5,20 @@
 
 class Controller;
 
-class Camera
+namespace webgpu
 {
-public:
-    explicit Camera(std::shared_ptr<Controller> controller);
-    ~Camera();
+    class Camera
+    {
+    public:
+        explicit Camera(std::shared_ptr<Controller> controller);
+        ~Camera();
 
-    void onMove(float x, float y, float z);
+        void onMove(float x, float y, float z);
 
 
-private:
-    std::shared_ptr<Controller> m_controller;
-    glm::vec3 m_position;
-    glm::quat m_rotation;
-};
+    private:
+        std::shared_ptr<Controller> m_controller;
+        glm::vec3 m_position;
+        glm::quat m_rotation;
+    };
+}

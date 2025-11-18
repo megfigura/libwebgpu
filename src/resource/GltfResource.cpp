@@ -12,10 +12,11 @@
 #include <glm/gtc/quaternion.hpp>
 
 using namespace nlohmann;
+using namespace webgpu;
 
-namespace gltf
+namespace resource
 {
-    struct Accessor
+    struct JAccessor
     {
         int bufferView{-1};
         int byteOffset{0};
@@ -30,9 +31,9 @@ namespace gltf
         //extensions
         //extra
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Accessor, bufferView, byteOffset, componentType, normalized, count, type, name);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JAccessor, bufferView, byteOffset, componentType, normalized, count, type, name);
 
-    struct Buffer
+    struct JBuffer
     {
         std::string uri{};
         int byteLength{-1};
@@ -40,9 +41,9 @@ namespace gltf
         //extensions
         //extras
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Buffer, uri, byteLength, name);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JBuffer, uri, byteLength, name);
 
-    struct BufferView
+    struct JBufferView
     {
         int buffer{-1};
         int byteOffset{0};
@@ -53,28 +54,28 @@ namespace gltf
         //extensions
         //extras
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BufferView, buffer, byteOffset, byteLength, byteStride, bufferType, name);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JBufferView, buffer, byteOffset, byteLength, byteStride, bufferType, name);
 
-    struct MeshPrimitive
+    struct JMeshPrimitive
     {
         std::unordered_map<std::string, int> attributes{};
         int indices{-1};
         int material{-1};
         GLPrimitiveMode mode{GLPrimitiveMode::TRIANGLES};
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MeshPrimitive, attributes, indices, material, mode);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JMeshPrimitive, attributes, indices, material, mode);
 
-    struct Mesh
+    struct JMesh
     {
-        std::vector<MeshPrimitive> primitives{};
+        std::vector<JMeshPrimitive> primitives{};
         //weights
         std::string name{};
         //extensions
         //extras
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Mesh, primitives, name);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JMesh, primitives, name);
 
-    struct Node
+    struct JNode
     {
         int mesh{-1};
         std::vector<int> children{};
@@ -87,180 +88,178 @@ namespace gltf
 
         glm::mat4x4 mat{};
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Node, mesh, children, matrix, rotation, scale, translation, name);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JNode, mesh, children, matrix, rotation, scale, translation, name);
 
-    struct Scene
+    struct JScene
     {
         std::vector<int> nodes{};
         std::string name{};
         //extensions
         //extra
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Scene, nodes, name);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JScene, nodes, name);
 
-    struct Gltf
+    struct JGltf
     {
-        std::vector<Accessor> accessors{};
-        std::vector<Buffer> buffers{};
-        std::vector<BufferView> bufferViews{};
-        std::vector<Mesh> meshes{};
-        std::vector<Node> nodes{};
+        std::vector<JAccessor> accessors{};
+        std::vector<JBuffer> buffers{};
+        std::vector<JBufferView> bufferViews{};
+        std::vector<JMesh> meshes{};
+        std::vector<JNode> nodes{};
         int scene{-1};
-        std::vector<Scene> scenes{};
+        std::vector<JScene> scenes{};
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Gltf, accessors, buffers, bufferViews, meshes, nodes, scene, scenes);
-};
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JGltf, accessors, buffers, bufferViews, meshes, nodes, scene, scenes);
 
-MeshPrimitive::MeshPrimitive(int vertexCount, const std::shared_ptr<GpuBuffer>& vertexBuffer, const std::shared_ptr<GpuBuffer>& indexBuffer, const std::shared_ptr<GpuBuffer>& normalBuffer) : m_vertexCount{vertexCount}, m_vertexBuffer{vertexBuffer}, m_indexBuffer{indexBuffer}, m_normalBuffer{normalBuffer}
-{
-}
-
-Mesh::Mesh() = default;
-
-void Mesh::addPrimitive(const MeshPrimitive& primitive)
-{
-    m_primitives.push_back(primitive);
-}
-
-Node::Node(const glm::mat4x4& matrix, const glm::mat4x4& normalMatrix) : mesh{}, matrix{matrix}, normalMatrix{normalMatrix}
-{
-}
-
-GltfResource::GltfResource(const std::filesystem::path& resourceDir, const std::filesystem::path& path) : Resource(resourceDir, path)
-{
-    std::ifstream f(path);
-    m_json = json::parse(f);
-
-    for (auto buffer : m_json["buffers"])
+    MeshPrimitive::MeshPrimitive(int vertexCount, const std::shared_ptr<GpuBuffer>& vertexBuffer, const std::shared_ptr<GpuBuffer>& indexBuffer, const std::shared_ptr<GpuBuffer>& normalBuffer) : m_vertexCount{vertexCount}, m_vertexBuffer{vertexBuffer}, m_indexBuffer{indexBuffer}, m_normalBuffer{normalBuffer}
     {
-        std::string uri = buffer["uri"].get<std::string>();
-        RawResource res = RawResource{getResourceDir(), path.parent_path().append(uri)};
-        std::string error;
-        if (!res.isLoadable(error))
-        {
-            spdlog::error("Unable to load buffer data from uri {}: {}", uri, error);
-        }
-        m_bufferResources.insert(std::make_pair(uri, res));
     }
 
-    gltf::Gltf gltf = m_json.get<gltf::Gltf>();
-    auto mainScene = gltf.scenes.at(gltf.scene);
-    for (auto iNode : mainScene.nodes)
-    {
-        auto gNode = gltf.nodes.at(iNode);
-        auto gMesh = gltf.meshes.at(gNode.mesh);
+    Mesh::Mesh() = default;
 
-        m_nodes.push_back(loadNode(gltf, gNode, gMesh));
+    void Mesh::addPrimitive(const MeshPrimitive& primitive)
+    {
+        m_primitives.push_back(primitive);
     }
-}
 
-Node GltfResource::loadNode(const gltf::Gltf& gltf, const gltf::Node& gNode, const gltf::Mesh& gMesh) const
-{
-    glm::mat4x4 matrix;
-    if (gNode.matrix.size() == 16)
+    Node::Node(const glm::mat4x4& matrix, const glm::mat4x4& normalMatrix) : mesh{}, matrix{matrix}, normalMatrix{normalMatrix}
     {
-        matrix = fromVector(gNode.matrix);
     }
-    else
+
+    GltfResource::GltfResource(const std::filesystem::path& resourceDir, const std::filesystem::path& path) : Resource(resourceDir, path)
     {
-        auto t = glm::identity<glm::mat4x4>();
-        if (gNode.translation.size() == 3)
+        std::ifstream f(path);
+        m_json = json::parse(f);
+
+        for (auto buffer : m_json["buffers"])
         {
-            t = glm::translate(glm::mat4(1.0f), {gNode.translation.at(0), gNode.translation.at(1), gNode.translation.at(2)});
-        }
-        auto r = glm::identity<glm::mat4x4>();
-        if (gNode.rotation.size() == 4)
-        {
-            r = glm::mat4_cast(glm::quat(gNode.rotation.at(1), gNode.rotation.at(2), gNode.rotation.at(3), gNode.rotation.at(0)));
-        }
-        auto s = glm::identity<glm::mat4x4>();
-        if (gNode.scale.size() == 3)
-        {
-            s = glm::scale(glm::mat4(1.0f), {gNode.scale.at(0), gNode.scale.at(1), gNode.scale.at(2)});
+            std::string uri = buffer["uri"].get<std::string>();
+            RawResource res = RawResource{getResourceDir(), path.parent_path().append(uri)};
+            std::string error;
+            if (!res.isLoadable(error))
+            {
+                spdlog::error("Unable to load buffer data from uri {}: {}", uri, error);
+            }
+            m_bufferResources.insert(std::make_pair(uri, res));
         }
 
-        matrix = t * r * s;
+        auto gltf = m_json.get<JGltf>();
+        auto mainScene = gltf.scenes.at(gltf.scene);
+        for (auto iNode : mainScene.nodes)
+        {
+            auto gNode = gltf.nodes.at(iNode);
+            auto gMesh = gltf.meshes.at(gNode.mesh);
+
+            m_nodes.push_back(loadNode(gltf, gNode, gMesh));
+        }
     }
 
-    glm::mat4x4 normalMatrix = matrix;
-    normalMatrix[3][0] = 0.0f;
-    normalMatrix[3][1] = 0.0f;
-    normalMatrix[3][2] = 0.0f;
-    normalMatrix = glm::transpose(glm::inverse(normalMatrix));
-
-    Node node{matrix, normalMatrix};
-
-    for (auto gMeshPrimitive : gMesh.primitives)
+    Node GltfResource::loadNode(const JGltf& gltf, const JNode& gNode, const JMesh& gMesh) const
     {
-        auto gPositionAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("POSITION"));
-        std::shared_ptr<GpuBuffer> vertexBuffer = createGpuBuffer(gltf, gPositionAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
+        glm::mat4x4 matrix;
+        if (gNode.matrix.size() == 16)
+        {
+            matrix = fromVector(gNode.matrix);
+        }
+        else
+        {
+            auto t = glm::identity<glm::mat4x4>();
+            if (gNode.translation.size() == 3)
+            {
+                t = glm::translate(glm::mat4(1.0f), {gNode.translation.at(0), gNode.translation.at(1), gNode.translation.at(2)});
+            }
+            auto r = glm::identity<glm::mat4x4>();
+            if (gNode.rotation.size() == 4)
+            {
+                r = glm::mat4_cast(glm::quat(gNode.rotation.at(1), gNode.rotation.at(2), gNode.rotation.at(3), gNode.rotation.at(0)));
+            }
+            auto s = glm::identity<glm::mat4x4>();
+            if (gNode.scale.size() == 3)
+            {
+                s = glm::scale(glm::mat4(1.0f), {gNode.scale.at(0), gNode.scale.at(1), gNode.scale.at(2)});
+            }
 
-        auto gIndexAccessor = gltf.accessors.at(gMeshPrimitive.indices);
-        std::shared_ptr<GpuBuffer> indexBuffer = createGpuBuffer(gltf, gIndexAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Index);
+            matrix = t * r * s;
+        }
 
-        auto gNormalAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("NORMAL"));
-        std::shared_ptr<GpuBuffer> normalBuffer = createGpuBuffer(gltf, gNormalAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
+        glm::mat4x4 normalMatrix = matrix;
+        normalMatrix[3][0] = 0.0f;
+        normalMatrix[3][1] = 0.0f;
+        normalMatrix[3][2] = 0.0f;
+        normalMatrix = glm::transpose(glm::inverse(normalMatrix));
 
-        node.mesh.addPrimitive({gIndexAccessor.count, vertexBuffer, indexBuffer, normalBuffer});
+        Node node{matrix, normalMatrix};
+
+        for (auto gMeshPrimitive : gMesh.primitives)
+        {
+            auto gPositionAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("POSITION"));
+            std::shared_ptr<GpuBuffer> vertexBuffer = createGpuBuffer(gltf, gPositionAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
+
+            auto gIndexAccessor = gltf.accessors.at(gMeshPrimitive.indices);
+            std::shared_ptr<GpuBuffer> indexBuffer = createGpuBuffer(gltf, gIndexAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Index);
+
+            auto gNormalAccessor = gltf.accessors.at(gMeshPrimitive.attributes.at("NORMAL"));
+            std::shared_ptr<GpuBuffer> normalBuffer = createGpuBuffer(gltf, gNormalAccessor, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Vertex);
+
+            node.mesh.addPrimitive({gIndexAccessor.count, vertexBuffer, indexBuffer, normalBuffer});
+        }
+
+        return node;
     }
 
-    return node;
-}
+    std::shared_ptr<GpuBuffer> GltfResource::createGpuBuffer(const JGltf& gltf, const JAccessor& accessor, const WGPUBufferUsage usage) const
+    {
+        auto gBufferView = gltf.bufferViews.at(accessor.bufferView);
+        auto gBuffer = gltf.buffers.at(gBufferView.buffer);
+        auto positionRes = m_bufferResources.at(gBuffer.uri);
 
-std::shared_ptr<GpuBuffer> GltfResource::createGpuBuffer(const gltf::Gltf& gltf, const gltf::Accessor& accessor, const WGPUBufferUsage usage) const
-{
-    auto gBufferView = gltf.bufferViews.at(accessor.bufferView);
-    auto gBuffer = gltf.buffers.at(gBufferView.buffer);
-    auto positionRes = m_bufferResources.at(gBuffer.uri);
+        uint64_t offset = accessor.byteOffset + gBufferView.byteOffset;
+        uint64_t size = gBufferView.byteLength;
+        return std::make_shared<GpuBuffer>(positionRes, offset, size, usage);
+    }
 
-    uint64_t offset = accessor.byteOffset + gBufferView.byteOffset;
-    uint64_t size = gBufferView.byteLength;
-    return std::make_shared<GpuBuffer>(positionRes, offset, size, usage);
-}
-
-glm::mat4x4 GltfResource::fromVector(std::vector<float> v)
-{
-    return {
+    glm::mat4x4 GltfResource::fromVector(std::vector<float> v)
+    {
+        return {
             v.at(0), v.at(1), v.at(2), v.at(3),
             v.at(4), v.at(5), v.at(6), v.at(7),
             v.at(8), v.at(9), v.at(10), v.at(11),
             v.at(12), v.at(13), v.at(14), v.at(15)};
-}
-
-json GltfResource::getJson() const
-{
-    return m_json;
-}
-
-std::vector<Node> GltfResource::getNodes() const
-{
-    return m_nodes;
-}
-
-bool GltfResource::isLoadable(std::string& error) const
-{
-    for (const auto& val : m_bufferResources | std::views::values)
-    {
-        if (!val.isLoadable(error))
-        {
-            return false;
-        }
     }
 
-    return true;
-}
-
-void GltfResource::loadBuffers(const std::shared_ptr<Device>& device)
-{
-    for (Node& n : m_nodes)
+    json GltfResource::getJson() const
     {
-        for (MeshPrimitive& p : n.mesh.m_primitives)
+        return m_json;
+    }
+
+    std::vector<Node> GltfResource::getNodes() const
+    {
+        return m_nodes;
+    }
+
+    bool GltfResource::isLoadable(std::string& error) const
+    {
+        for (const auto& val : m_bufferResources | std::views::values)
         {
-            p.m_vertexBuffer->load(device);
-            p.m_indexBuffer->load(device);
-            p.m_normalBuffer->load(device);
+            if (!val.isLoadable(error))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void GltfResource::loadBuffers(const std::shared_ptr<Device>& device)
+    {
+        for (Node& n : m_nodes)
+        {
+            for (MeshPrimitive& p : n.mesh.m_primitives)
+            {
+                p.m_vertexBuffer->load(device);
+                p.m_indexBuffer->load(device);
+                p.m_normalBuffer->load(device);
+            }
         }
     }
 }
-
-

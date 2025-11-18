@@ -2,14 +2,30 @@
 #include <memory>
 #include <SDL3/SDL_init.h>
 
-class TextureView;
-class Loader;
-class WebGpuInstance;
-class Adapter;
-class Device;
-class Window;
-class Surface;
-class Controller;
+namespace webgpu
+{
+    class TextureView;
+    class WebGpuInstance;
+    class Adapter;
+    class Device;
+    class Window;
+    class Surface;
+}
+
+namespace resource
+{
+    class Loader;
+}
+
+namespace input
+{
+    class Controller;
+}
+
+namespace physics
+{
+    class Player;
+}
 
 class Application
 {
@@ -23,13 +39,14 @@ public:
 
     static Application& get();
 
-    [[nodiscard]] std::shared_ptr<Loader> getResourceLoader() const;
-    [[nodiscard]] std::shared_ptr<WebGpuInstance> getInstance() const;
-    [[nodiscard]] std::shared_ptr<Adapter> getAdapter() const;
-    [[nodiscard]] std::shared_ptr<Device> getDevice() const;
-    [[nodiscard]] std::shared_ptr<Window> getWindow() const;
-    [[nodiscard]] std::shared_ptr<Surface> getSurface() const;
-    [[nodiscard]] std::shared_ptr<Controller> getController() const;
+    [[nodiscard]] std::shared_ptr<resource::Loader> getResourceLoader() const;
+    [[nodiscard]] std::shared_ptr<webgpu::WebGpuInstance> getInstance() const;
+    [[nodiscard]] std::shared_ptr<webgpu::Adapter> getAdapter() const;
+    [[nodiscard]] std::shared_ptr<webgpu::Device> getDevice() const;
+    [[nodiscard]] std::shared_ptr<webgpu::Window> getWindow() const;
+    [[nodiscard]] std::shared_ptr<webgpu::Surface> getSurface() const;
+    [[nodiscard]] std::shared_ptr<input::Controller> getController() const;
+    [[nodiscard]] std::shared_ptr<physics::Player> getPlayer() const;
 
 protected:
     Application();

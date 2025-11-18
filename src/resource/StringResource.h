@@ -2,15 +2,18 @@
 #include "RawResource.h"
 #include "StringView.h"
 
-class StringResource : public Resource
+namespace resource
 {
-public:
-    explicit StringResource(const RawResource& rawResource);
-    [[nodiscard]] bool isLoadable(std::string& error) const override;
+    class StringResource : public Resource
+    {
+    public:
+        explicit StringResource(const RawResource& rawResource);
+        [[nodiscard]] bool isLoadable(std::string& error) const override;
 
-    [[nodiscard]] tl::expected<StringView, std::string> getStringView() const;
-    [[nodiscard]] tl::expected<std::string, std::string> getString() const;
+        [[nodiscard]] tl::expected<webgpu::StringView, std::string> getStringView() const;
+        [[nodiscard]] tl::expected<std::string, std::string> getString() const;
 
-private:
-    const RawResource m_rawResource;
-};
+    private:
+        const RawResource m_rawResource;
+    };
+}

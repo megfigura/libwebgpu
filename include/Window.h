@@ -2,32 +2,35 @@
 #include <memory>
 #include <SDL3/SDL.h>
 
-class Surface;
-class Device;
-class Adapter;
-class WebGpuInstance;
-
-class Window
+namespace webgpu
 {
-public:
-    explicit Window();
-    ~Window();
+    class Surface;
+    class Device;
+    class Adapter;
+    class WebGpuInstance;
 
-    [[nodiscard]] bool isFullscreen() const;
-    void setFullscreen(bool isFullscreen);
+    class Window
+    {
+    public:
+        explicit Window();
+        ~Window();
 
-    [[nodiscard]] bool isMouseCaptured() const;
-    void setMouseCapture(bool capture);
+        [[nodiscard]] bool isFullscreen() const;
+        void setFullscreen(bool isFullscreen);
 
-    [[nodiscard]] int getWidth() const;
-    [[nodiscard]] int getHeight() const;
+        [[nodiscard]] bool isMouseCaptured() const;
+        void setMouseCapture(bool capture);
 
-    void onEvent(const SDL_Event &event);
-    [[nodiscard]] SDL_Window *get() const;
+        [[nodiscard]] int getWidth() const;
+        [[nodiscard]] int getHeight() const;
 
-private:
-    bool m_isFullscreen;
-    bool m_isMouseCaptured;
-    SDL_Window* m_window;
-    std::shared_ptr<Surface> m_surface;
-};
+        void onEvent(const SDL_Event &event);
+        [[nodiscard]] SDL_Window *get() const;
+
+    private:
+        bool m_isFullscreen;
+        bool m_isMouseCaptured;
+        SDL_Window* m_window;
+        std::shared_ptr<Surface> m_surface;
+    };
+}

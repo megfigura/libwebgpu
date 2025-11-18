@@ -4,60 +4,59 @@
 #include "Resource.h"
 #include "webgpu/GpuBuffer.h"
 
-namespace gltf
+namespace resource
 {
-    struct Accessor;
-    struct Gltf;
-    struct Node;
-    struct Mesh;
+    struct JAccessor;
+    struct JGltf;
+    struct JRawResource;
+    struct JGpuBuffer;
+    struct JNode;
+    struct JMesh;
+
+    class MeshPrimitive
+    {
+    public:
+        MeshPrimitive(int vertexCount, const std::shared_ptr<webgpu::GpuBuffer>& vertexBuffer, const std::shared_ptr<webgpu::GpuBuffer>& indexBuffer, const std::shared_ptr<webgpu::GpuBuffer>& normalBuffer);
+        int m_vertexCount;
+        std::shared_ptr<webgpu::GpuBuffer> m_vertexBuffer;
+        std::shared_ptr<webgpu::GpuBuffer> m_indexBuffer;
+        std::shared_ptr<webgpu::GpuBuffer> m_normalBuffer;
+    };
+
+    class Mesh
+    {
+    public:
+        Mesh();
+        void addPrimitive(const MeshPrimitive& primitive);
+        std::vector<MeshPrimitive> m_primitives;
+    };
+
+    class Node
+    {
+    public:
+        explicit Node(const glm::mat4x4& matrix, const glm::mat4x4& normalMatrix);
+
+        Mesh mesh;
+        glm::mat4x4 matrix;
+        glm::mat4x4 normalMatrix;
+    };
+
+    class GltfResource : public Resource
+    {
+    public:
+        explicit GltfResource(const std::filesystem::path& resourceDir, const std::filesystem::path& path);
+        [[nodiscard]] nlohmann::json getJson() const;
+        [[nodiscard]] std::vector<Node> getNodes() const;
+        bool isLoadable(std::string& error) const override;
+        void loadBuffers(const std::shared_ptr<webgpu::Device>& device);
+
+    private:
+        nlohmann::json m_json;
+        std::unordered_map<std::string, RawResource> m_bufferResources;
+        std::vector<Node> m_nodes;
+
+        std::shared_ptr<webgpu::GpuBuffer> createGpuBuffer(const JGltf& gltf, const JAccessor& accessor, WGPUBufferUsage usage) const;
+        static glm::mat4x4 fromVector(std::vector<float> v);
+        Node loadNode(const JGltf& gltf, const JNode& gNode, const JMesh& gMesh) const;
+    };
 }
-
-class RawResource;
-class GpuBuffer;
-
-class MeshPrimitive
-{
-public:
-    MeshPrimitive(int vertexCount, const std::shared_ptr<GpuBuffer>& vertexBuffer, const std::shared_ptr<GpuBuffer>& indexBuffer, const std::shared_ptr<GpuBuffer>& normalBuffer);
-    int m_vertexCount;
-    std::shared_ptr<GpuBuffer> m_vertexBuffer;
-    std::shared_ptr<GpuBuffer> m_indexBuffer;
-    std::shared_ptr<GpuBuffer> m_normalBuffer;
-};
-
-class Mesh
-{
-public:
-    Mesh();
-    void addPrimitive(const MeshPrimitive& primitive);
-    std::vector<MeshPrimitive> m_primitives;
-};
-
-class Node
-{
-public:
-    explicit Node(const glm::mat4x4& matrix, const glm::mat4x4& normalMatrix);
-
-    Mesh mesh;
-    glm::mat4x4 matrix;
-    glm::mat4x4 normalMatrix;
-};
-
-class GltfResource : public Resource
-{
-public:
-    explicit GltfResource(const std::filesystem::path& resourceDir, const std::filesystem::path& path);
-    [[nodiscard]] nlohmann::json getJson() const;
-    [[nodiscard]] std::vector<Node> getNodes() const;
-    bool isLoadable(std::string& error) const override;
-    void loadBuffers(const std::shared_ptr<Device>& device);
-
-private:
-    nlohmann::json m_json;
-    std::unordered_map<std::string, RawResource> m_bufferResources;
-    std::vector<Node> m_nodes;
-
-    std::shared_ptr<GpuBuffer> createGpuBuffer(const gltf::Gltf& gltf, const gltf::Accessor& accessor, WGPUBufferUsage usage) const;
-    static glm::mat4x4 fromVector(std::vector<float> v);
-    Node loadNode(const gltf::Gltf& gltf, const gltf::Node& gNode, const gltf::Mesh& gMesh) const;
-};

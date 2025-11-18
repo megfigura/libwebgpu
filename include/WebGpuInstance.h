@@ -1,17 +1,20 @@
 #pragma once
 #include <webgpu/webgpu.h>
 
-class Adapter;
-
-class WebGpuInstance
+namespace webgpu
 {
-public:
-    WebGpuInstance();
-    ~WebGpuInstance();
+    class Adapter;
 
-    [[nodiscard]] WGPUInstance get() const;
-    void processEvents() const;
+    class WebGpuInstance
+    {
+    public:
+        WebGpuInstance();
+        ~WebGpuInstance();
 
-private:
-    WGPUInstance m_instance;
-};
+        [[nodiscard]] WGPUInstance get() const;
+        void processEvents() const;
+
+    private:
+        WGPUInstance m_instance;
+    };
+}

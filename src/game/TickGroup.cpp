@@ -1,24 +1,27 @@
 #include "TickGroup.h"
 #include "TickableObject.h"
 
-TickGroup::TickGroup(long tickNanos) : m_tickNanos{tickNanos}, m_accumulator{}
+namespace game
 {
-}
-
-void TickGroup::update(long deltaNanos)
-{
-    m_accumulator += deltaNanos;
-    while (m_accumulator >= m_tickNanos)
+    TickGroup::TickGroup(const int tickNanos) : m_tickNanos{tickNanos}, m_accumulator{}
     {
-        m_accumulator -= m_tickNanos;
-        for (const auto& obj : m_objects)
+    }
+
+    void TickGroup::update(const uint64_t deltaNanos)
+    {
+        m_accumulator += deltaNanos;
+        while (m_accumulator >= m_tickNanos)
         {
-            obj->update();
+            m_accumulator -= m_tickNanos;
+            for (const auto& obj : m_objects)
+            {
+                //obj->update();
+            }
         }
     }
-}
 
-void TickGroup::add(std::unique_ptr<TickableObject> obj)
-{
-    m_objects.push_back(std::move(obj));
+    void TickGroup::add(std::unique_ptr<TickableObject> obj)
+    {
+        m_objects.push_back(std::move(obj));
+    }
 }

@@ -2,17 +2,20 @@
 #include <vector>
 #include <memory>
 
-class TickableObject;
-
-class TickGroup
+namespace game
 {
-public:
-    explicit TickGroup(long tickNanos);
-    void update(long deltaNanos);
-    void add(std::unique_ptr<TickableObject> obj);
+    class TickableObject;
 
-private:
-    long m_tickNanos;
-    long m_accumulator;
-    std::vector<std::unique_ptr<TickableObject>> m_objects;
-};
+    class TickGroup
+    {
+    public:
+        explicit TickGroup(int tickNanos);
+        void update(uint64_t deltaNanos);
+        void add(std::unique_ptr<TickableObject> obj);
+
+    private:
+        int m_tickNanos;
+        uint64_t m_accumulator;
+        std::vector<std::unique_ptr<TickableObject>> m_objects;
+    };
+}

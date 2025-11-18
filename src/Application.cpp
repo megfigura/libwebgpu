@@ -33,39 +33,44 @@ Application& Application::get()
     return *theAppInstance;
 }
 
-std::shared_ptr<Loader> Application::getResourceLoader() const
+std::shared_ptr<resource::Loader> Application::getResourceLoader() const
 {
     return impl->getResourceLoader();
 }
 
-std::shared_ptr<WebGpuInstance> Application::getInstance() const
+std::shared_ptr<webgpu::WebGpuInstance> Application::getInstance() const
 {
     return impl->getInstance();
 }
 
-std::shared_ptr<Adapter> Application::getAdapter() const
+std::shared_ptr<webgpu::Adapter> Application::getAdapter() const
 {
     return impl->getAdapter();
 }
 
-std::shared_ptr<Device> Application::getDevice() const
+std::shared_ptr<webgpu::Device> Application::getDevice() const
 {
     return impl->getDevice();
 }
 
-std::shared_ptr<Window> Application::getWindow() const
+std::shared_ptr<webgpu::Window> Application::getWindow() const
 {
     return impl->getWindow();
 }
 
-std::shared_ptr<Surface> Application::getSurface() const
+std::shared_ptr<webgpu::Surface> Application::getSurface() const
 {
     return impl->getSurface();
 }
 
-std::shared_ptr<Controller> Application::getController() const
+std::shared_ptr<input::Controller> Application::getController() const
 {
     return impl->getController();
+}
+
+std::shared_ptr<physics::Player> Application::getPlayer() const
+{
+    return impl->getPlayer();
 }
 
 void Application::initLogging()

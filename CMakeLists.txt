@@ -21,6 +21,7 @@ find_package(spdlog REQUIRED)
 find_package(tl-expected REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(glm REQUIRED)
+find_package(magic_enum REQUIRED)
 
 add_library(libwebgpu
         include/Adapter.h
@@ -34,14 +35,6 @@ add_library(libwebgpu
         src/ApplicationImpl.cpp
         src/ApplicationImpl.h
 
-        src/input/Action.cpp
-        src/input/Action.h
-        src/input/ActionEvent.cpp
-        src/input/ActionEvent.h
-        src/input/Axis.cpp
-        src/input/Axis.h
-        src/input/AxisEvent.cpp
-        src/input/AxisEvent.h
         src/input/Controller.cpp
         src/input/Controller.h
         src/input/KeyMap.cpp
@@ -97,6 +90,7 @@ target_link_libraries(libwebgpu
         tl::expected
         nlohmann_json::nlohmann_json
         glm::glm
+        magic_enum::magic_enum
 )
 set_target_properties(
         libwebgpu PROPERTIES

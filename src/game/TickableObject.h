@@ -1,10 +1,14 @@
 #pragma once
+#include <cstdint>
 
-class TickableObject
+namespace game
 {
-public:
-    TickableObject();
-    virtual ~TickableObject();
+    class TickableObject
+    {
+    public:
+        TickableObject();
+        virtual ~TickableObject();
 
-    virtual void update() = 0;
-};
+        virtual void update(uint64_t tick) = 0;
+    };
+}

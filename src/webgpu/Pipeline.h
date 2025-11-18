@@ -6,60 +6,63 @@
 
 #include "resource/GltfResource.h"
 
-class Surface;
-class Device;
-
-struct Camera
+namespace webgpu
 {
-    glm::mat4x4 projection = glm::identity<glm::mat4x4>();
-    glm::mat4x4 view = glm::identity<glm::mat4x4>();
-    glm::vec3 position{};
-    float time{};
-};
+    class Surface;
+    class Device;
 
-struct Model
-{
-    glm::mat4x4 matrix = glm::identity<glm::mat4x4>();
-    glm::mat4x4 normalMatrix = glm::identity<glm::mat4x4>();
-};
+    struct Camera
+    {
+        glm::mat4x4 projection = glm::identity<glm::mat4x4>();
+        glm::mat4x4 view = glm::identity<glm::mat4x4>();
+        glm::vec3 position{};
+        float time{};
+    };
 
-class Pipeline
-{
-public:
-    Pipeline(const Node& node, MeshPrimitive meshPrimitive, const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface);
-    ~Pipeline();
+    struct Model
+    {
+        glm::mat4x4 matrix = glm::identity<glm::mat4x4>();
+        glm::mat4x4 normalMatrix = glm::identity<glm::mat4x4>();
+    };
 
-    void setDepthFormat(const WGPUTextureFormat& format);
+    class Pipeline
+    {
+    public:
+        Pipeline(const resource::Node& node, resource::MeshPrimitive meshPrimitive, const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface);
+        ~Pipeline();
 
-    [[nodiscard]] WGPURenderPipeline get();
+        void setDepthFormat(const WGPUTextureFormat& format);
 
-    [[nodiscard]] WGPUBuffer getPointBuffer() const;
-    [[nodiscard]] WGPUBuffer getIndexBuffer() const;
-    [[nodiscard]] WGPUBuffer getNormalBuffer() const;
-    [[nodiscard]] WGPUBuffer getCameraUniformBuffer() const;
-    [[nodiscard]] WGPUBindGroup getCameraBindGroup() const;
-    [[nodiscard]] WGPUBuffer getModelUniformBuffer() const;
-    [[nodiscard]] WGPUBindGroup getModelBindGroup() const;
-    float getCurrTime();
+        [[nodiscard]] WGPURenderPipeline get();
 
-    Node m_node;
-    MeshPrimitive m_primitive;
-    int m_vertexIndices;
+        [[nodiscard]] WGPUBuffer getPointBuffer() const;
+        [[nodiscard]] WGPUBuffer getIndexBuffer() const;
+        [[nodiscard]] WGPUBuffer getNormalBuffer() const;
+        [[nodiscard]] WGPUBuffer getCameraUniformBuffer() const;
+        [[nodiscard]] WGPUBindGroup getCameraBindGroup() const;
+        [[nodiscard]] WGPUBuffer getModelUniformBuffer() const;
+        [[nodiscard]] WGPUBindGroup getModelBindGroup() const;
+        float getCurrTime();
 
-private:
-    std::shared_ptr<Device> m_device;
-    std::shared_ptr<Surface> m_surface;
-    WGPURenderPipeline m_pipeline;
-    WGPUBindGroupLayout m_cameraBindGroupLayout;
-    WGPUBindGroupLayout m_modelBindGroupLayout;
-    WGPUPipelineLayout m_pipelineLayout;
-    WGPUBindGroup m_cameraBindGroup;
-    WGPUBindGroup m_modelBindGroup;
-    WGPUTextureFormat m_depthFormat;
+        resource::Node m_node;
+        resource::MeshPrimitive m_primitive;
+        int m_vertexIndices;
 
-    WGPUBuffer m_cameraUniformBuffer;
-    WGPUBuffer m_modelUniformBuffer;
-    float m_currTime;
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<Surface> m_surface;
+        WGPURenderPipeline m_pipeline;
+        WGPUBindGroupLayout m_cameraBindGroupLayout;
+        WGPUBindGroupLayout m_modelBindGroupLayout;
+        WGPUPipelineLayout m_pipelineLayout;
+        WGPUBindGroup m_cameraBindGroup;
+        WGPUBindGroup m_modelBindGroup;
+        WGPUTextureFormat m_depthFormat;
 
-    WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
-};
+        WGPUBuffer m_cameraUniformBuffer;
+        WGPUBuffer m_modelUniformBuffer;
+        float m_currTime;
+
+        WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
+    };
+}

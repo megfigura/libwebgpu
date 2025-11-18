@@ -2,24 +2,27 @@
 #include <memory>
 #include <webgpu/webgpu.h>
 
-class WebGpuInstance;
-class Adapter;
-class Window;
-
-class Device
+namespace webgpu
 {
-public:
-    Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
-    ~Device();
+    class WebGpuInstance;
+    class Adapter;
+    class Window;
 
-    [[nodiscard]] WGPUDevice get() const;
-    [[nodiscard]] WGPUQueue getQueue() const;
+    class Device
+    {
+    public:
+        Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
+        ~Device();
 
-    void print() const;
+        [[nodiscard]] WGPUDevice get() const;
+        [[nodiscard]] WGPUQueue getQueue() const;
 
-private:
-    WGPUDevice m_device;
+        void print() const;
 
-    WGPUDevice requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
-    WGPUDeviceDescriptor createDeviceDescriptor(const WGPULimits &requiredLimits);
-};
+    private:
+        WGPUDevice m_device;
+
+        WGPUDevice requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
+        WGPUDeviceDescriptor createDeviceDescriptor(const WGPULimits &requiredLimits);
+    };
+}

@@ -8,49 +8,52 @@
 #include <utility>
 #include <spdlog/spdlog.h>
 
-RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename), m_data(loadResource(filename))
+namespace resource
 {
-}
-
-bool RawResource::isLoadable(std::string& error) const
-{
-    if (!m_data.has_value())
+    RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename), m_data(loadResource(filename))
     {
-        error = m_data.error();
-        return false;
     }
 
-    return true;
-}
-
-tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::getBytes() const
-{
-    return m_data;
-}
-
-tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::loadResource(const std::filesystem::path& filename)
-{
-    char cwd[256];
-    getcwd(cwd, 256);
-    std::ifstream ifs(filename, std::ios::binary | std::ios::ate);
-    if (!ifs)
+    bool RawResource::isLoadable(std::string& error) const
     {
-        return tl::unexpected(std::string("File " + filename.string() + " could not be opened: " + std::strerror(errno)));
+        if (!m_data.has_value())
+        {
+            error = m_data.error();
+            return false;
+        }
+
+        return true;
     }
 
-    const auto end = ifs.tellg();
-    ifs.seekg(0, std::ios::beg);
-    const auto size = end - ifs.tellg();
-    if (size == 0)
+    tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::getBytes() const
     {
-        return tl::unexpected(std::string("File " + filename.string() + " is empty"));
+        return m_data;
     }
 
-    std::shared_ptr buffer(std::make_shared<std::vector<char>>(size));
-    if (!ifs.read(buffer->data(), size))
+    tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::loadResource(const std::filesystem::path& filename)
     {
-        return tl::unexpected(std::string("Failed to read file " + filename.string() + ": " + std::strerror(errno)));
-    }
+        char cwd[256];
+        getcwd(cwd, 256);
+        std::ifstream ifs(filename, std::ios::binary | std::ios::ate);
+        if (!ifs)
+        {
+            return tl::unexpected(std::string("File " + filename.string() + " could not be opened: " + std::strerror(errno)));
+        }
 
-    return buffer;
+        const auto end = ifs.tellg();
+        ifs.seekg(0, std::ios::beg);
+        const auto size = end - ifs.tellg();
+        if (size == 0)
+        {
+            return tl::unexpected(std::string("File " + filename.string() + " is empty"));
+        }
+
+        std::shared_ptr buffer(std::make_shared<std::vector<char>>(size));
+        if (!ifs.read(buffer->data(), size))
+        {
+            return tl::unexpected(std::string("Failed to read file " + filename.string() + ": " + std::strerror(errno)));
+        }
+
+        return buffer;
+    }
 }

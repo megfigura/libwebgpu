@@ -2,34 +2,37 @@
 #include <memory>
 #include <webgpu/webgpu.h>
 
-class Device;
-class Adapter;
-class Window;
-class WebGpuInstance;
-
-class Surface
+namespace webgpu
 {
-public:
-    Surface(const std::shared_ptr<Window>& window, const std::shared_ptr<WebGpuInstance>& instance);
-    ~Surface();
+    class Device;
+    class Adapter;
+    class Window;
+    class WebGpuInstance;
 
-    [[nodiscard]] WGPUSurface get() const;
-    [[nodiscard]] WGPUTextureFormat getTextureFormat() const;
-    int getWidth();
-    int getHeight();
+    class Surface
+    {
+    public:
+        Surface(const std::shared_ptr<Window>& window, const std::shared_ptr<WebGpuInstance>& instance);
+        ~Surface();
 
-    void configureSurface(int width, int height);
+        [[nodiscard]] WGPUSurface get() const;
+        [[nodiscard]] WGPUTextureFormat getTextureFormat() const;
+        int getWidth();
+        int getHeight();
 
-    void present() const;
+        void configureSurface(int width, int height);
 
-private:
-    WGPUSurface m_surface;
+        void present() const;
 
-    bool m_isConfigured;
-    WGPUTextureFormat m_surfaceFormat;
-    int m_width;
-    int m_height;
+    private:
+        WGPUSurface m_surface;
 
-    static WGPUSurface createSurface(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window);
-    static WGPUSurface createSurface(const std::shared_ptr<WebGpuInstance>& instance, WGPUChainedStruct* surfaceSourceDesc);
-};
+        bool m_isConfigured;
+        WGPUTextureFormat m_surfaceFormat;
+        int m_width;
+        int m_height;
+
+        static WGPUSurface createSurface(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window);
+        static WGPUSurface createSurface(const std::shared_ptr<WebGpuInstance>& instance, WGPUChainedStruct* surfaceSourceDesc);
+    };
+}

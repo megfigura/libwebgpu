@@ -1,13 +1,21 @@
 #pragma once
+#include "input/Controller.h"
 #include "input/KeyMap.h"
 
-class Player
+namespace physics
 {
-public:
-    Player();
+    class Player
+    {
+    public:
+        Player(int id, const input::KeyMap& keyMap);
 
-    void update(double dt);
+        void update(std::vector<input::ControllerState> controllerTicks);
 
-private:
-    KeyMap m_keyMap;
-};
+        float m_x{};
+
+    private:
+        int m_id;
+
+        input::PlayerKeyMap m_keyMap;
+    };
+}

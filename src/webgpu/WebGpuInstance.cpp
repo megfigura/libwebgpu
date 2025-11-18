@@ -5,23 +5,26 @@
 #include "StringView.h"
 #include "Util.h"
 
-WebGpuInstance::WebGpuInstance()
+namespace webgpu
 {
-    WGPUInstanceDescriptor desc = {};
-    m_instance = wgpuCreateInstance(&desc);
-}
+    WebGpuInstance::WebGpuInstance()
+    {
+        WGPUInstanceDescriptor desc = {};
+        m_instance = wgpuCreateInstance(&desc);
+    }
 
-WebGpuInstance::~WebGpuInstance()
-{
-    wgpuInstanceRelease(m_instance);
-}
+    WebGpuInstance::~WebGpuInstance()
+    {
+        wgpuInstanceRelease(m_instance);
+    }
 
-WGPUInstance WebGpuInstance::get() const
-{
-    return m_instance;
-}
+    WGPUInstance WebGpuInstance::get() const
+    {
+        return m_instance;
+    }
 
-void WebGpuInstance::processEvents() const
-{
-    wgpuInstanceProcessEvents(m_instance);
+    void WebGpuInstance::processEvents() const
+    {
+        wgpuInstanceProcessEvents(m_instance);
+    }
 }

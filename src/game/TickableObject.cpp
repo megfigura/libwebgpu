@@ -1,4 +1,7 @@
 #include "TickableObject.h"
 
-TickableObject::TickableObject() = default;
-TickableObject::~TickableObject() = default;
+namespace game
+{
+    TickableObject::TickableObject() = default;
+    TickableObject::~TickableObject() = default;
+}

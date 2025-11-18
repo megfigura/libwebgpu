@@ -11,50 +11,59 @@
 #include "Window.h"
 #include "input/Controller.h"
 #include "resource/Loader.h"
-#include "webgpu/Frame.h"
 #include "webgpu/Pipeline.h"
 #include "webgpu/Surface.h"
+#include "physics/Player.h"
+#include "webgpu/Frame.h"
+#include "webgpu/TextureView.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
 
+using namespace webgpu;
+
 Application::ApplicationImpl::ApplicationImpl() = default;
 Application::ApplicationImpl::~ApplicationImpl() = default;
 
-std::shared_ptr<Loader> Application::ApplicationImpl::getResourceLoader()
+std::shared_ptr<resource::Loader> Application::ApplicationImpl::getResourceLoader()
 {
     return m_resourceLoader;
 }
 
-std::shared_ptr<WebGpuInstance> Application::ApplicationImpl::getInstance()
+std::shared_ptr<webgpu::WebGpuInstance> Application::ApplicationImpl::getInstance()
 {
     return m_instance;
 }
 
-std::shared_ptr<Adapter> Application::ApplicationImpl::getAdapter()
+std::shared_ptr<webgpu::Adapter> Application::ApplicationImpl::getAdapter()
 {
     return m_adapter;
 }
 
-std::shared_ptr<Device> Application::ApplicationImpl::getDevice()
+std::shared_ptr<webgpu::Device> Application::ApplicationImpl::getDevice()
 {
     return m_device;
 }
 
-std::shared_ptr<Window> Application::ApplicationImpl::getWindow()
+std::shared_ptr<webgpu::Window> Application::ApplicationImpl::getWindow()
 {
     return m_window;
 }
 
-std::shared_ptr<Surface> Application::ApplicationImpl::getSurface()
+std::shared_ptr<webgpu::Surface> Application::ApplicationImpl::getSurface()
 {
     return m_surface;
 }
 
-std::shared_ptr<Controller> Application::ApplicationImpl::getController()
+std::shared_ptr<input::Controller> Application::ApplicationImpl::getController()
 {
     return m_controller;
+}
+
+std::shared_ptr<physics::Player> Application::ApplicationImpl::getPlayer()
+{
+    return m_player;
 }
 
 int Application::ApplicationImpl::run()
@@ -66,13 +75,14 @@ int Application::ApplicationImpl::run()
         return 1;
     }
 
-    m_resourceLoader = std::make_shared<Loader>(std::filesystem::absolute("resources"));
+    m_resourceLoader = std::make_shared<resource::Loader>(std::filesystem::absolute("resources"));
     m_instance = std::make_shared<WebGpuInstance>();
     m_window = std::make_shared<Window>();
     m_surface = std::make_shared<Surface>(m_window, m_instance);
     m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
-    m_controller = std::make_shared<Controller>();
+    m_controller = std::make_shared<input::Controller>();
+    m_player = std::make_shared<physics::Player>(0, input::KeyMap{});
 
     //m_adapter->print();
     //m_device->print();
@@ -139,12 +149,12 @@ SDL_InitFlags Application::ApplicationImpl::getSdlInitFlags()
     return SDL_INIT_VIDEO;
 }
 
-Uint64 accumulator = 0;
+uint64_t accumulator = 0;
 
 bool Application::ApplicationImpl::mainLoop()
 {
-    Uint64 now = SDL_GetTicksNS();
-    Uint64 frameNanos = now - m_lastFrameTimestamp;
+    uint64_t now = SDL_GetTicksNS();
+    uint64_t frameNanos = now - m_lastFrameTimestamp;
     accumulator += frameNanos;
 
     int twentyMillis = 20000000;
@@ -177,7 +187,7 @@ bool Application::ApplicationImpl::mainLoop()
         }
     }
 
-    std::vector<ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, twentyMillis, ticks);
+    std::vector<input::ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, twentyMillis, ticks);
     /*
     for (int iState = 0; iState < controllerTickStates.size(); iState++)
     {
@@ -193,10 +203,12 @@ bool Application::ApplicationImpl::mainLoop()
     }
     */
 
-    for (ControllerState& state : controllerTickStates)
+    for (input::ControllerState& state : controllerTickStates)
     {
         m_controller->m_pos += (static_cast<float>(state.keyboardState.activeNanos[SDL_SCANCODE_W]) / 500000000.0f);
     }
+
+    m_player->update(controllerTickStates);
 
     Frame frame(m_device, m_surface, m_pipelines, m_depthTextureView, m_msaaTextureView);
     frame.draw();

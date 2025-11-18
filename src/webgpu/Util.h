@@ -1,7 +1,10 @@
 #pragma once
 
-class Util
+namespace webgpu
 {
-public:
-    static void sleep(int millis);
-};
+    class Util
+    {
+    public:
+        static void sleep(int millis);
+    };
+}

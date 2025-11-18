@@ -2,19 +2,22 @@
 #include <memory>
 #include <webgpu/webgpu.h>
 
-class WebGpuInstance;
-class Surface;
-
-class Adapter
+namespace webgpu
 {
-public:
-    Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface>& surface);
-    ~Adapter();
+    class WebGpuInstance;
+    class Surface;
 
-    [[nodiscard]] WGPUAdapter get() const;
-    void print();
+    class Adapter
+    {
+    public:
+        Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface>& surface);
+        ~Adapter();
 
-private:
-    WGPUAdapter m_adapter;
-    static WGPUAdapter requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface>& surface);
-};
+        [[nodiscard]] WGPUAdapter get() const;
+        void print();
+
+    private:
+        WGPUAdapter m_adapter;
+        static WGPUAdapter requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface>& surface);
+    };
+}

@@ -2,58 +2,98 @@
 #include <SDL3/SDL_events.h>
 #include <vector>
 
-struct KeyboardState
+namespace input
 {
-    std::vector<bool> isNew;
-    std::vector<int> activeNanos;
-
-    void init(const size_t numKeys)
+    enum class Action
     {
-        isNew.resize(numKeys);
-        activeNanos.resize(numKeys);
-    }
-};
+        INVALID = -1,
+        JUMP,
+        FLASHLIGHT,
+        ENUM_SIZE,
+    };
 
-struct MouseState
-{
-    std::vector<bool> buttonIsNew;
-    std::vector<int> buttonActiveNanos;
-    int dx;
-    int dy;
-    // TODO - wheel, etc
-
-    void init(const size_t numButtons)
+    enum class Axis
     {
-        buttonIsNew.resize(numButtons);
-        buttonActiveNanos.resize(numButtons);
-    }
-};
+        INVALID = -1,
+        FORWARD_BACKWARD,
+        LEFT_RIGHT,
+        UP_DOWN,
+        PITCH,
+        YAW,
+        ROLL
+    };
 
-struct GamePadState
-{
-    // TODO
-};
+    enum class InputDeviceType
+    {
+        INVALID = -1,
+        KEYBOARD,
+        MOUSE,
+        GAMEPAD,
+        ENUM_SIZE
+    };
 
-struct ControllerState
-{
-    KeyboardState keyboardState;
-    MouseState mouseState;
-    GamePadState gamePadState;
-};
+    enum class Direction
+    {
+        INVALID = -1,
+        X,
+        Y,
+        Z,
+        ENUM_SIZE
+    };
 
-class Controller
-{
-public:
-    explicit Controller();
-    ~Controller();
+    struct KeyboardState
+    {
+        std::vector<bool> isNew;
+        std::vector<int> activeNanos;
 
-    void onEvent(const SDL_Event &event);
-    std::vector<ControllerState> getTickStates(Uint64 frameStart, int nanosPerTick, int numTicks);
+        void init(const size_t numKeys)
+        {
+            isNew.resize(numKeys);
+            activeNanos.resize(numKeys);
+        }
+    };
 
-    float m_pos;
+    struct MouseState
+    {
+        std::vector<bool> buttonIsNew;
+        std::vector<int> buttonActiveNanos;
+        int dx;
+        int dy;
+        // TODO - wheel, etc
 
-private:
-    bool m_isMouseCaptured;
-    std::vector<Uint64> m_keyboardDownTimes;
-    std::vector<SDL_Event> m_frameEvents;
-};
+        void init(const size_t numButtons)
+        {
+            buttonIsNew.resize(numButtons);
+            buttonActiveNanos.resize(numButtons);
+        }
+    };
+
+    struct GamePadState
+    {
+        // TODO
+    };
+
+    struct ControllerState
+    {
+        KeyboardState keyboardState;
+        MouseState mouseState;
+        GamePadState gamePadState;
+    };
+
+    class Controller
+    {
+    public:
+        explicit Controller();
+        ~Controller();
+
+        void onEvent(const SDL_Event &event);
+        std::vector<ControllerState> getTickStates(Uint64 frameStart, int nanosPerTick, int numTicks);
+
+        float m_pos;
+
+    private:
+        bool m_isMouseCaptured;
+        std::vector<Uint64> m_keyboardDownTimes;
+        std::vector<SDL_Event> m_frameEvents;
+    };
+}
