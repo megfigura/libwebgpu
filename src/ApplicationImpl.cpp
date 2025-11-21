@@ -157,11 +157,11 @@ bool Application::ApplicationImpl::mainLoop()
     uint64_t frameNanos = now - m_lastFrameTimestamp;
     accumulator += frameNanos;
 
-    int twentyMillis = 20000000;
+    constexpr int tenMillis = 10000000;
     int ticks = 0;
-    while (accumulator >= twentyMillis)
+    while (accumulator >= tenMillis)
     {
-        accumulator -= twentyMillis;
+        accumulator -= tenMillis;
         ticks++;
     }
     //spdlog::info("Ticks: {}", ticks);
@@ -187,34 +187,14 @@ bool Application::ApplicationImpl::mainLoop()
         }
     }
 
-    std::vector<input::ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, twentyMillis, ticks);
-    /*
-    for (int iState = 0; iState < controllerTickStates.size(); iState++)
-    {
-        ControllerState& controllerState = controllerTickStates.at(iState);
-        KeyboardState& kbState = controllerState.keyboardState;
-        for (int iKey = 0; iKey < kbState.activeNanos.size(); iKey++)
-        {
-            if (kbState.activeNanos.at(iKey) != 0)
-            {
-                spdlog::info("Tick: {}, key: {}, {}ms, isNew: {}", iState, SDL_GetScancodeName(static_cast<SDL_Scancode>(iKey)), kbState.activeNanos.at(iKey) / 1000000, kbState.isNew.at(iKey) == true);
-            }
-        }
-    }
-    */
-
-    for (input::ControllerState& state : controllerTickStates)
-    {
-        m_controller->m_pos += (static_cast<float>(state.keyboardState.activeNanos[SDL_SCANCODE_W]) / 500000000.0f);
-    }
-
-    m_player->update(controllerTickStates);
+    std::vector<input::ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, tenMillis, ticks);
+    m_player->update(controllerTickStates, tenMillis);
 
     Frame frame(m_device, m_surface, m_pipelines, m_depthTextureView, m_msaaTextureView);
     frame.draw();
 
     m_lastFrameTimestamp = now;
-    m_lastTickTimestamp += (ticks * twentyMillis);
+    m_lastTickTimestamp += (ticks * tenMillis);
 
     return !get().isShuttingDown();
 }

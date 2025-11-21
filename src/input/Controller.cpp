@@ -10,9 +10,13 @@ namespace input
     Controller::Controller() : m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
+        Application::get().getWindow()->setMouseCapture(true);
         int numKeys;
         SDL_GetKeyboardState(&numKeys);
         m_keyboardDownTimes.resize(numKeys);
+
+        int numButtons = 16;
+        m_mouseButtonDownTimes.resize(numButtons);
     }
 
     Controller::~Controller() = default;
@@ -79,45 +83,57 @@ namespace input
             ControllerState controllerState{};
             KeyboardState& kbState = controllerState.keyboardState;
             kbState.init(m_keyboardDownTimes.size());
+            MouseState& mouseState = controllerState.mouseState;
+            mouseState.init(m_mouseButtonDownTimes.size());
+
             for (auto it = m_frameEvents.begin(); it != m_frameEvents.end();)
             {
                 auto event = *it;
-                bool processedEvent = false;
-                switch (event.type)
+
+                if ((event.common.timestamp >= currTickEventStart) && (event.common.timestamp < currTickEventEnd))
                 {
-                    case SDL_EVENT_KEY_DOWN:
-                        if ((event.key.timestamp >= currTickEventStart) && (event.key.timestamp < currTickEventEnd))
-                        {
+                    switch (event.type)
+                    {
+                        case SDL_EVENT_KEY_DOWN:
                             if (!event.key.repeat)
                             {
                                 kbState.isNew[event.key.scancode] = true;
                                 m_keyboardDownTimes[event.key.scancode] = event.key.timestamp;
                             }
-                            processedEvent = true;
-                        }
-                        break;
+                            break;
 
-                    case SDL_EVENT_KEY_UP:
-                        if ((event.key.timestamp >= currTickEventStart) && (event.key.timestamp < currTickEventEnd))
-                        {
+                        case SDL_EVENT_KEY_UP:
                             // accumulate from start of tick or from last release
                             kbState.activeNanos[event.key.scancode] += static_cast<int>(event.key.timestamp - std::max(currTickStart, m_keyboardDownTimes[event.key.scancode]));
                             m_keyboardDownTimes[event.key.scancode] = 0;
-                            processedEvent = true;
-                        }
-                        break;
+                            break;
 
-                    default:
-                        processedEvent = true;
-                        break;
-                }
+                        case SDL_EVENT_MOUSE_MOTION:
+                            mouseState.dx += event.motion.xrel;
+                            mouseState.dy += event.motion.yrel;
+                            break;
 
-                if (processedEvent)
-                {
+                        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                            mouseState.buttonIsNew[event.button.button] = true;
+                            m_mouseButtonDownTimes[event.button.button] = event.button.timestamp;
+                            break;
+
+                        case SDL_EVENT_MOUSE_BUTTON_UP:
+                            // accumulate from start of tick or from last release
+                            mouseState.buttonActiveNanos[event.button.button] += static_cast<int>(event.button.timestamp - std::max(currTickStart, m_mouseButtonDownTimes[event.button.button]));
+                            m_keyboardDownTimes[event.button.button] = 0;
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    // event is processed
                     it = m_frameEvents.erase(it);
                 }
                 else
                 {
+                    // not ready for this event yet
                     ++it;
                 }
             }

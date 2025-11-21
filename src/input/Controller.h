@@ -57,8 +57,8 @@ namespace input
     {
         std::vector<bool> buttonIsNew;
         std::vector<int> buttonActiveNanos;
-        int dx;
-        int dy;
+        float dx;
+        float dy;
         // TODO - wheel, etc
 
         void init(const size_t numButtons)
@@ -89,11 +89,10 @@ namespace input
         void onEvent(const SDL_Event &event);
         std::vector<ControllerState> getTickStates(Uint64 frameStart, int nanosPerTick, int numTicks);
 
-        float m_pos;
-
     private:
         bool m_isMouseCaptured;
         std::vector<Uint64> m_keyboardDownTimes;
+        std::vector<Uint64> m_mouseButtonDownTimes;
         std::vector<SDL_Event> m_frameEvents;
     };
 }

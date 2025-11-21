@@ -104,10 +104,16 @@ namespace webgpu
 
         glm::mat4x4 projection = glm::perspectiveZO(60.0f * 3.14159f / 180.0f, 800.0f/600.0f, 0.01f, 100.0f);
 
-        float x = Application::get().getPlayer()->m_x;
-        glm::mat4x4 view = glm::lookAt(glm::vec3(x, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 1, 0));
+        //glm::vec3 center(Application::get().getPlayer()->m_x, Application::get().getPlayer()->m_y, Application::get().getPlayer()->m_z);
+        //glm::mat4x4 view = glm::lookAt(glm::vec3(10.0f, 10.0f, 10.0f), center, glm::vec3(0, 1, 0));
+        //glm::mat4x4 view = glm::identity<glm::mat4x4>();
+        // view = glm::rotate(view, Application::get().getPlayer()->m_x / 100.0f, glm::vec3{1.0, 0.0, 0.0});
+        // view = glm::rotate(view, Application::get().getPlayer()->m_y / 100.0f, glm::vec3{0.0, 1.0, 0.0});
+        // view = glm::rotate(view, Application::get().getPlayer()->m_z / 100.0f, glm::vec3{0.0, 0.0, 1.0});
+        // view = glm::translate(view, glm::vec3{0, 0, -10});
 
-        Camera camera{projection, view, glm::vec3(0, 0, 0), m_pipelines.at(0)->getCurrTime()};
+        auto player = Application::get().getPlayer();
+        Camera camera{projection, player->m_view, player->m_position, m_pipelines.at(0)->getCurrTime()};
 
         for (auto pipeline : m_pipelines)
         {

@@ -20,6 +20,7 @@ struct VertexInput {
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) normal: vec3f,
+  @location(1) cameraPos: vec3f
 };
 
 @vertex
@@ -27,6 +28,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 	var out : VertexOutput;
 	out.position = camera.projection * camera.view * model.worldMat * vec4f(in.position, 1);
 	out.normal = (camera.view * model.normalMat * vec4f(in.normal, 0)).xyz;
+	out.cameraPos = in.position;
 	return out;
 }
 
@@ -39,7 +41,7 @@ const ambientColor = vec3f(0.1);
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	// An extremely simple directional lighting model, just to give our model some shape.
     let N = normalize(in.normal);
-    let L = normalize(lightDir);
+    let L = -normalize(in.cameraPos);
     let NDotL = max(dot(N, L), 0.0);
     let surfaceColor = ambientColor + NDotL;
 
