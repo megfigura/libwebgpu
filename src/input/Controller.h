@@ -88,11 +88,14 @@ namespace input
 
         void onEvent(const SDL_Event &event);
         std::vector<ControllerState> getTickStates(Uint64 frameStart, int nanosPerTick, int numTicks);
+        ControllerState getNextPartialState(Uint64 frameStart, int nanosPerTick, int numTicks);
 
     private:
         bool m_isMouseCaptured;
         std::vector<Uint64> m_keyboardDownTimes;
         std::vector<Uint64> m_mouseButtonDownTimes;
         std::vector<SDL_Event> m_frameEvents;
+
+        ControllerState getControllerState(bool readOnly, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd);
     };
 }

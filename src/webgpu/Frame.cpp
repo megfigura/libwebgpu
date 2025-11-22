@@ -102,7 +102,8 @@ namespace webgpu
         WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
         WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
 
-        glm::mat4x4 projection = glm::perspectiveZO(60.0f * 3.14159f / 180.0f, 800.0f/600.0f, 0.01f, 100.0f);
+        float aspect = static_cast<float>(m_surface->getWidth()) / static_cast<float>(m_surface->getHeight());
+        glm::mat4x4 projection = glm::perspectiveZO(45.0f * 3.14159f / 180.0f, aspect, 0.01f, 100.0f);
 
         //glm::vec3 center(Application::get().getPlayer()->m_x, Application::get().getPlayer()->m_y, Application::get().getPlayer()->m_z);
         //glm::mat4x4 view = glm::lookAt(glm::vec3(10.0f, 10.0f, 10.0f), center, glm::vec3(0, 1, 0));

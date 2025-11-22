@@ -164,7 +164,6 @@ bool Application::ApplicationImpl::mainLoop()
         accumulator -= tenMillis;
         ticks++;
     }
-    //spdlog::info("Ticks: {}", ticks);
 
     m_instance->processEvents();
 
@@ -188,7 +187,8 @@ bool Application::ApplicationImpl::mainLoop()
     }
 
     std::vector<input::ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, tenMillis, ticks);
-    m_player->update(controllerTickStates, tenMillis);
+    input::ControllerState nextControllerTickState = m_controller->getNextPartialState(m_lastTickTimestamp, tenMillis, ticks);
+    m_player->update(controllerTickStates, nextControllerTickState, accumulator, tenMillis);
 
     Frame frame(m_device, m_surface, m_pipelines, m_depthTextureView, m_msaaTextureView);
     frame.draw();

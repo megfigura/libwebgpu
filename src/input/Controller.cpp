@@ -80,77 +80,97 @@ namespace input
             uint64_t currTickEventStart = (iTick == 0) ? 0 : currTickStart;
             uint64_t currTickEventEnd = currTickEnd;
 
-            ControllerState controllerState{};
-            KeyboardState& kbState = controllerState.keyboardState;
-            kbState.init(m_keyboardDownTimes.size());
-            MouseState& mouseState = controllerState.mouseState;
-            mouseState.init(m_mouseButtonDownTimes.size());
+            tickStates[iTick] = getControllerState(false, currTickStart, currTickEnd, currTickEventStart, currTickEventEnd);
+        }
 
-            for (auto it = m_frameEvents.begin(); it != m_frameEvents.end();)
+        return tickStates;
+    }
+
+    ControllerState Controller::getNextPartialState(Uint64 frameStart, int nanosPerTick, int numTicks)
+    {
+        // Actual start/end times
+        uint64_t currTickStart = frameStart + (nanosPerTick * numTicks);
+        uint64_t currTickEnd = currTickStart + nanosPerTick;
+
+        return getControllerState(true, currTickStart, currTickEnd, currTickStart, currTickEnd);
+    }
+
+    ControllerState Controller::getControllerState(bool readOnly, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd)
+    {
+        ControllerState controllerState{};
+        KeyboardState& kbState = controllerState.keyboardState;
+        kbState.init(m_keyboardDownTimes.size());
+        MouseState& mouseState = controllerState.mouseState;
+        mouseState.init(m_mouseButtonDownTimes.size());
+
+        for (auto it = m_frameEvents.begin(); it != m_frameEvents.end();)
+        {
+            auto event = *it;
+
+            if ((event.common.timestamp >= currTickEventStart) && (event.common.timestamp < currTickEventEnd))
             {
-                auto event = *it;
-
-                if ((event.common.timestamp >= currTickEventStart) && (event.common.timestamp < currTickEventEnd))
+                switch (event.type)
                 {
-                    switch (event.type)
-                    {
-                        case SDL_EVENT_KEY_DOWN:
-                            if (!event.key.repeat)
-                            {
-                                kbState.isNew[event.key.scancode] = true;
-                                m_keyboardDownTimes[event.key.scancode] = event.key.timestamp;
-                            }
-                            break;
+                    case SDL_EVENT_KEY_DOWN:
+                        if (!event.key.repeat)
+                        {
+                            kbState.isNew[event.key.scancode] = true;
+                            m_keyboardDownTimes[event.key.scancode] = event.key.timestamp;
+                        }
+                        break;
 
-                        case SDL_EVENT_KEY_UP:
-                            // accumulate from start of tick or from last release
-                            kbState.activeNanos[event.key.scancode] += static_cast<int>(event.key.timestamp - std::max(currTickStart, m_keyboardDownTimes[event.key.scancode]));
-                            m_keyboardDownTimes[event.key.scancode] = 0;
-                            break;
+                    case SDL_EVENT_KEY_UP:
+                        // accumulate from start of tick or from last release
+                        kbState.activeNanos[event.key.scancode] += static_cast<int>(event.key.timestamp - std::max(currTickStart, m_keyboardDownTimes[event.key.scancode]));
+                        m_keyboardDownTimes[event.key.scancode] = 0;
+                        break;
 
-                        case SDL_EVENT_MOUSE_MOTION:
-                            mouseState.dx += event.motion.xrel;
-                            mouseState.dy += event.motion.yrel;
-                            break;
+                    case SDL_EVENT_MOUSE_MOTION:
+                        mouseState.dx += event.motion.xrel;
+                        mouseState.dy += event.motion.yrel;
+                        break;
 
-                        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                            mouseState.buttonIsNew[event.button.button] = true;
-                            m_mouseButtonDownTimes[event.button.button] = event.button.timestamp;
-                            break;
+                    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                        mouseState.buttonIsNew[event.button.button] = true;
+                        m_mouseButtonDownTimes[event.button.button] = event.button.timestamp;
+                        break;
 
-                        case SDL_EVENT_MOUSE_BUTTON_UP:
-                            // accumulate from start of tick or from last release
-                            mouseState.buttonActiveNanos[event.button.button] += static_cast<int>(event.button.timestamp - std::max(currTickStart, m_mouseButtonDownTimes[event.button.button]));
-                            m_keyboardDownTimes[event.button.button] = 0;
-                            break;
+                    case SDL_EVENT_MOUSE_BUTTON_UP:
+                        // accumulate from start of tick or from last release
+                        mouseState.buttonActiveNanos[event.button.button] += static_cast<int>(event.button.timestamp - std::max(currTickStart, m_mouseButtonDownTimes[event.button.button]));
+                        m_keyboardDownTimes[event.button.button] = 0;
+                        break;
 
-                        default:
-                            break;
-                    }
+                    default:
+                        break;
+                }
 
-                    // event is processed
+                // event is processed
+                if (!readOnly)
+                {
                     it = m_frameEvents.erase(it);
                 }
                 else
                 {
-                    // not ready for this event yet
                     ++it;
                 }
             }
-
-            // accumulate any keys that are still down
-            for (int iKey = 0; iKey < kbState.activeNanos.size(); iKey++)
+            else
             {
-                if ((m_keyboardDownTimes[iKey] != 0) && (m_keyboardDownTimes[iKey] < currTickEnd))
-                {
-                    int d = static_cast<int>(currTickEnd - std::max(currTickStart, m_keyboardDownTimes[iKey]));
-                    kbState.activeNanos[iKey] += static_cast<int>(currTickEnd - std::max(currTickStart, m_keyboardDownTimes[iKey]));
-                }
+                // not ready for this event yet
+                ++it;
             }
-
-            tickStates[iTick] = controllerState;
         }
 
-        return tickStates;
+        // accumulate any keys that are still down
+        for (int iKey = 0; iKey < kbState.activeNanos.size(); iKey++)
+        {
+            if ((m_keyboardDownTimes[iKey] != 0) && (m_keyboardDownTimes[iKey] < currTickEnd))
+            {
+                kbState.activeNanos[iKey] += static_cast<int>(currTickEnd - std::max(currTickStart, m_keyboardDownTimes[iKey]));
+            }
+        }
+
+        return controllerState;
     }
 }
