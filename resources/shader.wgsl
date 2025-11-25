@@ -41,7 +41,7 @@ const ambientColor = vec3f(0.1);
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	// An extremely simple directional lighting model, just to give our model some shape.
     let N = normalize(in.normal);
-    let L = -normalize(in.cameraPos);
+    let L = vec3f(0, 0, 1); //-normalize(in.cameraPos);
     let NDotL = max(dot(N, L), 0.0);
     let surfaceColor = ambientColor + NDotL;
 
