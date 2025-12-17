@@ -7,9 +7,8 @@ namespace webgpu
     class StringView : public WGPUStringView
     {
     public:
-        explicit StringView(const char *str, size_t length);
-        explicit StringView(std::string_view other);
-        explicit StringView(::WGPUStringView other);
+        explicit StringView(const std::string_view& other);
+        explicit StringView(const ::WGPUStringView& other);
 
         [[nodiscard]] WGPUStringView toWgpu() const;
         [[nodiscard]] std::string_view toString() const;

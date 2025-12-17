@@ -11,6 +11,7 @@ namespace webgpu
     class Device;
     class Window;
     class Surface;
+    class Model;
 }
 
 namespace resource
@@ -46,6 +47,8 @@ public:
     int run();
     virtual void initLogging();
     virtual SDL_InitFlags getSdlInitFlags();
+
+    std::shared_ptr<webgpu::Model> m_model; // TODO
 
 private:
     std::shared_ptr<resource::Loader> m_resourceLoader;

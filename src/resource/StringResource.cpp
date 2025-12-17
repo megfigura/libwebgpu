@@ -2,22 +2,17 @@
 
 namespace resource
 {
-    StringResource::StringResource(const RawResource& rawResource) : Resource(rawResource), m_rawResource(rawResource)
+    StringResource::StringResource(const RawResource& rawResource) : Resource{rawResource.getPath(), rawResource.getName()}, m_rawResource{rawResource}
     {
     }
 
-    bool StringResource::isLoadable(std::string& error) const
+    bool StringResource::isOk(std::string& error) const
     {
-        return m_rawResource.isLoadable(error);
-    }
-
-    tl::expected<webgpu::StringView, std::string> StringResource::getStringView() const
-    {
-        return m_rawResource.getBytes().map([](const auto& b) { return webgpu::StringView(b->data(), b->size()); });
+        return m_rawResource.isOk(error);
     }
 
     tl::expected<std::string, std::string> StringResource::getString() const
     {
-        return m_rawResource.getBytes().map([](const auto& b) { return std::string(b->data(), b->size()); });
+        return std::string{m_rawResource.getBytes().data(), m_rawResource.getBytes().size()};
     }
 }

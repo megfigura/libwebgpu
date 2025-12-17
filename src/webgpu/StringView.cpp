@@ -4,15 +4,11 @@
 
 namespace webgpu
 {
-    StringView::StringView(const char *str, const size_t length) : WGPUStringView{ str, length }
+    StringView::StringView(const std::string_view& other) : WGPUStringView { other.data(), other.size() }
     {
     }
 
-    StringView::StringView(const std::string_view other) : WGPUStringView { other.data(), other.size() }
-    {
-    }
-
-    StringView::StringView(::WGPUStringView other) : WGPUStringView()
+    StringView::StringView(const ::WGPUStringView& other) : WGPUStringView()
     {
         data = other.data;
         length = other.length;
@@ -25,7 +21,7 @@ namespace webgpu
 
     std::string_view StringView::toString() const
     {
-        return std::string_view(data, length);
+        return {data, length};
     }
 
     std::ostream& operator<<(std::ostream& os, const StringView &stringView)

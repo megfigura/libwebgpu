@@ -4,19 +4,27 @@
 
 namespace webgpu
 {
+    enum class GLAccessorType;
+    enum class GLDataType;
     class Device;
 
     class GpuBuffer
     {
     public:
-        GpuBuffer(resource::RawResource res, uint64_t offset, uint64_t size, WGPUBufferUsage usage);
+        explicit GpuBuffer(size_t elementSize, WGPUBufferUsage usage);
+        void addData(const resource::RawResource& srcRes, uint64_t srcOffset, int srcStride, int elementSize, int elementCount);
+        void addData(const char* src, uint64_t srcOffset, int srcStride, int elementSize, int elementCount);
         void load(const std::shared_ptr<Device>& device);
         [[nodiscard]] WGPUBuffer getGpuBuffer() const;
+        [[nodiscard]] uint64_t currentElementOffset() const;
+        [[nodiscard]] uint64_t currentByteOffset() const;
 
     private:
-        WGPUBufferDescriptor m_bufferDesc;
-        const resource::RawResource m_resource;
-        const uint64_t m_offset;
+        std::vector<char> m_tempData;
+        size_t m_elementSize;
+        WGPUBufferUsage m_usage;
         WGPUBuffer m_buffer;
+
+        static int alignment(WGPUBufferUsage usage);
     };
 }

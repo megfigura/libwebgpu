@@ -12,6 +12,26 @@ namespace webgpu
         FLOAT = 5126
     };
 
+    inline int GLDataTypeSize(GLDataType type)
+    {
+        switch (type)
+        {
+            case GLDataType::SBYTE:
+            case GLDataType::UBYTE:
+                return 1;
+
+            case GLDataType::SSHORT:
+            case GLDataType::USHORT:
+                return 2;
+
+            case GLDataType::UINT:
+            case GLDataType::FLOAT:
+                return 4;
+        }
+
+        return -1;
+    }
+
     enum class GLPrimitiveMode
     {
         POINTS = 0,
@@ -28,4 +48,53 @@ namespace webgpu
         ARRAY_BUFFER = 34962,
         ELEMENT_ARRAY_BUFFER = 34963
     };
+
+    enum class GLAccessorType
+    {
+        SCALAR,
+        VEC2,
+        VEC3,
+        VEC4,
+        MAT2,
+        MAT3,
+        MAT4,
+        string
+    };
+
+    inline int GLAccessorTypeSize(GLAccessorType accessorType)
+    {
+        switch (accessorType)
+        {
+            case GLAccessorType::SCALAR:
+                return 1;
+
+            case GLAccessorType::VEC2:
+                return 2;
+
+            case GLAccessorType::VEC3:
+                return 3;
+
+            case GLAccessorType::VEC4:
+            case GLAccessorType::MAT2:
+                return 4;
+
+            case GLAccessorType::MAT3:
+                return 9;
+
+            case GLAccessorType::MAT4:
+                return 16;
+
+            default:
+                break;
+        }
+
+        return -1;
+    }
+
+    inline int GLElementSize(GLDataType dataType, GLAccessorType accessorType)
+    {
+        int dataTypeSize = GLDataTypeSize(dataType);
+        int accessorTypeSize = GLAccessorTypeSize(accessorType);
+        return dataTypeSize * accessorTypeSize;
+    }
 }

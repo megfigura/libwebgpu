@@ -8,9 +8,8 @@ namespace resource
     {
     public:
         explicit StringResource(const RawResource& rawResource);
-        [[nodiscard]] bool isLoadable(std::string& error) const override;
+        [[nodiscard]] bool isOk(std::string& error) const override;
 
-        [[nodiscard]] tl::expected<webgpu::StringView, std::string> getStringView() const;
         [[nodiscard]] tl::expected<std::string, std::string> getString() const;
 
     private:

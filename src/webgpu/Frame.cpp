@@ -7,27 +7,28 @@
 
 #include "Application.h"
 #include "Device.h"
+#include "Model.h"
 #include "Pipeline.h"
 #include "StringView.h"
 #include "Surface.h"
 #include "input/Controller.h"
-#include "resource/Loader.h"
 #include "physics/Player.h"
 
 namespace webgpu
 {
     // TODO - should take collection of render passes?
-    Frame::Frame(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::vector<std::shared_ptr<Pipeline>>& pipelines, const std::shared_ptr<TextureView>& depthTextureView, const std::shared_ptr<TextureView>& msaaTextureView)
+    Frame::Frame(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::vector<std::shared_ptr<Pipeline>>& pipelines, const std::shared_ptr<Model>& model, const std::shared_ptr<TextureView>& depthTextureView, const std::shared_ptr<TextureView>& msaaTextureView)
     {
         m_device = device;
         m_surface = surface;
         m_pipelines = pipelines;
+        m_model = model; // TODO
         m_color = { 0, 0, 0, 1.0 };
         m_depthFormat = WGPUTextureFormat_Depth24Plus;
         m_depthTextureView = depthTextureView;
         m_msaaTextureView = msaaTextureView;
 
-        for (auto pipeline : m_pipelines)
+        for (const auto& pipeline : m_pipelines)
         {
             pipeline->setDepthFormat(m_depthFormat);
         }
@@ -48,7 +49,7 @@ namespace webgpu
         m_depthFormat = format;
         m_depthTextureView = nullptr;
 
-        for (auto pipeline : m_pipelines)
+        for (const auto& pipeline : m_pipelines)
         {
             pipeline->setDepthFormat(m_depthFormat);
         }
@@ -77,7 +78,7 @@ namespace webgpu
         WGPUTextureView surfaceTextureView = wgpuTextureCreateView(surfaceTexture.texture, &canvasViewDescriptor);
 
         auto encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
-        encoderDesc.label = StringView("My command encoder");
+        encoderDesc.label = StringView("My command encoder").toWgpu();
         WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device->get(), &encoderDesc);
 
         auto colorAttachment = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
@@ -105,42 +106,30 @@ namespace webgpu
         float aspect = static_cast<float>(m_surface->getWidth()) / static_cast<float>(m_surface->getHeight());
         glm::mat4x4 projection = glm::perspectiveZO(45.0f * 3.14159f / 180.0f, aspect, 0.01f, 100.0f);
 
-        //glm::vec3 center(Application::get().getPlayer()->m_x, Application::get().getPlayer()->m_y, Application::get().getPlayer()->m_z);
-        //glm::mat4x4 view = glm::lookAt(glm::vec3(10.0f, 10.0f, 10.0f), center, glm::vec3(0, 1, 0));
-        //glm::mat4x4 view = glm::identity<glm::mat4x4>();
-        // view = glm::rotate(view, Application::get().getPlayer()->m_x / 100.0f, glm::vec3{1.0, 0.0, 0.0});
-        // view = glm::rotate(view, Application::get().getPlayer()->m_y / 100.0f, glm::vec3{0.0, 1.0, 0.0});
-        // view = glm::rotate(view, Application::get().getPlayer()->m_z / 100.0f, glm::vec3{0.0, 0.0, 1.0});
-        // view = glm::translate(view, glm::vec3{0, 0, -10});
-
         auto player = Application::get().getPlayer();
         Camera camera{projection, player->m_view, player->m_position, m_pipelines.at(0)->getCurrTime()};
 
-        for (auto pipeline : m_pipelines)
+        std::shared_ptr<Pipeline>& pipeline = m_pipelines.at(0);
+        wgpuRenderPassEncoderSetPipeline(renderPass, pipeline->get());
+        wgpuQueueWriteBuffer(queue, pipeline->getCameraUniformBuffer(), 0, &camera, sizeof(camera));
+
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, m_model->m_vertexBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(m_model->m_vertexBuffer->getGpuBuffer()));
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 1, m_model->m_normalBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(m_model->m_normalBuffer->getGpuBuffer()));
+        wgpuRenderPassEncoderSetIndexBuffer(renderPass, m_model->m_indexBuffer->getGpuBuffer(), WGPUIndexFormat_Uint16, 0, wgpuBufferGetSize(m_model->m_indexBuffer->getGpuBuffer()));
+
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, pipeline->getCameraBindGroup(), 0, nullptr);
+
+        // TODO - update matrices in uniform buffer and upload it
+        for (const auto& node : m_model->m_nodes)
         {
-            wgpuRenderPassEncoderSetPipeline(renderPass, pipeline->get());
-            wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, pipeline->getPointBuffer(), 0, wgpuBufferGetSize(pipeline->getPointBuffer()));
-            wgpuRenderPassEncoderSetVertexBuffer(renderPass, 1, pipeline->getNormalBuffer(), 0, wgpuBufferGetSize(pipeline->getNormalBuffer()));
-            wgpuRenderPassEncoderSetIndexBuffer(renderPass, pipeline->getIndexBuffer(), WGPUIndexFormat_Uint16, 0, wgpuBufferGetSize(pipeline->getIndexBuffer()));
-            wgpuRenderPassEncoderSetBindGroup(renderPass, 0, pipeline->getCameraBindGroup(), 0, nullptr);
-            wgpuRenderPassEncoderSetBindGroup(renderPass, 1, pipeline->getModelBindGroup(), 0, nullptr);
-
-            glm::mat4x4 modelMatrix = pipeline->m_node.matrix;
-            glm::mat4x4 normalMatrix = pipeline->m_node.normalMatrix;
-
-            Model model{modelMatrix, normalMatrix};
-
-            wgpuQueueWriteBuffer(queue, pipeline->getCameraUniformBuffer(), 0, &camera, sizeof(camera));
-            wgpuQueueWriteBuffer(queue, pipeline->getModelUniformBuffer(), 0, &model, sizeof(model));
-
-            wgpuRenderPassEncoderDrawIndexed(renderPass, pipeline->m_primitive.m_vertexCount, 1, 0, 0, 0);
+            drawNode(queue, pipeline, renderPass, node);
         }
 
         wgpuRenderPassEncoderEnd(renderPass);
         wgpuRenderPassEncoderRelease(renderPass);
 
         auto cmdBufferDescriptor = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
-        cmdBufferDescriptor.label = StringView("Command buffer");
+        cmdBufferDescriptor.label = StringView("Command buffer").toWgpu();
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
         wgpuCommandEncoderRelease(encoder); // release encoder after it's finished
 
@@ -156,5 +145,24 @@ namespace webgpu
 #endif
 
         return true;
+    }
+
+    void Frame::drawNode(WGPUQueue queue, const std::shared_ptr<Pipeline>& pipeline, WGPURenderPassEncoder renderPass, const Node& node)
+    {
+        // TODO
+        //glm::mat4x4 modelMatrix = parentModelMatrix * node.m_modelMatrix;
+        //glm::mat4x4 normalMatrix = node.m_normalMatrix;
+
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, node.m_modelBindGroup, 0, nullptr);
+
+        for (const auto& mesh : node.m_meshes)
+        {
+            wgpuRenderPassEncoderDrawIndexed(renderPass, mesh.m_indexCount, 1, mesh.m_indexOffset, static_cast<int32_t>(mesh.m_vertexOffset), 0);
+        }
+
+        for (const auto& child : node.m_children)
+        {
+            drawNode(queue, pipeline, renderPass, child);
+        }
     }
 }

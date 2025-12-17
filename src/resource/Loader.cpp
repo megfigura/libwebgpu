@@ -24,7 +24,7 @@ namespace resource
         return tl::make_unexpected("No such shader " + name);
     }
 
-    tl::expected<std::shared_ptr<GltfResource>, std::string> Loader::getGltf(const std::string& name)
+    tl::expected<GltfResource, std::string> Loader::getGltf(const std::string& name)
     {
         auto it = m_gltfs.find(name);
         if (it != m_gltfs.end())
@@ -35,9 +35,9 @@ namespace resource
         return tl::make_unexpected("No such model " + name);
     }
 
-    std::vector<std::shared_ptr<GltfResource>> Loader::getGltfs()
+    std::vector<GltfResource> Loader::getGltfs()
     {
-        std::vector<std::shared_ptr<GltfResource>> v;
+        std::vector<GltfResource> v;
         v.reserve(m_gltfs.size());
         for (const auto& val : m_gltfs | std::views::values)
         {
@@ -85,7 +85,7 @@ namespace resource
                     RawResource raw{m_dir, dirEntry.path()};
                     StringResource res{RawResource{m_dir, dirEntry.path()}};
                     std::string error;
-                    if (!res.isLoadable(error))
+                    if (!res.isOk(error))
                     {
                         spdlog::warn("Resource did not load: " + error);
                     }
@@ -94,20 +94,20 @@ namespace resource
                 }
                 else if((ext == ".gltf") || (ext == ".glb"))
                 {
-                    auto res = std::make_shared<GltfResource>(m_dir, dirEntry.path());
+                    auto res = GltfResource(m_dir, dirEntry.path());
                     std::string error;
-                    if (!res->isLoadable(error))
+                    if (!res.isOk(error))
                     {
                         spdlog::warn("Resource did not load: " + error);
                     }
 
-                    m_gltfs.insert(std::make_pair(res->getName(), res));
+                    m_gltfs.insert(std::make_pair(res.getName(), res));
                 }
                 else if(ext == ".bin")
                 {
                     RawResource res{m_dir, dirEntry.path()};
                     std::string error;
-                    if (!res.isLoadable(error))
+                    if (!res.isOk(error))
                     {
                         spdlog::warn("Resource did not load: " + error);
                     }
@@ -119,7 +119,7 @@ namespace resource
                     RawResource raw{m_dir, dirEntry.path()};
                     StringResource res{RawResource{m_dir, dirEntry.path()}};
                     std::string error;
-                    if (!res.isLoadable(error))
+                    if (!res.isOk(error))
                     {
                         spdlog::warn("Resource did not load: " + error);
                     }

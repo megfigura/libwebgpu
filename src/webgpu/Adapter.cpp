@@ -29,7 +29,7 @@ namespace webgpu
 	WGPUAdapter Adapter::requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface> &surface)
 	{
 		WGPURequestAdapterOptions opts = WGPU_REQUEST_ADAPTER_OPTIONS_INIT;
-		//opts.powerPreference = WGPUPowerPreference_HighPerformance;
+		opts.powerPreference = WGPUPowerPreference_HighPerformance;
 		opts.compatibleSurface = surface->get();
 
 		struct UserData {

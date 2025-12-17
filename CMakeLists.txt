@@ -35,10 +35,20 @@ add_library(libwebgpu
         src/ApplicationImpl.cpp
         src/ApplicationImpl.h
 
+        src/game/TickableObject.cpp
+        src/game/TickableObject.h
+        src/game/TickGroup.cpp
+        src/game/TickGroup.h
+
         src/input/Controller.cpp
         src/input/Controller.h
         src/input/KeyMap.cpp
         src/input/KeyMap.h
+
+        src/physics/PhysicsObject.cpp
+        src/physics/PhysicsObject.h
+        src/physics/Player.cpp
+        src/physics/Player.h
 
         src/resource/GltfResource.cpp
         src/resource/GltfResource.h
@@ -52,12 +62,16 @@ add_library(libwebgpu
         src/resource/StringResource.h
 
         src/webgpu/Adapter.cpp
+        src/webgpu/Camera.cpp
+        src/webgpu/Camera.h
         src/webgpu/Device.cpp
         src/webgpu/Frame.cpp
         src/webgpu/Frame.h
         src/webgpu/GLTypes.h
         src/webgpu/GpuBuffer.cpp
         src/webgpu/GpuBuffer.h
+        src/webgpu/Model.cpp
+        src/webgpu/Model.h
         src/webgpu/Pipeline.cpp
         src/webgpu/Pipeline.h
         src/webgpu/StringView.cpp
@@ -69,16 +83,6 @@ add_library(libwebgpu
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
-        src/webgpu/Camera.cpp
-        src/webgpu/Camera.h
-        src/physics/Player.cpp
-        src/physics/Player.h
-        src/physics/PhysicsObject.cpp
-        src/physics/PhysicsObject.h
-        src/game/TickGroup.cpp
-        src/game/TickGroup.h
-        src/game/TickableObject.cpp
-        src/game/TickableObject.h
 )
 target_compile_definitions(libwebgpu PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE) # TODO?
 

@@ -4,15 +4,20 @@
 
 namespace resource
 {
-    Resource::Resource(const std::filesystem::path& resourceDir, const std::filesystem::path& path) : m_resourceDir{resourceDir}, m_filename{path}
+    Resource::Resource(std::filesystem::path resourceDir, std::filesystem::path path) : m_resourceDir{std::move(resourceDir)}, m_filename{std::move(path)}
     {
     }
 
-    Resource::Resource(const Resource& other) = default;
     Resource::~Resource() = default;
 
-    bool Resource::isLoadable(std::string& error) const
+    bool Resource::isOk(std::string& error) const
     {
+        if (m_error.has_value())
+        {
+            error = m_error.value();
+            return false;
+        }
+
         return true;
     }
 
@@ -42,5 +47,10 @@ namespace resource
     std::filesystem::path Resource::getResourceDir() const
     {
         return m_resourceDir;
+    }
+
+    void Resource::setError(const std::string& errorMessage)
+    {
+        m_error = errorMessage;
     }
 }

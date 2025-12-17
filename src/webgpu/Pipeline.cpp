@@ -1,6 +1,5 @@
 #include "Pipeline.h"
 
-#include <utility>
 #include <vector>
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -9,12 +8,14 @@
 #include "StringView.h"
 #include "Surface.h"
 #include "Application.h"
+#include "Model.h"
+#include "Util.h"
 #include "spdlog/spdlog.h"
 #include "resource/Loader.h"
 
 namespace webgpu
 {
-	Pipeline::Pipeline(const resource::Node& node, resource::MeshPrimitive primitive, const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) : m_node(std::move(node)), m_primitive(std::move(primitive))
+	Pipeline::Pipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::shared_ptr<Model>& model)
 	{
 		Camera c;
 		c.projection = glm::identity<glm::mat4x4>();
@@ -28,21 +29,14 @@ namespace webgpu
 		m_currTime = 1.0f;
 
 		WGPUBufferDescriptor cameraUniformBufferDesc = WGPU_BUFFER_DESCRIPTOR_INIT;
-		cameraUniformBufferDesc.size = static_cast<uint64_t>(ceil(sizeof(Camera) / 4) * 4);
+		cameraUniformBufferDesc.size = Util::nextPow2Multiple(sizeof(Camera), 4);
 		cameraUniformBufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
 		m_cameraUniformBuffer = wgpuDeviceCreateBuffer(m_device->get(), &cameraUniformBufferDesc);
 
-		WGPUBufferDescriptor modelUniformBufferDesc = WGPU_BUFFER_DESCRIPTOR_INIT;
-		modelUniformBufferDesc.size = static_cast<uint64_t>(ceil(sizeof(Model) / 4) * 4);
-		modelUniformBufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
-		m_modelUniformBuffer = wgpuDeviceCreateBuffer(m_device->get(), &modelUniformBufferDesc);
-
 		Camera camera{glm::identity<glm::mat4x4>(), glm::identity<glm::mat4x4>(), glm::vec3(0, 0, 0), m_currTime};
-		Model model{glm::identity<glm::mat4x4>(), glm::identity<glm::mat4x4>()};
 
 		WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
 		wgpuQueueWriteBuffer(queue, m_cameraUniformBuffer, 0, &camera, sizeof(camera));
-		wgpuQueueWriteBuffer(queue, m_modelUniformBuffer, 0, &model, sizeof(model));
 		wgpuQueueRelease(queue);
 
 		WGPUBindGroupLayoutEntry cameraBindGroupLayoutEntry = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
@@ -56,18 +50,9 @@ namespace webgpu
 		cameraBindGroupLayoutDescriptor.entries = &cameraBindGroupLayoutEntry;
 		m_cameraBindGroupLayout = wgpuDeviceCreateBindGroupLayout(m_device->get(), &cameraBindGroupLayoutDescriptor);
 
-		WGPUBindGroupLayoutEntry modelBindGroupLayoutEntry = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
-		modelBindGroupLayoutEntry.binding = 0;
-		modelBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex;
-		modelBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
-		modelBindGroupLayoutEntry.buffer.minBindingSize = sizeof(Model);
 
-		WGPUBindGroupLayoutDescriptor modelBindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
-		modelBindGroupLayoutDescriptor.entryCount = 1;
-		modelBindGroupLayoutDescriptor.entries = &modelBindGroupLayoutEntry;
-		m_modelBindGroupLayout = wgpuDeviceCreateBindGroupLayout(m_device->get(), &modelBindGroupLayoutDescriptor);
 
-		std::vector layouts{m_cameraBindGroupLayout, m_modelBindGroupLayout};
+		std::vector layouts{m_cameraBindGroupLayout, model->m_modelBindGroupLayout};
 
 		WGPUPipelineLayoutDescriptor pipelineLayoutDescriptor = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
 		pipelineLayoutDescriptor.bindGroupLayoutCount = layouts.size();
@@ -80,23 +65,11 @@ namespace webgpu
 		cameraBindGroupEntry.offset = 0;
 		cameraBindGroupEntry.size = sizeof(Camera);
 
-		WGPUBindGroupEntry modelBindGroupEntry = WGPU_BIND_GROUP_ENTRY_INIT;
-		modelBindGroupEntry.binding = 0;
-		modelBindGroupEntry.buffer = m_modelUniformBuffer;
-		modelBindGroupEntry.offset = 0;
-		modelBindGroupEntry.size = sizeof(Model);
-
 		WGPUBindGroupDescriptor cameraBindGroupDescriptor = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
 		cameraBindGroupDescriptor.layout = m_cameraBindGroupLayout;
 		cameraBindGroupDescriptor.entryCount = 1;
 		cameraBindGroupDescriptor.entries = &cameraBindGroupEntry;
 		m_cameraBindGroup = wgpuDeviceCreateBindGroup(m_device->get(), &cameraBindGroupDescriptor);
-
-		WGPUBindGroupDescriptor modelBindGroupDescriptor = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
-		modelBindGroupDescriptor.layout = m_modelBindGroupLayout;
-		modelBindGroupDescriptor.entryCount = 1;
-		modelBindGroupDescriptor.entries = &modelBindGroupEntry;
-		m_modelBindGroup = wgpuDeviceCreateBindGroup(m_device->get(), &modelBindGroupDescriptor);
 	}
 
 	Pipeline::~Pipeline()
@@ -129,20 +102,7 @@ namespace webgpu
 		return m_pipeline;
 	}
 
-	WGPUBuffer Pipeline::getPointBuffer() const
-	{
-		return m_primitive.m_vertexBuffer->getGpuBuffer();
-	}
 
-	WGPUBuffer Pipeline::getIndexBuffer() const
-	{
-		return m_primitive.m_indexBuffer->getGpuBuffer();
-	}
-
-	WGPUBuffer Pipeline::getNormalBuffer() const
-	{
-		return m_primitive.m_normalBuffer->getGpuBuffer();
-	}
 
 	WGPUBuffer Pipeline::getCameraUniformBuffer() const
 	{
@@ -185,14 +145,14 @@ namespace webgpu
 		depthStencilState.depthWriteEnabled = WGPUOptionalBool_True;
 		depthStencilState.format = m_depthFormat;
 
-		auto shaderSource = Application::get().getResourceLoader()->getShader("shader.wgsl").and_then(&resource::StringResource::getStringView);
+		auto shaderSource = Application::get().getResourceLoader()->getShader("shader.wgsl").and_then(&resource::StringResource::getString);
 		if (!shaderSource.has_value())
 		{
 			spdlog::error("Shader not loaded: {}", shaderSource.error());
 		}
 
 		WGPUShaderSourceWGSL wgslDesc = WGPU_SHADER_SOURCE_WGSL_INIT;
-		wgslDesc.code = shaderSource.value<>();
+		wgslDesc.code = StringView(shaderSource.value<>());
 		WGPUShaderModuleDescriptor shaderDesc = WGPU_SHADER_MODULE_DESCRIPTOR_INIT;
 		shaderDesc.nextInChain = &wgslDesc.chain; // connect the chained extension
 		shaderDesc.label = StringView("Shader source from Application.cpp");

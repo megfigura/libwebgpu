@@ -15,6 +15,7 @@
 #include "webgpu/Surface.h"
 #include "physics/Player.h"
 #include "webgpu/Frame.h"
+#include "webgpu/Model.h"
 #include "webgpu/TextureView.h"
 
 #ifdef __EMSCRIPTEN__
@@ -99,22 +100,18 @@ int Application::ApplicationImpl::run()
     wgpuTextureRelease(surfaceTexture.texture);
 
     // TODO
-    auto gltfRes = m_resourceLoader->getGltf("models/AntiqueCamera/AntiqueCamera.gltf");
+
+    //auto gltfRes = m_resourceLoader->getGltf("models/AntiqueCamera/AntiqueCamera.gltf");
+    auto gltfRes = m_resourceLoader->getGltf("models/Buggy.glb");
+    //auto gltfRes = m_resourceLoader->getGltf("models/DamagedHelmet.glb");
     if (!gltfRes.has_value())
     {
         spdlog::error("Failed to load model: {}", gltfRes.error());
     }
     else
     {
-        for (auto& node : gltfRes.value<>()->getNodes())
-        {
-            for (auto& primitive : node.mesh.m_primitives)
-            {
-                std::shared_ptr<Pipeline> pipeline = std::make_shared<Pipeline>(node, primitive, m_device, m_surface);
-                m_pipelines.push_back(pipeline);
-            }
-        }
-        gltfRes.value<>()->loadBuffers(m_device);
+        m_model = std::make_shared<Model>(gltfRes.value<>());
+        m_pipelines.push_back(std::make_shared<Pipeline>(m_device, m_surface, m_model));
     }
 
     m_lastFrameTimestamp = m_lastTickTimestamp = SDL_GetTicksNS();
@@ -190,7 +187,7 @@ bool Application::ApplicationImpl::mainLoop()
     input::ControllerState nextControllerTickState = m_controller->getNextPartialState(m_lastTickTimestamp, tenMillis, ticks);
     m_player->update(controllerTickStates, nextControllerTickState, accumulator, tenMillis);
 
-    Frame frame(m_device, m_surface, m_pipelines, m_depthTextureView, m_msaaTextureView);
+    Frame frame(m_device, m_surface, m_pipelines, m_model, m_depthTextureView, m_msaaTextureView);
     frame.draw();
 
     m_lastFrameTimestamp = now;

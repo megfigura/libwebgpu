@@ -10,7 +10,7 @@ namespace input
     Controller::Controller() : m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
-        Application::get().getWindow()->setMouseCapture(true);
+        //Application::get().getWindow()->setMouseCapture(true); TODO
         int numKeys;
         SDL_GetKeyboardState(&numKeys);
         m_keyboardDownTimes.resize(numKeys);

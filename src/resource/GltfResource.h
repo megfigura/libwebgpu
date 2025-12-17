@@ -1,62 +1,116 @@
 #pragma once
-#include <glm/mat4x4.hpp>
 #include <nlohmann/json.hpp>
 #include "Resource.h"
+#include "webgpu/GLTypes.h"
 #include "webgpu/GpuBuffer.h"
 
 namespace resource
 {
-    struct JAccessor;
-    struct JGltf;
-    struct JRawResource;
-    struct JGpuBuffer;
-    struct JNode;
-    struct JMesh;
-
-    class MeshPrimitive
+    struct JAccessor
     {
-    public:
-        MeshPrimitive(int vertexCount, const std::shared_ptr<webgpu::GpuBuffer>& vertexBuffer, const std::shared_ptr<webgpu::GpuBuffer>& indexBuffer, const std::shared_ptr<webgpu::GpuBuffer>& normalBuffer);
-        int m_vertexCount;
-        std::shared_ptr<webgpu::GpuBuffer> m_vertexBuffer;
-        std::shared_ptr<webgpu::GpuBuffer> m_indexBuffer;
-        std::shared_ptr<webgpu::GpuBuffer> m_normalBuffer;
+        int bufferView{-1};
+        int byteOffset{0};
+        webgpu::GLDataType componentType{webgpu::GLDataType::UINT};
+        bool normalized{false};
+        int count{-1};
+        std::string type{};
+        //max
+        //min
+        //sparse
+        std::string name{};
+        //extensions
+        //extra
     };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JAccessor, bufferView, byteOffset, componentType, normalized, count, type, name);
 
-    class Mesh
+    struct JBuffer
     {
-    public:
-        Mesh();
-        void addPrimitive(const MeshPrimitive& primitive);
-        std::vector<MeshPrimitive> m_primitives;
+        std::string uri{};
+        int byteLength{-1};
+        std::string name{};
+        //extensions
+        //extras
     };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JBuffer, uri, byteLength, name);
 
-    class Node
+    struct JBufferView
     {
-    public:
-        explicit Node(const glm::mat4x4& matrix, const glm::mat4x4& normalMatrix);
-
-        Mesh mesh;
-        glm::mat4x4 matrix;
-        glm::mat4x4 normalMatrix;
+        int buffer{-1};
+        int byteOffset{0};
+        int byteLength{-1};
+        int byteStride{-1};
+        webgpu::GLBufferType bufferType{webgpu::GLBufferType::ARRAY_BUFFER};
+        std::string name;
+        //extensions
+        //extras
     };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JBufferView, buffer, byteOffset, byteLength, byteStride, bufferType, name);
+
+    struct JMeshPrimitive
+    {
+        std::unordered_map<std::string, int> attributes{};
+        int indices{-1};
+        int material{-1};
+        webgpu::GLPrimitiveMode mode{webgpu::GLPrimitiveMode::TRIANGLES};
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JMeshPrimitive, attributes, indices, material, mode);
+
+    struct JMesh
+    {
+        std::vector<JMeshPrimitive> primitives{};
+        //weights
+        std::string name{};
+        //extensions
+        //extras
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JMesh, primitives, name);
+
+    struct JNode
+    {
+        int mesh{-1};
+        std::vector<int> children{};
+        std::vector<float> matrix{};
+        std::vector<float> rotation{};
+        std::vector<float> scale{};
+        std::vector<float> translation{};
+        std::string name{};
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JNode, mesh, children, matrix, rotation, scale, translation, name);
+
+    struct JScene
+    {
+        std::vector<int> nodes{};
+        std::string name{};
+        //extensions
+        //extra
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JScene, nodes, name);
+
+    struct JGltf
+    {
+        std::vector<JAccessor> accessors{};
+        std::vector<JBuffer> buffers{};
+        std::vector<JBufferView> bufferViews{};
+        std::vector<JMesh> meshes{};
+        std::vector<JNode> nodes{};
+        int scene{-1};
+        std::vector<JScene> scenes{};
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JGltf, accessors, buffers, bufferViews, meshes, nodes, scene, scenes);
 
     class GltfResource : public Resource
     {
     public:
         explicit GltfResource(const std::filesystem::path& resourceDir, const std::filesystem::path& path);
-        [[nodiscard]] nlohmann::json getJson() const;
-        [[nodiscard]] std::vector<Node> getNodes() const;
-        bool isLoadable(std::string& error) const override;
-        void loadBuffers(const std::shared_ptr<webgpu::Device>& device);
+
+        const JGltf& getGltf() const;
+        const std::unordered_map<std::string, RawResource>& getBuffers() const;
 
     private:
-        nlohmann::json m_json;
+        JGltf m_gltf;
         std::unordered_map<std::string, RawResource> m_bufferResources;
-        std::vector<Node> m_nodes;
+        bool m_loaded;
 
-        std::shared_ptr<webgpu::GpuBuffer> createGpuBuffer(const JGltf& gltf, const JAccessor& accessor, WGPUBufferUsage usage) const;
-        static glm::mat4x4 fromVector(std::vector<float> v);
-        Node loadNode(const JGltf& gltf, const JNode& gNode, const JMesh& gMesh) const;
+        tl::expected<std::pair<nlohmann::json, std::optional<RawResource>>, std::string> readGltf(const std::filesystem::path& path);
     };
 }

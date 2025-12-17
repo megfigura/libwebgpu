@@ -10,27 +10,29 @@
 
 namespace resource
 {
-    RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename), m_data(loadResource(filename))
+    RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename), m_data{}
     {
-    }
-
-    bool RawResource::isLoadable(std::string& error) const
-    {
-        if (!m_data.has_value())
+        auto expectedBytes = loadResource(filename);
+        if (!expectedBytes.has_value())
         {
-            error = m_data.error();
-            return false;
+            setError(expectedBytes.error());
         }
-
-        return true;
+        else
+        {
+            m_data = std::move(expectedBytes.value<>());
+        }
     }
 
-    tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::getBytes() const
+    RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename, const std::vector<char>& data) : Resource(resourceDir, filename), m_data(data)
+    {
+    }
+
+    const std::vector<char>& RawResource::getBytes() const
     {
         return m_data;
     }
 
-    tl::expected<std::shared_ptr<std::vector<char>>, std::string> RawResource::loadResource(const std::filesystem::path& filename)
+    tl::expected<std::vector<char>, std::string> RawResource::loadResource(const std::filesystem::path& filename)
     {
         char cwd[256];
         getcwd(cwd, 256);
@@ -48,8 +50,8 @@ namespace resource
             return tl::unexpected(std::string("File " + filename.string() + " is empty"));
         }
 
-        std::shared_ptr buffer(std::make_shared<std::vector<char>>(size));
-        if (!ifs.read(buffer->data(), size))
+        std::vector<char> buffer(size);
+        if (!ifs.read(buffer.data(), size))
         {
             return tl::unexpected(std::string("Failed to read file " + filename.string() + ": " + std::strerror(errno)));
         }

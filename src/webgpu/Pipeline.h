@@ -8,6 +8,7 @@
 
 namespace webgpu
 {
+    class Model;
     class Surface;
     class Device;
 
@@ -19,33 +20,22 @@ namespace webgpu
         float time{};
     };
 
-    struct Model
-    {
-        glm::mat4x4 matrix = glm::identity<glm::mat4x4>();
-        glm::mat4x4 normalMatrix = glm::identity<glm::mat4x4>();
-    };
-
     class Pipeline
     {
     public:
-        Pipeline(const resource::Node& node, resource::MeshPrimitive meshPrimitive, const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface);
+        Pipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::shared_ptr<Model>& model);
         ~Pipeline();
 
         void setDepthFormat(const WGPUTextureFormat& format);
 
         [[nodiscard]] WGPURenderPipeline get();
 
-        [[nodiscard]] WGPUBuffer getPointBuffer() const;
-        [[nodiscard]] WGPUBuffer getIndexBuffer() const;
-        [[nodiscard]] WGPUBuffer getNormalBuffer() const;
         [[nodiscard]] WGPUBuffer getCameraUniformBuffer() const;
         [[nodiscard]] WGPUBindGroup getCameraBindGroup() const;
         [[nodiscard]] WGPUBuffer getModelUniformBuffer() const;
         [[nodiscard]] WGPUBindGroup getModelBindGroup() const;
         float getCurrTime();
 
-        resource::Node m_node;
-        resource::MeshPrimitive m_primitive;
         int m_vertexIndices;
 
     private:
@@ -53,7 +43,6 @@ namespace webgpu
         std::shared_ptr<Surface> m_surface;
         WGPURenderPipeline m_pipeline;
         WGPUBindGroupLayout m_cameraBindGroupLayout;
-        WGPUBindGroupLayout m_modelBindGroupLayout;
         WGPUPipelineLayout m_pipelineLayout;
         WGPUBindGroup m_cameraBindGroup;
         WGPUBindGroup m_modelBindGroup;
@@ -63,6 +52,6 @@ namespace webgpu
         WGPUBuffer m_modelUniformBuffer;
         float m_currTime;
 
-        WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
+        [[nodiscard]] WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
     };
 }
