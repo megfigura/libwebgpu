@@ -33,11 +33,11 @@ namespace webgpu
         m_uniforms = std::make_shared<GpuBuffer>(sizeof(ModelUniform), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
 
         glm::mat4 id{1};
-        //glm::mat4 scale = glm::scale(id, glm::vec3(0.1, 0.1, 0.1)); // TODO
+        glm::mat4 scale = glm::scale(id, glm::vec3(0.1,0.1,0.1)); // TODO
         for (int iNode : mainScene.nodes)
         {
             const auto& jNode = m_gltf.nodes.at(iNode);
-            Node node(this, m_gltf, jNode, id);
+            Node node(this, m_gltf, jNode, scale);
             m_nodes.push_back(node);
         }
 
@@ -115,7 +115,7 @@ namespace webgpu
         modelBindGroupEntry.binding = 0;
         modelBindGroupEntry.buffer = model->m_uniforms->getGpuBuffer();
         modelBindGroupEntry.offset = m_bindGroupOffset;
-        modelBindGroupEntry.size = 256; // TODO //sizeof(ModelUniform);
+        modelBindGroupEntry.size = sizeof(ModelUniform);
 
         WGPUBindGroupDescriptor modelBindGroupDescriptor = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
         modelBindGroupDescriptor.layout = model->m_modelBindGroupLayout;
@@ -144,7 +144,7 @@ namespace webgpu
         auto r = glm::identity<glm::mat4x4>();
         if (node.rotation.size() == 4)
         {
-            r = glm::mat4_cast(glm::quat(node.rotation.at(1), node.rotation.at(2), node.rotation.at(3), node.rotation.at(0)));
+            r = glm::mat4_cast(glm::quat(node.rotation.at(3), node.rotation.at(0), node.rotation.at(1), node.rotation.at(2)));
         }
         auto s = glm::identity<glm::mat4x4>();
         if (node.scale.size() == 3)

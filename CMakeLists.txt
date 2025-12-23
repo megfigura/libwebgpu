@@ -84,7 +84,7 @@ add_library(libwebgpu
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
 )
-target_compile_definitions(libwebgpu PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE) # TODO?
+#target_compile_definitions(libwebgpu PUBLIC GLM_FORCE_LEFT_HANDED) # TODO?
 
 target_include_directories(libwebgpu PUBLIC include)
 target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)

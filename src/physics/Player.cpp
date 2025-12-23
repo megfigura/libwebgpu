@@ -18,7 +18,7 @@ namespace physics
     void Player::update(const std::vector<ControllerState>& controllerTicks, const ControllerState& currTick, const uint64_t intoTick, const uint64_t tickNanos)
     {
         glm::vec4 up4{0, 1, 0, 1};
-        glm::vec4 forward4{0, 0, 1, 1};
+        glm::vec4 forward4{0, 0, -1, 1};
         glm::vec4 right4{1, 0, 0, 1};
 
         up4 = up4 * m_rotations;
@@ -46,9 +46,9 @@ namespace physics
         processControllerState(currTick, rotations, currTranslations, up, forward, right, tickProportion, tickNanos);
 
         glm::mat4x4 translate{1.0};
-        translate = glm::translate(translate, m_position);
+        translate = glm::translate(translate, -m_position);
 
-        m_view = m_rotations * translate;
+        m_view = rotations * translate;
     }
 
     void Player::processControllerState(const ControllerState& state, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right, const float tickProportion, const uint64_t tickNanos) const

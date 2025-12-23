@@ -100,9 +100,8 @@ int Application::ApplicationImpl::run()
     wgpuTextureRelease(surfaceTexture.texture);
 
     // TODO
-
     //auto gltfRes = m_resourceLoader->getGltf("models/AntiqueCamera/AntiqueCamera.gltf");
-    auto gltfRes = m_resourceLoader->getGltf("models/Buggy.glb");
+    auto gltfRes = m_resourceLoader->getGltf("models/BuggyBlender.glb");
     //auto gltfRes = m_resourceLoader->getGltf("models/DamagedHelmet.glb");
     if (!gltfRes.has_value())
     {

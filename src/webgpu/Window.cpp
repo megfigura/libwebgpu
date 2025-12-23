@@ -81,6 +81,10 @@ namespace webgpu
             }
                 break;
 
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                setMouseCapture(true); // TODO
+                break;
+
             default:
                 break;
         }

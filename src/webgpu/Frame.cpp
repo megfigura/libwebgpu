@@ -11,6 +11,7 @@
 #include "Pipeline.h"
 #include "StringView.h"
 #include "Surface.h"
+#include "Util.h"
 #include "input/Controller.h"
 #include "physics/Player.h"
 
@@ -140,7 +141,7 @@ namespace webgpu
         wgpuTextureViewRelease(surfaceTextureView);
 
 #ifndef __EMSCRIPTEN__
-        //Util::sleep(50);
+        Util::sleep(50);
         m_surface->present();
 #endif
 
