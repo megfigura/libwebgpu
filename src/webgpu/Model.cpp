@@ -76,7 +76,7 @@ namespace webgpu
         GLDataType dataType = accessor.componentType;
         int dataTypeSize = GLDataTypeSize(dataType);
 
-        GLAccessorType accessorType = magic_enum::enum_cast<GLAccessorType>(accessor.type).value_or(GLAccessorType::SCALAR);
+        GLAccessorType accessorType = magic_enum::enum_cast<GLAccessorType>(accessor.type, magic_enum::case_insensitive).value_or(GLAccessorType::SCALAR);
         int accessorSize = GLAccessorTypeSize(accessorType);
 
         int elementSize = dataTypeSize * accessorSize;

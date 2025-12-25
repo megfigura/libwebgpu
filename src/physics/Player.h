@@ -3,6 +3,12 @@
 
 #include "input/Controller.h"
 #include "input/KeyMap.h"
+#include "webgpu/Camera.h"
+
+namespace input
+{
+    class InputTick;
+}
 
 namespace physics
 {
@@ -21,8 +27,6 @@ namespace physics
         int m_id;
         input::PlayerKeyMap m_keyMap;
 
-        void processControllerState(const input::ControllerState& state, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right, float tickProportion, uint64_t tickNanos) const;
-
-        static float calcAxis(input::InputDeviceType deviceType, input::AxisBinding axis, const input::ControllerState& state, uint64_t tickNanos);
+        static void processInputTick(const input::InputTick& inputTick, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right, float tickProportion) ;
     };
 }

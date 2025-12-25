@@ -1,5 +1,6 @@
 #include "Frame.h"
 
+#include <imgui_impl_wgpu.h>
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -11,8 +12,7 @@
 #include "Pipeline.h"
 #include "StringView.h"
 #include "Surface.h"
-#include "Util.h"
-#include "input/Controller.h"
+#include "game/Console.h"
 #include "physics/Player.h"
 
 namespace webgpu
@@ -108,7 +108,7 @@ namespace webgpu
         glm::mat4x4 projection = glm::perspectiveZO(45.0f * 3.14159f / 180.0f, aspect, 0.01f, 100.0f);
 
         auto player = Application::get().getPlayer();
-        Camera camera{projection, player->m_view, player->m_position, m_pipelines.at(0)->getCurrTime()};
+        CameraUniform camera{projection, player->m_view, player->m_position, m_pipelines.at(0)->getCurrTime()};
 
         std::shared_ptr<Pipeline>& pipeline = m_pipelines.at(0);
         wgpuRenderPassEncoderSetPipeline(renderPass, pipeline->get());
@@ -126,6 +126,8 @@ namespace webgpu
             drawNode(queue, pipeline, renderPass, node);
         }
 
+        Application::get().getConsole()->draw(renderPass);
+
         wgpuRenderPassEncoderEnd(renderPass);
         wgpuRenderPassEncoderRelease(renderPass);
 
@@ -141,7 +143,7 @@ namespace webgpu
         wgpuTextureViewRelease(surfaceTextureView);
 
 #ifndef __EMSCRIPTEN__
-        Util::sleep(50);
+        //Util::sleep(50);
         m_surface->present();
 #endif
 

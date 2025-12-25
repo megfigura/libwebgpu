@@ -2,6 +2,11 @@
 
 #include "Application.h"
 
+namespace game
+{
+    class Console;
+}
+
 namespace webgpu
 {
     class Pipeline;
@@ -43,6 +48,7 @@ public:
     std::shared_ptr<webgpu::Surface> getSurface();
     std::shared_ptr<input::Controller> getController();
     std::shared_ptr<physics::Player> getPlayer();
+    std::shared_ptr<game::Console> getConsole();
 
     int run();
     virtual void initLogging();
@@ -59,6 +65,7 @@ private:
     std::shared_ptr<webgpu::Surface> m_surface;
     std::shared_ptr<input::Controller> m_controller;
     std::shared_ptr<physics::Player> m_player;
+    std::shared_ptr<game::Console> m_console;
     std::vector<std::shared_ptr<webgpu::Pipeline>> m_pipelines;
 
     std::shared_ptr<webgpu::TextureView> m_depthTextureView;

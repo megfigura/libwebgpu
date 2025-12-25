@@ -1,10 +1,10 @@
 #include "Player.h"
 
 #include <glm/ext/matrix_transform.hpp>
-#include <spdlog/spdlog.h>
+#include <magic_enum/magic_enum.hpp>
 
-#include "Application.h"
 #include "Window.h"
+#include "input/InputTick.h"
 
 using namespace input;
 
@@ -34,7 +34,8 @@ namespace physics
         // Process complete ticks
         for (const ControllerState& state : controllerTicks)
         {
-            processControllerState(state, m_rotations, currTranslations, up, forward, right, 1.0f, tickNanos);
+            InputTick inputTick(m_keyMap.contexts.at("default"), state, tickNanos);
+            processInputTick(inputTick, m_rotations, currTranslations, up, forward, right, 1.0f);
         }
 
         m_position += currTranslations;
@@ -43,7 +44,8 @@ namespace physics
         // This will happen when the tick has completed.
         glm::mat4 rotations = m_rotations;
         auto tickProportion = static_cast<float>(static_cast<double>(intoTick) / static_cast<double>(tickNanos));
-        processControllerState(currTick, rotations, currTranslations, up, forward, right, tickProportion, tickNanos);
+        InputTick inputTick(m_keyMap.contexts.at("default"), currTick, tickNanos);
+        processInputTick(inputTick, m_rotations, currTranslations, up, forward, right, tickProportion);
 
         glm::mat4x4 translate{1.0};
         translate = glm::translate(translate, -m_position);
@@ -51,85 +53,19 @@ namespace physics
         m_view = rotations * translate;
     }
 
-    void Player::processControllerState(const ControllerState& state, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right, const float tickProportion, const uint64_t tickNanos) const
+    void Player::processInputTick(const InputTick& inputTick, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right, const float tickProportion)
     {
-        for (const auto& device : m_keyMap.contexts.at("default").devices)
+        for (const auto& tickValue : inputTick.getActionValues())
         {
-            for (const auto& axis : device.axes)
-            {
-                switch (axis.axis)
-                {
-                    case Axis::ROLL:
-                    {
-                        rotation = glm::rotate(rotation, tickProportion * calcAxis(device.inputType, axis, state, tickNanos), forward);
-                        break;
-                    }
-
-                    case Axis::YAW:
-                        rotation = glm::rotate(rotation, tickProportion * calcAxis(device.inputType, axis, state, tickNanos), up);
-                        break;
-
-                    case Axis::PITCH:
-                        rotation = glm::rotate(rotation, tickProportion * calcAxis(device.inputType, axis, state, tickNanos), right);
-                        break;
-
-                    case Axis::FORWARD_BACKWARD:
-                    {
-                        translation += tickProportion * calcAxis(device.inputType, axis, state, tickNanos) * forward;
-                        break;
-                    }
-
-                    case Axis::UP_DOWN:
-                    {
-                        translation += tickProportion * calcAxis(device.inputType, axis, state, tickNanos) * up;
-                        break;
-                    }
-
-                    case Axis::LEFT_RIGHT:
-                    {
-                        translation += tickProportion * calcAxis(device.inputType, axis, state, tickNanos) * right;
-                        break;
-                    }
-
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-
-    float Player::calcAxis(const InputDeviceType deviceType, const AxisBinding axis, const ControllerState& state, const uint64_t tickNanos)
-    {
-        switch (deviceType)
-        {
-            case InputDeviceType::KEYBOARD:
-            {
-                constexpr float keySpeed = 15;
-                int positiveAxisNanos = state.keyboardState.activeNanos.at(axis.keys.key1);
-                positiveAxisNanos += -state.keyboardState.activeNanos.at(axis.keys.key2);
-                return keySpeed * ((axis.intensity * static_cast<float>(tickNanos)) / 1000000000.0f) * static_cast<float>(positiveAxisNanos) / static_cast<float>(tickNanos);
-            }
-
-            case InputDeviceType::MOUSE:
-            {
-                constexpr float mouseSpeed = 1;
-                switch (axis.direction)
-                {
-                    case Direction::X:
-                        return mouseSpeed * axis.intensity * (state.mouseState.dx / static_cast<float>(Application::get().getWindow()->getWidth()));
-
-                    case Direction::Y:
-                        return mouseSpeed * axis.intensity * (state.mouseState.dy / static_cast<float>(Application::get().getWindow()->getHeight()));
-
-                    default:
-                        break;
-                }
-            }
-
-            default:
-                break;
+            // TODO
         }
 
-        return 0;
+        rotation = glm::rotate(rotation, tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::ROLL)].value, forward);
+        rotation = glm::rotate(rotation, tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::YAW)].value, up);
+        rotation = glm::rotate(rotation, tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::PITCH)].value, right);
+
+        translation += tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::FORWARD_BACKWARD)].value * forward;
+        translation += tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::UP_DOWN)].value * up;
+        translation += tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::LEFT_RIGHT)].value * right;
     }
 }

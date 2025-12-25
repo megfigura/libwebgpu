@@ -1,6 +1,7 @@
 import os
 
 from conan import ConanFile
+from conan.tools.files import copy
 from conan.tools.cmake import CMakeToolchain
 
 class LibWebGpuRecipe(ConanFile):
@@ -14,6 +15,7 @@ class LibWebGpuRecipe(ConanFile):
         self.requires("nlohmann_json/3.12.0")
         self.requires("glm/1.0.1")
         self.requires("magic_enum/0.9.7")
+        self.requires("imgui/1.92.5")
 
     def build_requirements(self):
         self.test_requires("catch2/3.7.1")
@@ -28,6 +30,14 @@ class LibWebGpuRecipe(ConanFile):
         if self.settings.os != "Emscripten":
             tc.cache_variables["CMAKE_CXX_CPPCHECK"] = "cppcheck;--inline-suppr"
         #tc.cache_variables["CMAKE_CXX_CLANG_TIDY"] = "clang-tidy;--header-filter=^${sourceDir}/"
+
+        # Access the imgui dependency information
+        imgui_res_dir = os.path.join(self.dependencies["imgui"].package_folder, "res", "bindings")
+
+        # Copy WebGPU backend files to a local directory named 'bindings'
+        copy(self, "imgui_impl_wgpu.*", imgui_res_dir, os.path.join(self.source_folder, "external/dear-imgui-bindings"))
+        copy(self, "imgui_impl_sdl3.*", imgui_res_dir, os.path.join(self.source_folder, "external/dear-imgui-bindings"))
+
         tc.generate()
 
     def layout(self):

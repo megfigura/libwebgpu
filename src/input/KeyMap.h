@@ -14,26 +14,35 @@ namespace input
     struct JContext;
     struct JPlayer;
 
-    struct ActionBinding
+    struct DeviceActionBinding
     {
-        Action action{Action::INVALID};
+        InputDeviceType inputType{};
+        int inputTypeId{-1};
         float intensity{-1};
         union
         {
-            SDL_Scancode key{};
-            int button;
+            int button{-1};
+            SDL_Scancode key;
         };
+    };
+
+    struct ActionBinding
+    {
+        Action action{Action::INVALID};
+        std::vector<DeviceActionBinding> deviceActionBindings;
     };
 
     struct AxisKeys
     {
-        SDL_Scancode key1{};
-        SDL_Scancode key2{};
+        SDL_Scancode key1{SDL_SCANCODE_UNKNOWN};
+        SDL_Scancode key2{SDL_SCANCODE_UNKNOWN};
     };
 
-    struct AxisBinding
+    struct DeviceAxisBinding
     {
-        Axis axis{};
+        InputDeviceType inputType{};
+        int inputTypeId{-1};
+        Axis axis{Axis::INVALID};
         float intensity{};
         union
         {
@@ -42,24 +51,23 @@ namespace input
         };
     };
 
-    struct InputDevice
+    struct AxisBinding
     {
-        InputDeviceType inputType;
-        int inputTypeId;
-        std::vector<ActionBinding> actions;
-        std::vector<AxisBinding> axes;
+        Axis axis{Axis::INVALID};
+        std::vector<DeviceAxisBinding> deviceAxisBindings;
     };
 
-    struct Context
+    struct PlayerKeyMapContext
     {
         std::string name;
-        std::vector<InputDevice> devices;
+        std::vector<ActionBinding> actions;
+        std::vector<AxisBinding> axes;
     };
 
     struct PlayerKeyMap
     {
         int id;
-        std::map<std::string, Context> contexts;
+        std::map<std::string, PlayerKeyMapContext> contexts;
     };
 
     class KeyMap
@@ -73,9 +81,8 @@ namespace input
         std::vector<PlayerKeyMap> m_players;
 
         static PlayerKeyMap loadPlayer(const JPlayer& jPlayer);
-        static Context loadContext(const JContext& jContext, const std::string& errorContext);
-        static std::optional<InputDevice> loadDevice(const JDevice& jDevice, const std::string& errorContext);
-        static std::optional<ActionBinding> loadActionBinding(const JBinding& jBinding, InputDeviceType deviceType, const std::string& errorContext);
-        static std::optional<AxisBinding> loadAxisBinding(const JBinding& jBinding, InputDeviceType deviceType, const std::string& errorContext);
+        static std::optional<DeviceActionBinding> loadDeviceAction(const JDevice& jDevice, Action action, const std::string& errorContext);
+        static std::optional<DeviceAxisBinding> loadDeviceAxis(const JDevice& jDevice, Axis axis, const std::string& errorContext);
+        static PlayerKeyMapContext loadContext(const JContext& jContext, const std::string& errorContext);
     };
 }

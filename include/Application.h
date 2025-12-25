@@ -27,6 +27,11 @@ namespace physics
     class Player;
 }
 
+namespace game
+{
+    class Console;
+}
+
 class Application
 {
 public:
@@ -47,6 +52,7 @@ public:
     [[nodiscard]] std::shared_ptr<webgpu::Surface> getSurface() const;
     [[nodiscard]] std::shared_ptr<input::Controller> getController() const;
     [[nodiscard]] std::shared_ptr<physics::Player> getPlayer() const;
+    [[nodiscard]] std::shared_ptr<game::Console> getConsole() const;
 
 protected:
     Application();

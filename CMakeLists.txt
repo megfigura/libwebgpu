@@ -22,8 +22,14 @@ find_package(tl-expected REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
+find_package(imgui REQUIRED)
 
 add_library(libwebgpu
+        external/dear-imgui-bindings/imgui_impl_wgpu.cpp
+        external/dear-imgui-bindings/imgui_impl_wgpu.h
+        external/dear-imgui-bindings/imgui_impl_sdl3.cpp
+        external/dear-imgui-bindings/imgui_impl_sdl3.h
+
         include/Adapter.h
         include/Application.h
         include/Device.h
@@ -83,11 +89,15 @@ add_library(libwebgpu
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
+        src/game/Console.cpp
+        src/game/Console.h
+        src/input/InputTick.cpp
+        src/input/InputTick.h
 )
-#target_compile_definitions(libwebgpu PUBLIC GLM_FORCE_LEFT_HANDED) # TODO?
 
 target_include_directories(libwebgpu PUBLIC include)
 target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/dear-imgui-bindings)
 target_link_libraries(libwebgpu
         SDL3::SDL3
         spdlog::spdlog
@@ -95,6 +105,7 @@ target_link_libraries(libwebgpu
         nlohmann_json::nlohmann_json
         glm::glm
         magic_enum::magic_enum
+        imgui::imgui
 )
 set_target_properties(
         libwebgpu PROPERTIES
@@ -115,12 +126,14 @@ target_link_libraries(testapp
 # End temporary test app
 
 if (CMAKE_OS STREQUAL "Linux")
+        target_compile_definitions(libwebgpu PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_DAWN __linux__)
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
         #target_compile_options(libwebgpu PUBLIC -fsanitize=undefined -O3)
         target_link_options(libwebgpu PUBLIC -fsanitize=undefined)
 elseif (CMAKE_OS STREQUAL "Windows")
+        target_compile_definitions(libwebgpu PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_DAWN _WIN32)
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/lib)
         target_link_libraries(libwebgpu webgpu_dawn)

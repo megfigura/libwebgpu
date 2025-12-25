@@ -12,7 +12,7 @@ namespace webgpu
     class Surface;
     class Device;
 
-    struct Camera
+    struct CameraUniform
     {
         glm::mat4x4 projection = glm::identity<glm::mat4x4>();
         glm::mat4x4 view = glm::identity<glm::mat4x4>();

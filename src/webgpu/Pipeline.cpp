@@ -17,7 +17,7 @@ namespace webgpu
 {
 	Pipeline::Pipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::shared_ptr<Model>& model)
 	{
-		Camera c;
+		CameraUniform c;
 		c.projection = glm::identity<glm::mat4x4>();
 
 		m_device = device;
@@ -29,11 +29,11 @@ namespace webgpu
 		m_currTime = 1.0f;
 
 		WGPUBufferDescriptor cameraUniformBufferDesc = WGPU_BUFFER_DESCRIPTOR_INIT;
-		cameraUniformBufferDesc.size = Util::nextPow2Multiple(sizeof(Camera), 4);
+		cameraUniformBufferDesc.size = Util::nextPow2Multiple(sizeof(CameraUniform), 4);
 		cameraUniformBufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
 		m_cameraUniformBuffer = wgpuDeviceCreateBuffer(m_device->get(), &cameraUniformBufferDesc);
 
-		Camera camera{glm::identity<glm::mat4x4>(), glm::identity<glm::mat4x4>(), glm::vec3(0, 0, 0), m_currTime};
+		CameraUniform camera{glm::identity<glm::mat4x4>(), glm::identity<glm::mat4x4>(), glm::vec3(0, 0, 0), m_currTime};
 
 		WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
 		wgpuQueueWriteBuffer(queue, m_cameraUniformBuffer, 0, &camera, sizeof(camera));
@@ -43,7 +43,7 @@ namespace webgpu
 		cameraBindGroupLayoutEntry.binding = 0;
 		cameraBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex;
 		cameraBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
-		cameraBindGroupLayoutEntry.buffer.minBindingSize = sizeof(Camera);
+		cameraBindGroupLayoutEntry.buffer.minBindingSize = sizeof(CameraUniform);
 
 		WGPUBindGroupLayoutDescriptor cameraBindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
 		cameraBindGroupLayoutDescriptor.entryCount = 1;
@@ -63,7 +63,7 @@ namespace webgpu
 		cameraBindGroupEntry.binding = 0;
 		cameraBindGroupEntry.buffer = m_cameraUniformBuffer;
 		cameraBindGroupEntry.offset = 0;
-		cameraBindGroupEntry.size = sizeof(Camera);
+		cameraBindGroupEntry.size = sizeof(CameraUniform);
 
 		WGPUBindGroupDescriptor cameraBindGroupDescriptor = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
 		cameraBindGroupDescriptor.layout = m_cameraBindGroupLayout;

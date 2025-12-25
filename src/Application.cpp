@@ -73,6 +73,11 @@ std::shared_ptr<physics::Player> Application::getPlayer() const
     return impl->getPlayer();
 }
 
+std::shared_ptr<game::Console> Application::getConsole() const
+{
+    return impl->getConsole();
+}
+
 void Application::initLogging()
 {
     impl->initLogging();

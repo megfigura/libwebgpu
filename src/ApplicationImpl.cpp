@@ -1,9 +1,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <imgui.h>
 #include "Application.h"
 #include "ApplicationImpl.h"
-
-#include <unistd.h>
 
 #include "WebGpuInstance.h"
 #include "Adapter.h"
@@ -17,6 +16,8 @@
 #include "webgpu/Frame.h"
 #include "webgpu/Model.h"
 #include "webgpu/TextureView.h"
+#include "game/Console.h"
+
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -67,6 +68,11 @@ std::shared_ptr<physics::Player> Application::ApplicationImpl::getPlayer()
     return m_player;
 }
 
+std::shared_ptr<game::Console> Application::ApplicationImpl::getConsole()
+{
+    return m_console;
+}
+
 int Application::ApplicationImpl::run()
 {
     initLogging();
@@ -83,7 +89,8 @@ int Application::ApplicationImpl::run()
     m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
     m_controller = std::make_shared<input::Controller>();
-    m_player = std::make_shared<physics::Player>(0, input::KeyMap{});
+    input::KeyMap keyMap{};
+    m_player = std::make_shared<physics::Player>(0, keyMap);
 
     //m_adapter->print();
     //m_device->print();
@@ -112,6 +119,8 @@ int Application::ApplicationImpl::run()
         m_model = std::make_shared<Model>(gltfRes.value<>());
         m_pipelines.push_back(std::make_shared<Pipeline>(m_device, m_surface, m_model));
     }
+
+    m_console = std::make_shared<game::Console>(keyMap, m_device, m_window, surfaceTextureFormat, depthFormat);
 
     m_lastFrameTimestamp = m_lastTickTimestamp = SDL_GetTicksNS();
 
@@ -168,6 +177,7 @@ bool Application::ApplicationImpl::mainLoop()
     {
         m_window->onEvent(event);
         m_controller->onEvent(event);
+        m_console->onEvent(event);
 
         switch (event.type)
         {
@@ -185,6 +195,7 @@ bool Application::ApplicationImpl::mainLoop()
     std::vector<input::ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, tenMillis, ticks);
     input::ControllerState nextControllerTickState = m_controller->getNextPartialState(m_lastTickTimestamp, tenMillis, ticks);
     m_player->update(controllerTickStates, nextControllerTickState, accumulator, tenMillis);
+    m_console->processInput(controllerTickStates);
 
     Frame frame(m_device, m_surface, m_pipelines, m_model, m_depthTextureView, m_msaaTextureView);
     frame.draw();

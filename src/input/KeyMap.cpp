@@ -85,137 +85,187 @@ namespace input
 
         for (const auto& jContext : jPlayer.contexts)
         {
-            Context context = loadContext(jContext, fmt::format("player: {}", jPlayer.id));
+            PlayerKeyMapContext context = loadContext(jContext, fmt::format("player: {}", jPlayer.id));
             player.contexts.insert(std::make_pair(jContext.name, context));
         }
 
         return player;
     }
 
-    Context KeyMap::loadContext(const JContext& jContext, const std::string& errorContext)
+    PlayerKeyMapContext KeyMap::loadContext(const JContext& jContext, const std::string& errorContext)
     {
-        Context context;
+        PlayerKeyMapContext context;
         context.name = jContext.name;
 
+        // Validate
         for (const auto& jDevice : jContext.devices)
         {
-            std::optional<InputDevice> device = loadDevice(jDevice, fmt::format("{}, context: {}", errorContext, jContext.name));
-            if (device.has_value())
+            InputDeviceType type = magic_enum::enum_cast<InputDeviceType>(jDevice.type, magic_enum::case_insensitive).value_or(InputDeviceType::INVALID);
+            if (type == InputDeviceType::INVALID)
             {
-                context.devices.push_back(device.value());
+                spdlog::warn("Unknown device '{}' for {}", jDevice.type, errorContext);
             }
+
+            for (const auto& jActionBinding : jDevice.actionBindings)
+            {
+                Action action = magic_enum::enum_cast<Action>(jActionBinding.action, magic_enum::case_insensitive).value_or(Action::INVALID);
+                if (action == Action::INVALID)
+                {
+                    spdlog::warn("Unknown action '{}' for {}", jActionBinding.action, errorContext);
+                }
+            }
+
+            for (const auto& jAxisBinding : jDevice.axisBindings)
+            {
+                Axis axis = magic_enum::enum_cast<Axis>(jAxisBinding.axis, magic_enum::case_insensitive).value_or(Axis::INVALID);
+                if (axis == Axis::INVALID)
+                {
+                    spdlog::warn("Unknown axis '{}' for {}", jAxisBinding.axis, errorContext);
+                }
+            }
+        }
+
+        for (const auto& action : magic_enum::enum_values<Action>())
+        {
+            ActionBinding binding{};
+            binding.action = action;
+            for (const auto& jDevice : jContext.devices)
+            {
+                auto optDeviceAction = loadDeviceAction(jDevice, action, fmt::format("{}, context: {}, device: {}({}), action: {}", errorContext, jContext.name, jDevice.type, jDevice.id, magic_enum::enum_name(action)));
+                if (optDeviceAction.has_value())
+                {
+                    binding.deviceActionBindings.push_back(optDeviceAction.value());
+                }
+            }
+
+            context.actions.push_back(binding);
+        }
+
+        for (const auto& axis : magic_enum::enum_values<Axis>())
+        {
+            AxisBinding binding{};
+            binding.axis = axis;
+            for (const auto& jDevice : jContext.devices)
+            {
+                auto optDeviceAction = loadDeviceAxis(jDevice, axis, fmt::format("{}, context: {}, device: {}({}), axis: {}", errorContext, jContext.name, jDevice.type, jDevice.id, magic_enum::enum_name(axis)));
+                if (optDeviceAction.has_value())
+                {
+                    binding.deviceAxisBindings.push_back(optDeviceAction.value());
+                }
+            }
+
+            context.axes.push_back(binding);
         }
 
         return context;
     }
 
-    std::optional<InputDevice> KeyMap::loadDevice(const JDevice& jDevice, const std::string& errorContext)
+    std::optional<DeviceActionBinding> KeyMap::loadDeviceAction(const JDevice& jDevice, Action action, const std::string& errorContext)
     {
-        InputDevice device;
-        device.inputType = magic_enum::enum_cast<InputDeviceType>(jDevice.type, magic_enum::case_insensitive).value_or(InputDeviceType::INVALID);
-        device.inputTypeId = jDevice.id;
+        DeviceActionBinding binding{};
+        binding.inputType = magic_enum::enum_cast<InputDeviceType>(jDevice.type, magic_enum::case_insensitive).value_or(InputDeviceType::INVALID);
+        binding.inputTypeId = jDevice.id;
+        binding.key = SDL_SCANCODE_UNKNOWN;
+        binding.button = -1;
 
-        if (device.inputType == InputDeviceType::INVALID)
+        if (binding.inputType == InputDeviceType::INVALID)
         {
             spdlog::warn("Unknown device '{}' for {}", jDevice.type, errorContext);
             return std::nullopt;
         }
 
-        for (const auto& jActionBinding : jDevice.actionBindings)
+        for (const auto& jBinding : jDevice.actionBindings)
         {
-            std::optional<ActionBinding> actionBinding = loadActionBinding(jActionBinding, device.inputType, fmt::format("{}, device: {}({})", errorContext, jDevice.type, jDevice.id));
-            if (actionBinding.has_value())
+            Action bindingAction = magic_enum::enum_cast<Action>(jBinding.action, magic_enum::case_insensitive).value_or(Action::INVALID);
+            if (action == bindingAction)
             {
-                device.actions.push_back(actionBinding.value());
+                binding.intensity = jBinding.intensity;
+
+                if (binding.inputType == InputDeviceType::KEYBOARD)
+                {
+                    binding.key = SDL_GetScancodeFromName(jBinding.key.c_str());
+                    if (binding.key == SDL_SCANCODE_UNKNOWN)
+                    {
+                        spdlog::warn("Unknown keyName '{}' for {}, action: {}", jBinding.key, errorContext, magic_enum::enum_name(action));
+                        return std::nullopt;
+                    }
+
+                    return binding;
+                }
+
+                if (binding.inputType == InputDeviceType::MOUSE)
+                {
+                    binding.button = jBinding.button;
+                    if (binding.button == -1)
+                    {
+                        spdlog::warn("Unknown button '{}' for {}, action: {}", jBinding.key, errorContext, magic_enum::enum_name(action));
+                        return std::nullopt;
+                    }
+
+                    return binding;
+                }
             }
         }
 
-        for (const auto& jAxisBinding : jDevice.axisBindings)
-        {
-            std::optional<AxisBinding> axisBinding = loadAxisBinding(jAxisBinding, device.inputType, fmt::format("{}, device: {}({})", errorContext, jDevice.type, jDevice.id));
-            if (axisBinding.has_value())
-            {
-                device.axes.push_back(axisBinding.value());
-            }
-        }
-
-        return device;
+        return std::nullopt;
     }
 
-    std::optional<ActionBinding> KeyMap::loadActionBinding(const JBinding& jBinding, InputDeviceType deviceType, const std::string& errorContext)
+    std::optional<DeviceAxisBinding> KeyMap::loadDeviceAxis(const JDevice& jDevice, Axis axis, const std::string& errorContext)
     {
-        ActionBinding actionBinding{};
-        actionBinding.action = magic_enum::enum_cast<Action>(jBinding.action, magic_enum::case_insensitive).value_or(Action::INVALID);
-        actionBinding.intensity = jBinding.intensity;
+        DeviceAxisBinding binding{};
+        binding.inputType = magic_enum::enum_cast<InputDeviceType>(jDevice.type, magic_enum::case_insensitive).value_or(InputDeviceType::INVALID);
+        binding.inputTypeId = jDevice.id;
 
-        if (actionBinding.action == Action::INVALID)
+        if (binding.inputType == InputDeviceType::INVALID)
         {
-            spdlog::warn("Unknown action '{}' for {}", jBinding.action, errorContext);
+            spdlog::warn("Unknown device '{}' for {}", jDevice.type, errorContext);
+            return std::nullopt;
         }
 
-        if (deviceType == InputDeviceType::KEYBOARD)
+        for (const auto& jBinding : jDevice.axisBindings)
         {
-            actionBinding.key = SDL_GetScancodeFromName(jBinding.key.c_str());
-            if (actionBinding.key == SDL_SCANCODE_UNKNOWN)
+            Axis bindingAxis = magic_enum::enum_cast<Axis>(jBinding.axis, magic_enum::case_insensitive).value_or(Axis::INVALID);
+            if (axis == bindingAxis)
             {
-                spdlog::warn("Unknown keyName '{}' for {}, action: {}", jBinding.key, errorContext, magic_enum::enum_name(actionBinding.action));
-                return std::nullopt;
-            }
-        }
-        else if (deviceType == InputDeviceType::MOUSE)
-        {
-            actionBinding.button = jBinding.button;
-            if (actionBinding.button == -1)
-            {
-                spdlog::warn("Unknown button '{}' for {}, action: {}", jBinding.key, errorContext, magic_enum::enum_name(actionBinding.action));
-                return std::nullopt;
-            }
-        }
+                binding.intensity = jBinding.intensity;
 
-        return actionBinding;
-    }
+                if (binding.inputType == InputDeviceType::KEYBOARD)
+                {
+                    if (jBinding.keys.size() != 2)
+                    {
+                        spdlog::warn("Expected 2 keys for axis {}, action: {}", errorContext, magic_enum::enum_name(axis));
+                        return std::nullopt;
+                    }
+                    binding.keys.key1 = SDL_GetScancodeFromName(jBinding.keys.at(0).c_str());
+                    if (binding.keys.key1 == SDL_SCANCODE_UNKNOWN)
+                    {
+                        spdlog::warn("Unknown keyName '{}' for {}, axis: {}", jBinding.keys.at(0), errorContext, magic_enum::enum_name(axis));
+                        return std::nullopt;
+                    }
+                    binding.keys.key2 = SDL_GetScancodeFromName(jBinding.keys.at(1).c_str());
+                    if (binding.keys.key2 == SDL_SCANCODE_UNKNOWN)
+                    {
+                        spdlog::warn("Unknown keyName '{}' for {}, axis: {}", jBinding.keys.at(1), errorContext, magic_enum::enum_name(axis));
+                        return std::nullopt;
+                    }
 
-    std::optional<AxisBinding> KeyMap::loadAxisBinding(const JBinding& jBinding, InputDeviceType deviceType, const std::string& errorContext)
-    {
-        AxisBinding axisBinding{};
-        axisBinding.axis = magic_enum::enum_cast<Axis>(jBinding.axis, magic_enum::case_insensitive).value_or(Axis::INVALID);
-        axisBinding.intensity = jBinding.intensity;
+                    return binding;
+                }
 
-        if (axisBinding.axis == Axis::INVALID)
-        {
-            spdlog::warn("Unknown axis '{}' for {}", jBinding.axis, errorContext);
-        }
+                if (binding.inputType == InputDeviceType::MOUSE)
+                {
+                    binding.direction = magic_enum::enum_cast<Direction>(jBinding.direction, magic_enum::case_insensitive).value_or(Direction::INVALID);
+                    if (binding.direction == Direction::INVALID)
+                    {
+                        spdlog::warn("Unknown direction '{}' for {}, axis: {}", jBinding.direction, errorContext, magic_enum::enum_name(axis));
+                    }
 
-        if (deviceType == InputDeviceType::KEYBOARD)
-        {
-            if (jBinding.keys.size() != 2)
-            {
-                spdlog::warn("Expected 2 keys for axis {}, action: {}", errorContext, magic_enum::enum_name(axisBinding.axis));
-                return std::nullopt;
-            }
-            axisBinding.keys.key1 = SDL_GetScancodeFromName(jBinding.keys.at(0).c_str());
-            if (axisBinding.keys.key1 == SDL_SCANCODE_UNKNOWN)
-            {
-                spdlog::warn("Unknown keyName '{}' for {}, axis: {}", jBinding.keys.at(0), errorContext, magic_enum::enum_name(axisBinding.axis));
-                return std::nullopt;
-            }
-            axisBinding.keys.key2 = SDL_GetScancodeFromName(jBinding.keys.at(1).c_str());
-            if (axisBinding.keys.key2 == SDL_SCANCODE_UNKNOWN)
-            {
-                spdlog::warn("Unknown keyName '{}' for {}, axis: {}", jBinding.keys.at(1), errorContext, magic_enum::enum_name(axisBinding.axis));
-                return std::nullopt;
-            }
-        }
-        else if (deviceType == InputDeviceType::MOUSE)
-        {
-            axisBinding.direction = magic_enum::enum_cast<Direction>(jBinding.direction).value_or(Direction::INVALID);
-            if (axisBinding.direction == Direction::INVALID)
-            {
-                spdlog::warn("Unknown direction '{}' for {}, axis: {}", jBinding.direction, errorContext, magic_enum::enum_name(axisBinding.axis));
+                    return binding;
+                }
             }
         }
 
-        return axisBinding;
+        return std::nullopt;
     }
 
     PlayerKeyMap KeyMap::getPlayerKeyMap(int playerId) const

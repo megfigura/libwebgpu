@@ -1,4 +1,6 @@
 #include "Controller.h"
+
+#include <imgui.h>
 #include <SDL3/SDL_events.h>
 #include <spdlog/spdlog.h>
 

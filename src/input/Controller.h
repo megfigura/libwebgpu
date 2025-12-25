@@ -7,9 +7,8 @@ namespace input
     enum class Action
     {
         INVALID = -1,
-        JUMP,
-        FLASHLIGHT,
-        ENUM_SIZE,
+        OPEN_CONSOLE,
+        CLOSE,
     };
 
     enum class Axis
@@ -29,7 +28,6 @@ namespace input
         KEYBOARD,
         MOUSE,
         GAMEPAD,
-        ENUM_SIZE
     };
 
     enum class Direction
@@ -38,7 +36,6 @@ namespace input
         X,
         Y,
         Z,
-        ENUM_SIZE
     };
 
     struct KeyboardState
