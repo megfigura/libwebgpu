@@ -1,6 +1,5 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <imgui.h>
 #include "Application.h"
 #include "ApplicationImpl.h"
 
@@ -8,6 +7,7 @@
 #include "Adapter.h"
 #include "Device.h"
 #include "Window.h"
+#include "event/EventManager.h"
 #include "input/Controller.h"
 #include "resource/Loader.h"
 #include "webgpu/Pipeline.h"
@@ -17,6 +17,7 @@
 #include "webgpu/Model.h"
 #include "webgpu/TextureView.h"
 #include "game/Console.h"
+#include "input/InputManager.h"
 
 
 #ifdef __EMSCRIPTEN__
@@ -84,13 +85,15 @@ int Application::ApplicationImpl::run()
 
     m_resourceLoader = std::make_shared<resource::Loader>(std::filesystem::absolute("resources"));
     m_instance = std::make_shared<WebGpuInstance>();
-    m_window = std::make_shared<Window>();
+    m_eventManager = std::make_shared<event::EventManager>(m_instance);
+    m_window = std::make_shared<Window>(m_eventManager);
     m_surface = std::make_shared<Surface>(m_window, m_instance);
     m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
     m_device = std::make_shared<Device>(m_instance, m_adapter);
-    m_controller = std::make_shared<input::Controller>();
+    m_controller = std::make_shared<input::Controller>(m_eventManager);
+    m_inputManager = std::make_shared<input::InputManager>(m_controller);
     input::KeyMap keyMap{};
-    m_player = std::make_shared<physics::Player>(0, keyMap);
+    m_player = std::make_shared<physics::Player>(0, keyMap, m_inputManager);
 
     //m_adapter->print();
     //m_device->print();
@@ -120,7 +123,7 @@ int Application::ApplicationImpl::run()
         m_pipelines.push_back(std::make_shared<Pipeline>(m_device, m_surface, m_model));
     }
 
-    m_console = std::make_shared<game::Console>(keyMap, m_device, m_window, surfaceTextureFormat, depthFormat);
+    m_console = std::make_shared<game::Console>(m_eventManager, m_inputManager, keyMap, m_device, m_window, surfaceTextureFormat, depthFormat);
 
     m_lastFrameTimestamp = m_lastTickTimestamp = SDL_GetTicksNS();
 
@@ -158,50 +161,41 @@ uint64_t accumulator = 0;
 
 bool Application::ApplicationImpl::mainLoop()
 {
+    constexpr int tenMillis = 10000000;
+
     uint64_t now = SDL_GetTicksNS();
     uint64_t frameNanos = now - m_lastFrameTimestamp;
     accumulator += frameNanos;
 
-    constexpr int tenMillis = 10000000;
-    int ticks = 0;
+    m_eventManager->processEvents();
+
+    bool processPartialInput = true;
     while (accumulator >= tenMillis)
     {
         accumulator -= tenMillis;
-        ticks++;
+
+        processPartialInput = m_inputManager->processInputTick(m_lastTickTimestamp, tenMillis);
+        m_lastTickTimestamp += tenMillis;
     }
 
-    m_instance->processEvents();
-
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
+    if (processPartialInput)
     {
-        m_window->onEvent(event);
-        m_controller->onEvent(event);
-        m_console->onEvent(event);
-
-        switch (event.type)
-        {
-            case SDL_EVENT_QUIT:
-#ifdef __EMSCRIPTEN__
-                emscripten_cancel_main_loop();
-#endif
-                return false;
-
-            default:
-                break;
-        }
+        m_inputManager->processPartialInputTick(m_lastTickTimestamp, tenMillis, static_cast<int>(accumulator));
     }
-
-    std::vector<input::ControllerState> controllerTickStates = m_controller->getTickStates(m_lastTickTimestamp, tenMillis, ticks);
-    input::ControllerState nextControllerTickState = m_controller->getNextPartialState(m_lastTickTimestamp, tenMillis, ticks);
-    m_player->update(controllerTickStates, nextControllerTickState, accumulator, tenMillis);
-    m_console->processInput(controllerTickStates);
 
     Frame frame(m_device, m_surface, m_pipelines, m_model, m_depthTextureView, m_msaaTextureView);
     frame.draw();
 
     m_lastFrameTimestamp = now;
-    m_lastTickTimestamp += (ticks * tenMillis);
 
-    return !get().isShuttingDown();
+    if (get().isShuttingDown())
+    {
+#ifdef __EMSCRIPTEN__
+        emscripten_cancel_main_loop();
+#endif
+
+        return false;
+    }
+
+    return true;
 }

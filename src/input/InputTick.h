@@ -19,7 +19,7 @@ namespace input
     class InputTick
     {
     public:
-        InputTick(const PlayerKeyMapContext& context, const ControllerState& state, uint64_t tickNanos);
+        InputTick(const PlayerKeyMapContext& context, const ControllerState& state, int intoTick);
 
         [[nodiscard]] const std::vector<TickValue>& getActionValues() const;
         [[nodiscard]] const std::vector<TickValue>& getAxisValues() const;
@@ -28,8 +28,9 @@ namespace input
         std::vector<TickValue> m_actionValues;
         std::vector<TickValue> m_axisValues;
 
-        static TickValue calcAction(const ActionBinding& actionBinding, const ControllerState& state, uint64_t tickNanos);
-        static TickValue calcAxis(const AxisBinding& axisBinding, const ControllerState& state, uint64_t tickNanos);
+        static TickValue calcAction(const ActionBinding& actionBinding, const ControllerState& state, int intoTick);
+        static TickValue calcAxis(const AxisBinding& axisBinding, const ControllerState& state, int intoTick);
+        static float keyPressProportion(int keyPressNanos, int intoTick);
     };
 
 }

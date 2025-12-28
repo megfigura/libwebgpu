@@ -13,12 +13,14 @@
 
 namespace game
 {
-    Console::Console(const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat) :
-    m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isOpen{false}, m_commandInput{}
+    Console::Console(std::shared_ptr<event::EventManager> eventManager, std::shared_ptr<input::InputManager> inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat) :
+    EventConsumer{0, std::move(eventManager)}, InputConsumer(0, std::move(inputManager)), m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isOpen{false}, m_commandInput{}
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGui::GetIO();
+        auto& io = ImGui::GetIO();
+        io.IniFilename = nullptr;
+        io.LogFilename = nullptr;
 
         ImGui_ImplWGPU_InitInfo info;
         info.Device = device->get();
@@ -38,44 +40,33 @@ namespace game
         ImGui::DestroyContext();
     }
 
-    void Console::onEvent(const SDL_Event& event)
+    bool Console::processEvent(const SDL_Event& event)
     {
         ImGui_ImplSDL3_ProcessEvent(&event);
+        return true;
     }
 
-    void Console::processInput(const std::vector<input::ControllerState>& controllerStates)
+    bool Console::processInputTick(const input::ControllerState& controllerState, int tickNanos)
     {
-        for (const auto& state : controllerStates)
-        {
-            int tickNanos = 20; // doesn't matter
-            input::InputTick inputTick(m_keyMap.contexts.at("default"), state, tickNanos);
+        input::InputTick inputTick(m_keyMap.contexts.at("default"), controllerState, tickNanos);
 
-            if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::OPEN_CONSOLE)].isNew)
-            {
-                m_isOpen = true;
-                spdlog::info("Open console");
-            }
-            if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::CLOSE)].isNew)
-            {
-                m_isOpen = false;
-                spdlog::info("Close console");
-            }
+        if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::OPEN_CONSOLE)].isNew)
+        {
+            m_isOpen = true;
+            spdlog::info("Open console");
         }
-    }
-
-    bool Console::isActive()
-    {
-        ImGuiIO& io = ImGui::GetIO();
-        if (io.WantCaptureMouse || io.WantCaptureKeyboard) // TODO
+        if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::CLOSE)].isNew)
         {
+            m_isOpen = false;
+            spdlog::info("Close console");
         }
 
-        return m_isOpen; // TODO
+        return !m_isOpen;
     }
 
     void Console::draw(WGPURenderPassEncoder renderPassEncoder)
     {
-        if (isActive())
+        if (m_isOpen)
         {
             ImGuiIO& io = ImGui::GetIO();
             ImGui_ImplWGPU_NewFrame();

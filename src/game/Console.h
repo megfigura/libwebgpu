@@ -2,6 +2,7 @@
 #include <vector>
 #include <SDL3/SDL_events.h>
 
+#include "input/InputConsumer.h"
 #include "webgpu/TextureView.h"
 #include "input/KeyMap.h"
 
@@ -17,15 +18,14 @@ namespace webgpu
 
 namespace game
 {
-    class Console
+    class Console : public event::EventConsumer, public input::InputConsumer
     {
     public:
-        Console(const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat);
-        ~Console();
+        Console(std::shared_ptr<event::EventManager> eventManager, std::shared_ptr<input::InputManager> inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat);
+        ~Console() override;
 
-        void onEvent(const SDL_Event& event);
-        void processInput(const std::vector<input::ControllerState>& controllerStates);
-        bool isActive();
+        bool processEvent(const SDL_Event& event) override;
+        bool processInputTick(const input::ControllerState& controllerState, int tickNanos) override;
         void draw(WGPURenderPassEncoder renderPassEncoder);
 
     private:

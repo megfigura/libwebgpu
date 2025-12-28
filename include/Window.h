@@ -2,6 +2,9 @@
 #include <memory>
 #include <SDL3/SDL.h>
 
+#include "event/EventManager.h"
+#include "event/EventConsumer.h"
+
 namespace webgpu
 {
     class Surface;
@@ -9,11 +12,11 @@ namespace webgpu
     class Adapter;
     class WebGpuInstance;
 
-    class Window
+    class Window : public event::EventConsumer
     {
     public:
-        explicit Window();
-        ~Window();
+        explicit Window(std::shared_ptr<event::EventManager> eventManager);
+        ~Window() override;
 
         [[nodiscard]] bool isFullscreen() const;
         void setFullscreen(bool isFullscreen);
@@ -24,7 +27,7 @@ namespace webgpu
         [[nodiscard]] int getWidth() const;
         [[nodiscard]] int getHeight() const;
 
-        void onEvent(const SDL_Event &event);
+        bool processEvent(const SDL_Event& event) override;
         [[nodiscard]] SDL_Window *get() const;
 
     private:

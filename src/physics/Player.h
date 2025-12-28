@@ -2,6 +2,7 @@
 #include <glm/mat4x4.hpp>
 
 #include "input/Controller.h"
+#include "input/InputConsumer.h"
 #include "input/KeyMap.h"
 #include "webgpu/Camera.h"
 
@@ -12,12 +13,13 @@ namespace input
 
 namespace physics
 {
-    class Player
+    class Player : public input::InputConsumer
     {
     public:
-        Player(int id, const input::KeyMap& keyMap);
+        Player(int id, const input::KeyMap& keyMap, std::shared_ptr<input::InputManager> inputManager);
 
-        void update(const std::vector<input::ControllerState>& controllerTicks, const input::ControllerState& currTick, uint64_t intoTick, uint64_t tickNanos);
+        bool processInputTick(const input::ControllerState& controllerState, int tickNanos) override;
+        bool processPartialInputTick(const input::ControllerState& controllerState, int tickNanos, int intoTick) override;
 
         glm::mat4x4 m_rotations;
         glm::mat4x4 m_view;

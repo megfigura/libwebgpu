@@ -93,6 +93,18 @@ add_library(libwebgpu
         src/game/Console.h
         src/input/InputTick.cpp
         src/input/InputTick.h
+        src/ecs/System.cpp
+        src/ecs/System.h
+        src/ecs/SmoothedSystem.cpp
+        src/ecs/SmoothedSystem.h
+        src/event/EventManager.cpp
+        src/event/EventManager.h
+        src/event/EventConsumer.h
+        src/event/EventConsumer.cpp
+        src/input/InputManager.cpp
+        src/input/InputManager.h
+        src/input/InputConsumer.cpp
+        src/input/InputConsumer.h
 )
 
 target_include_directories(libwebgpu PUBLIC include)

@@ -3,6 +3,8 @@
 #include <SDL3/SDL.h>
 #include <spdlog/spdlog.h>
 
+#include <utility>
+
 #include "Application.h"
 #include "StringView.h"
 #include "Surface.h"
@@ -10,7 +12,7 @@
 
 namespace webgpu
 {
-    Window::Window() : m_isFullscreen{false}, m_isMouseCaptured{false}
+    Window::Window(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{1, std::move(eventManager)}, m_isFullscreen{false}, m_isMouseCaptured{false}
     {
         constexpr int width = 800;
         constexpr int height = 600;
@@ -64,8 +66,7 @@ namespace webgpu
         return h;
     }
 
-
-    void Window::onEvent(const SDL_Event& event)
+    bool Window::processEvent(const SDL_Event& event)
     {
         switch (event.type)
         {
@@ -88,6 +89,8 @@ namespace webgpu
             default:
                 break;
         }
+
+        return true;
     }
 
     SDL_Window *Window::get() const

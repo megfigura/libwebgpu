@@ -1,6 +1,15 @@
 #pragma once
+#include <memory>
+#include <optional>
 #include <SDL3/SDL_events.h>
 #include <vector>
+
+#include "event/EventConsumer.h"
+
+namespace event
+{
+    class EventManager;
+}
 
 namespace input
 {
@@ -77,20 +86,19 @@ namespace input
         GamePadState gamePadState;
     };
 
-    class Controller
+    class Controller : public event::EventConsumer
     {
     public:
-        explicit Controller();
-        ~Controller();
+        explicit Controller(std::shared_ptr<event::EventManager> eventManager);
 
-        void onEvent(const SDL_Event &event);
-        std::vector<ControllerState> getTickStates(Uint64 frameStart, int nanosPerTick, int numTicks);
-        ControllerState getNextPartialState(Uint64 frameStart, int nanosPerTick, int numTicks);
+        bool processEvent(const SDL_Event &event) override;
+        ControllerState getTickState(uint64_t tickStart, int nanosPerTick);
+        ControllerState getNextPartialState(uint64_t frameStart, int intoTick);
 
     private:
         bool m_isMouseCaptured;
-        std::vector<Uint64> m_keyboardDownTimes;
-        std::vector<Uint64> m_mouseButtonDownTimes;
+        std::vector<uint64_t> m_keyboardDownTimes;
+        std::vector<uint64_t> m_mouseButtonDownTimes;
         std::vector<SDL_Event> m_frameEvents;
 
         ControllerState getControllerState(bool readOnly, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd);

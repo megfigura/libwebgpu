@@ -1,6 +1,6 @@
 #include "Controller.h"
 
-#include <imgui.h>
+#include <event/EventManager.h>
 #include <SDL3/SDL_events.h>
 #include <spdlog/spdlog.h>
 
@@ -9,7 +9,7 @@
 
 namespace input
 {
-    Controller::Controller() : m_isMouseCaptured{false}
+    Controller::Controller(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{2, std::move(eventManager)}, m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
         //Application::get().getWindow()->setMouseCapture(true); TODO
@@ -21,9 +21,7 @@ namespace input
         m_mouseButtonDownTimes.resize(numButtons);
     }
 
-    Controller::~Controller() = default;
-
-    void Controller::onEvent(const SDL_Event &event)
+    bool Controller::processEvent(const SDL_Event &event)
     {
         switch (event.type)
         {
@@ -67,32 +65,28 @@ namespace input
             default:
                 break;
         }
+
+        return true;
     }
 
-    std::vector<ControllerState> Controller::getTickStates(uint64_t frameStart, int nanosPerTick, int numTicks)
-    {
-        std::vector<ControllerState> tickStates(numTicks);
-        for (int iTick = 0; iTick < numTicks; iTick++)
-        {
-            // Actual start/end times
-            uint64_t currTickStart = frameStart + (nanosPerTick * iTick);
-            uint64_t currTickEnd = currTickStart + nanosPerTick;
-
-            // Acceptable times for events for the current tick -- include any unprocessed events before frame
-            uint64_t currTickEventStart = (iTick == 0) ? 0 : currTickStart;
-            uint64_t currTickEventEnd = currTickEnd;
-
-            tickStates[iTick] = getControllerState(false, currTickStart, currTickEnd, currTickEventStart, currTickEventEnd);
-        }
-
-        return tickStates;
-    }
-
-    ControllerState Controller::getNextPartialState(Uint64 frameStart, int nanosPerTick, int numTicks)
+    ControllerState Controller::getTickState(uint64_t tickStart, int nanosPerTick)
     {
         // Actual start/end times
-        uint64_t currTickStart = frameStart + (nanosPerTick * numTicks);
+        uint64_t currTickStart = tickStart;
         uint64_t currTickEnd = currTickStart + nanosPerTick;
+
+        // Acceptable times for events for the current tick -- include any unprocessed events before frame
+        uint64_t currTickEventStart = 0;
+        uint64_t currTickEventEnd = currTickEnd;
+
+        return getControllerState(false, currTickStart, currTickEnd, currTickEventStart, currTickEventEnd);
+    }
+
+    ControllerState Controller::getNextPartialState(uint64_t tickStart, int intoTick)
+    {
+        // Actual start/end times
+        uint64_t currTickStart = tickStart;
+        uint64_t currTickEnd = currTickStart + intoTick;
 
         return getControllerState(true, currTickStart, currTickEnd, currTickStart, currTickEnd);
     }
