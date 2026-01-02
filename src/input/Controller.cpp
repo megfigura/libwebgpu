@@ -6,23 +6,60 @@
 
 #include "Application.h"
 #include "Window.h"
+#include "resource/Settings.h"
 
 namespace input
 {
-    Controller::Controller(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{2, std::move(eventManager)}, m_isMouseCaptured{false}
+    Controller::Controller(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{2, std::move(eventManager)}, m_useEventsForKeyboard{true}, m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
         //Application::get().getWindow()->setMouseCapture(true); TODO
         int numKeys;
         SDL_GetKeyboardState(&numKeys);
         m_keyboardDownTimes.resize(numKeys);
+        m_lastKeyStates.resize(numKeys);
 
         int numButtons = 16;
         m_mouseButtonDownTimes.resize(numButtons);
+
+        m_useEventsForKeyboard = Application::get().getSettings()->getBool("input.useEventsForKeyboard").value_or(m_useEventsForKeyboard);
+
+#ifdef _WIN32
+        m_useEventsForKeyboard = Application::get().getSettings()->getBool("input.useEventsForKeyboardInWindows").value_or(m_useEventsForKeyboard);
+#endif
     }
 
     bool Controller::processEvent(const SDL_Event &event)
     {
+        if (!m_useEventsForKeyboard)
+        {
+            uint64_t currTickNs = SDL_GetTicksNS();
+            int numKeys;
+            const bool* keyStates = SDL_GetKeyboardState(&numKeys);
+
+            for (int iKey = 0; iKey < numKeys; iKey++)
+            {
+                if (!m_lastKeyStates[iKey] && keyStates[iKey])
+                {
+                    SDL_Event e{};
+                    e.common.timestamp = currTickNs;
+                    e.common.type = SDL_EVENT_KEY_DOWN;
+                    e.key.scancode = static_cast<SDL_Scancode>(iKey);
+                    m_lastKeyStates[iKey] = true;
+                    m_frameEvents.push_back(e);
+                }
+                else if (m_lastKeyStates[iKey] && !keyStates[iKey])
+                {
+                    SDL_Event e{};
+                    e.common.timestamp = currTickNs;
+                    e.common.type = SDL_EVENT_KEY_UP;
+                    e.key.scancode = static_cast<SDL_Scancode>(iKey);
+                    m_lastKeyStates[iKey] = false;
+                    m_frameEvents.push_back(e);
+                }
+            }
+        }
+
         switch (event.type)
         {
             case SDL_EVENT_KEY_DOWN:
@@ -50,10 +87,19 @@ namespace input
                         Application::get().setShuttingDown();
                     }
                 }
-                m_frameEvents.push_back(event);
+                if (m_useEventsForKeyboard)
+                {
+                    m_frameEvents.push_back(event);
+                }
                 break;
 
             case SDL_EVENT_KEY_UP:
+                if (m_useEventsForKeyboard)
+                {
+                    m_frameEvents.push_back(event);
+                }
+                break;
+
             case SDL_EVENT_FINGER_MOTION:
             case SDL_EVENT_MOUSE_MOTION:
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -69,29 +115,29 @@ namespace input
         return true;
     }
 
-    ControllerState Controller::getTickState(uint64_t tickStart, int nanosPerTick)
+    ControllerState Controller::getTickState(uint64_t tickStart, int tickNanos)
     {
         // Actual start/end times
         uint64_t currTickStart = tickStart;
-        uint64_t currTickEnd = currTickStart + nanosPerTick;
+        uint64_t currTickEnd = currTickStart + tickNanos;
 
         // Acceptable times for events for the current tick -- include any unprocessed events before frame
         uint64_t currTickEventStart = 0;
         uint64_t currTickEventEnd = currTickEnd;
 
-        return getControllerState(false, currTickStart, currTickEnd, currTickEventStart, currTickEventEnd);
+        return getControllerState(false, tickNanos, currTickStart, currTickEnd, currTickEventStart, currTickEventEnd);
     }
 
-    ControllerState Controller::getNextPartialState(uint64_t tickStart, int intoTick)
+    ControllerState Controller::getNextPartialState(uint64_t tickStart, int tickNanos, int intoTick)
     {
         // Actual start/end times
         uint64_t currTickStart = tickStart;
         uint64_t currTickEnd = currTickStart + intoTick;
 
-        return getControllerState(true, currTickStart, currTickEnd, currTickStart, currTickEnd);
+        return getControllerState(true, tickNanos, currTickStart, currTickEnd, currTickStart, currTickEnd);
     }
 
-    ControllerState Controller::getControllerState(bool readOnly, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd)
+    ControllerState Controller::getControllerState(bool readOnly, int tickNanos, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd)
     {
         ControllerState controllerState{};
         KeyboardState& kbState = controllerState.keyboardState;
@@ -105,6 +151,12 @@ namespace input
 
             if ((event.common.timestamp >= currTickEventStart) && (event.common.timestamp < currTickEventEnd))
             {
+                uint64_t eventTickStart = currTickStart;
+                while (event.common.timestamp < eventTickStart)
+                {
+                    eventTickStart -= tickNanos;
+                }
+
                 switch (event.type)
                 {
                     case SDL_EVENT_KEY_DOWN:
@@ -116,8 +168,8 @@ namespace input
                         break;
 
                     case SDL_EVENT_KEY_UP:
-                        // accumulate from start of tick or from last release
-                        kbState.activeNanos[event.key.scancode] += static_cast<int>(event.key.timestamp - std::max(currTickStart, m_keyboardDownTimes[event.key.scancode]));
+                        // accumulate from start of tick or from last press
+                        kbState.activeNanos[event.key.scancode] += static_cast<int>(event.key.timestamp - std::max(eventTickStart, m_keyboardDownTimes[event.key.scancode]));
                         m_keyboardDownTimes[event.key.scancode] = 0;
                         break;
 
@@ -132,7 +184,7 @@ namespace input
                         break;
 
                     case SDL_EVENT_MOUSE_BUTTON_UP:
-                        // accumulate from start of tick or from last release
+                        // accumulate from start of tick or from last press
                         mouseState.buttonActiveNanos[event.button.button] += static_cast<int>(event.button.timestamp - std::max(currTickStart, m_mouseButtonDownTimes[event.button.button]));
                         m_keyboardDownTimes[event.button.button] = 0;
                         break;

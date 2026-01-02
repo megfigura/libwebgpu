@@ -25,22 +25,34 @@ find_package(magic_enum REQUIRED)
 find_package(imgui REQUIRED)
 
 add_library(libwebgpu
-        external/dear-imgui-bindings/imgui_impl_wgpu.cpp
-        external/dear-imgui-bindings/imgui_impl_wgpu.h
         external/dear-imgui-bindings/imgui_impl_sdl3.cpp
         external/dear-imgui-bindings/imgui_impl_sdl3.h
+        external/dear-imgui-bindings/imgui_impl_wgpu.cpp
+        external/dear-imgui-bindings/imgui_impl_wgpu.h
 
         include/Adapter.h
         include/Application.h
         include/Device.h
         include/StringView.h
-        include/Window.h
         include/WebGpuInstance.h
+        include/Window.h
 
         src/Application.cpp
         src/ApplicationImpl.cpp
         src/ApplicationImpl.h
 
+        src/ecs/SmoothedSystem.cpp
+        src/ecs/SmoothedSystem.h
+        src/ecs/System.cpp
+        src/ecs/System.h
+
+        src/event/EventConsumer.cpp
+        src/event/EventConsumer.h
+        src/event/EventManager.cpp
+        src/event/EventManager.h
+
+        src/game/Console.cpp
+        src/game/Console.h
         src/game/TickableObject.cpp
         src/game/TickableObject.h
         src/game/TickGroup.cpp
@@ -48,6 +60,12 @@ add_library(libwebgpu
 
         src/input/Controller.cpp
         src/input/Controller.h
+        src/input/InputConsumer.cpp
+        src/input/InputConsumer.h
+        src/input/InputManager.cpp
+        src/input/InputManager.h
+        src/input/InputTick.cpp
+        src/input/InputTick.h
         src/input/KeyMap.cpp
         src/input/KeyMap.h
 
@@ -64,6 +82,8 @@ add_library(libwebgpu
         src/resource/RawResource.h
         src/resource/Resource.cpp
         src/resource/Resource.h
+        src/resource/Settings.cpp
+        src/resource/Settings.h
         src/resource/StringResource.cpp
         src/resource/StringResource.h
 
@@ -89,22 +109,6 @@ add_library(libwebgpu
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
-        src/game/Console.cpp
-        src/game/Console.h
-        src/input/InputTick.cpp
-        src/input/InputTick.h
-        src/ecs/System.cpp
-        src/ecs/System.h
-        src/ecs/SmoothedSystem.cpp
-        src/ecs/SmoothedSystem.h
-        src/event/EventManager.cpp
-        src/event/EventManager.h
-        src/event/EventConsumer.h
-        src/event/EventConsumer.cpp
-        src/input/InputManager.cpp
-        src/input/InputManager.h
-        src/input/InputConsumer.cpp
-        src/input/InputConsumer.h
 )
 
 target_include_directories(libwebgpu PUBLIC include)

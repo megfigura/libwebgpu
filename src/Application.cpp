@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 
 #include "ApplicationImpl.h"
+#include "resource/Settings.h"
 
 Application *Application::theAppInstance = nullptr;
 
@@ -36,6 +37,11 @@ Application& Application::get()
 std::shared_ptr<resource::Loader> Application::getResourceLoader() const
 {
     return impl->getResourceLoader();
+}
+
+std::shared_ptr<resource::Settings> Application::getSettings() const
+{
+    return impl->getSettings();
 }
 
 std::shared_ptr<webgpu::WebGpuInstance> Application::getInstance() const

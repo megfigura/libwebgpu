@@ -47,6 +47,7 @@ public:
     virtual ~ApplicationImpl();
 
     std::shared_ptr<resource::Loader> getResourceLoader();
+    std::shared_ptr<resource::Settings> getSettings();
     std::shared_ptr<webgpu::WebGpuInstance> getInstance();
     std::shared_ptr<webgpu::Adapter> getAdapter();
     std::shared_ptr<webgpu::Device> getDevice();
@@ -64,6 +65,7 @@ public:
 
 private:
     std::shared_ptr<resource::Loader> m_resourceLoader;
+    std::shared_ptr<resource::Settings> m_settings;
     std::shared_ptr<webgpu::WebGpuInstance> m_instance;
     std::shared_ptr<event::EventManager> m_eventManager;
     std::shared_ptr<webgpu::Adapter> m_adapter;

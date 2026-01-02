@@ -17,7 +17,11 @@ include(Catch)
 
 # ---- Tests ----
 
-add_executable(webgpu_test src/webgpu_test.cpp)
+add_executable(webgpu_test
+        src/resource/SettingsTest.cpp
+        src/webgpu_test.cpp
+)
+
 target_link_libraries(
     webgpu_test PRIVATE
     libwebgpu

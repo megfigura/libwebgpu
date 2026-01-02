@@ -33,7 +33,7 @@ namespace input
 
     void InputManager::processPartialInputTick(uint64_t tickStartTimestamp, int tickNanos, int intoTick) const
     {
-        ControllerState state = m_controller->getNextPartialState(tickStartTimestamp, intoTick);
+        ControllerState state = m_controller->getNextPartialState(tickStartTimestamp, tickNanos, intoTick);
         bool continueProcessing = true;
         for (int iConsumer = 0; iConsumer < m_consumers.size() && continueProcessing; iConsumer++)
         {

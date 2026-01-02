@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <optional>
 #include <SDL3/SDL_events.h>
 #include <vector>
 
@@ -92,15 +91,17 @@ namespace input
         explicit Controller(std::shared_ptr<event::EventManager> eventManager);
 
         bool processEvent(const SDL_Event &event) override;
-        ControllerState getTickState(uint64_t tickStart, int nanosPerTick);
-        ControllerState getNextPartialState(uint64_t frameStart, int intoTick);
+        ControllerState getTickState(uint64_t tickStart, int tickNanos);
+        ControllerState getNextPartialState(uint64_t frameStart, int tickNanos, int intoTick);
 
     private:
+        bool m_useEventsForKeyboard;
         bool m_isMouseCaptured;
         std::vector<uint64_t> m_keyboardDownTimes;
         std::vector<uint64_t> m_mouseButtonDownTimes;
         std::vector<SDL_Event> m_frameEvents;
+        std::vector<bool> m_lastKeyStates;
 
-        ControllerState getControllerState(bool readOnly, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd);
+        ControllerState getControllerState(bool readOnly, int tickNanos, uint64_t currTickStart, uint64_t currTickEnd, uint64_t currTickEventStart, uint64_t currTickEventEnd);
     };
 }

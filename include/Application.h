@@ -14,6 +14,7 @@ namespace webgpu
 
 namespace resource
 {
+    class Settings;
     class Loader;
 }
 
@@ -45,6 +46,7 @@ public:
     static Application& get();
 
     [[nodiscard]] std::shared_ptr<resource::Loader> getResourceLoader() const;
+    [[nodiscard]] std::shared_ptr<resource::Settings> getSettings() const;
     [[nodiscard]] std::shared_ptr<webgpu::WebGpuInstance> getInstance() const;
     [[nodiscard]] std::shared_ptr<webgpu::Adapter> getAdapter() const;
     [[nodiscard]] std::shared_ptr<webgpu::Device> getDevice() const;

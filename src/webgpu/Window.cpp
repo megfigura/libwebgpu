@@ -6,9 +6,7 @@
 #include <utility>
 
 #include "Application.h"
-#include "StringView.h"
 #include "Surface.h"
-#include "WebGpuInstance.h"
 
 namespace webgpu
 {

@@ -18,7 +18,8 @@
 #include "webgpu/TextureView.h"
 #include "game/Console.h"
 #include "input/InputManager.h"
-
+#include "resource/Settings.h"
+#include "SDL3/SDL.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -32,6 +33,11 @@ Application::ApplicationImpl::~ApplicationImpl() = default;
 std::shared_ptr<resource::Loader> Application::ApplicationImpl::getResourceLoader()
 {
     return m_resourceLoader;
+}
+
+std::shared_ptr<resource::Settings> Application::ApplicationImpl::getSettings()
+{
+    return m_settings;
 }
 
 std::shared_ptr<webgpu::WebGpuInstance> Application::ApplicationImpl::getInstance()
@@ -84,6 +90,7 @@ int Application::ApplicationImpl::run()
     }
 
     m_resourceLoader = std::make_shared<resource::Loader>(std::filesystem::absolute("resources"));
+    m_settings = std::make_shared<resource::Settings>();
     m_instance = std::make_shared<WebGpuInstance>();
     m_eventManager = std::make_shared<event::EventManager>(m_instance);
     m_window = std::make_shared<Window>(m_eventManager);
