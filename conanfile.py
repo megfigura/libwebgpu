@@ -16,6 +16,7 @@ class LibWebGpuRecipe(ConanFile):
         self.requires("glm/1.0.1")
         self.requires("magic_enum/0.9.7")
         self.requires("imgui/1.92.5")
+        self.requires("stb/cci.20240531")
 
     def build_requirements(self):
         self.test_requires("catch2/3.7.1")

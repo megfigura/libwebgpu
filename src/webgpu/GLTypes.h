@@ -49,6 +49,29 @@ namespace webgpu
         ELEMENT_ARRAY_BUFFER = 34963
     };
 
+    enum class GLMagFilter
+    {
+        NEAREST = 9728,
+        LINEAR = 9729
+    };
+
+    enum class GLMinFilter
+    {
+        NEAREST = 9728,
+        LINEAR = 9729,
+        NEAREST_MIPMAP_NEAREST = 9984,
+        LINEAR_MIPMAP_NEAREST = 9985,
+        NEAREST_MIPMAP_LINEAR = 9986,
+        LINEAR_MIPMAP_LINEAR = 9987
+    };
+
+    enum class GLWrapMode
+    {
+        CLAMP_TO_EDGE = 33071,
+        MIRRORED_REPEAT = 33648,
+        REPEAT = 10497
+    };
+
     enum class GLAccessorType
     {
         SCALAR,

@@ -86,9 +86,11 @@ namespace input
                     {
                         case Direction::X:
                             axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dx / static_cast<float>(Application::get().getWindow()->getWidth()));
+                            break;
 
                         case Direction::Y:
                             axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dy / static_cast<float>(Application::get().getWindow()->getHeight()));
+                            break;
 
                         default:
                             break;

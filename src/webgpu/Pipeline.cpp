@@ -132,15 +132,15 @@ namespace webgpu
 
 	WGPURenderPipeline Pipeline::createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const
 	{
-		WGPUBlendState blendState = WGPU_BLEND_STATE_INIT;
+		WGPUBlendState blendState{WGPU_BLEND_STATE_INIT};
 		blendState.color = { WGPUBlendOperation_Add, WGPUBlendFactor_One, WGPUBlendFactor_OneMinusSrcAlpha };
 		blendState.alpha = { WGPUBlendOperation_Add, WGPUBlendFactor_One, WGPUBlendFactor_OneMinusSrcAlpha };
 
-		WGPUColorTargetState colorTarget = WGPU_COLOR_TARGET_STATE_INIT;
+		WGPUColorTargetState colorTarget{WGPU_COLOR_TARGET_STATE_INIT};
 		colorTarget.format = surface->getTextureFormat();
 		colorTarget.blend = &blendState;
 
-		WGPUDepthStencilState depthStencilState = WGPU_DEPTH_STENCIL_STATE_INIT;
+		WGPUDepthStencilState depthStencilState{WGPU_DEPTH_STENCIL_STATE_INIT};
 		depthStencilState.depthCompare = WGPUCompareFunction_Less;
 		depthStencilState.depthWriteEnabled = WGPUOptionalBool_True;
 		depthStencilState.format = m_depthFormat;
@@ -151,32 +151,37 @@ namespace webgpu
 			spdlog::error("Shader not loaded: {}", shaderSource.error());
 		}
 
-		WGPUShaderSourceWGSL wgslDesc = WGPU_SHADER_SOURCE_WGSL_INIT;
+		WGPUShaderSourceWGSL wgslDesc{WGPU_SHADER_SOURCE_WGSL_INIT};
 		wgslDesc.code = StringView(shaderSource.value<>());
-		WGPUShaderModuleDescriptor shaderDesc = WGPU_SHADER_MODULE_DESCRIPTOR_INIT;
+		WGPUShaderModuleDescriptor shaderDesc{WGPU_SHADER_MODULE_DESCRIPTOR_INIT};
 		shaderDesc.nextInChain = &wgslDesc.chain; // connect the chained extension
 		shaderDesc.label = StringView("Shader source from Application.cpp");
 		WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device->get(), &shaderDesc);
 
-		WGPUFragmentState fragmentState = WGPU_FRAGMENT_STATE_INIT;
+		WGPUFragmentState fragmentState{WGPU_FRAGMENT_STATE_INIT};
 		fragmentState.module = shaderModule;
 		fragmentState.entryPoint = StringView("fs_main");
 		fragmentState.targetCount = 1;
 		fragmentState.targets = &colorTarget;
 
-		WGPUVertexAttribute positionAttribute = WGPU_VERTEX_ATTRIBUTE_INIT;
+		WGPUVertexAttribute positionAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
 		positionAttribute.shaderLocation = 0;
 		positionAttribute.format = WGPUVertexFormat_Float32x3;
 		positionAttribute.offset = 0;
 
-		WGPUVertexAttribute normalAttribute = WGPU_VERTEX_ATTRIBUTE_INIT;
+		WGPUVertexAttribute normalAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
 		normalAttribute.shaderLocation = 1;
 		normalAttribute.format = WGPUVertexFormat_Float32x3;
 		normalAttribute.offset = 0;
 
+		WGPUVertexAttribute texCoordAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
+		texCoordAttribute.shaderLocation = 2;
+		texCoordAttribute.format = WGPUVertexFormat_Float32x2;
+		texCoordAttribute.offset = 0;
+
 		auto positionAttributes = std::vector { positionAttribute };
 
-		WGPUVertexBufferLayout vertexBufferLayout = WGPU_VERTEX_BUFFER_LAYOUT_INIT;
+		WGPUVertexBufferLayout vertexBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
 		vertexBufferLayout.attributeCount = positionAttributes.size();
 		vertexBufferLayout.attributes = positionAttributes.data();
 		vertexBufferLayout.arrayStride = 3 * sizeof(float);
@@ -184,15 +189,23 @@ namespace webgpu
 
 		auto normalAttributes = std::vector { normalAttribute };
 
-		WGPUVertexBufferLayout normalBufferLayout = WGPU_VERTEX_BUFFER_LAYOUT_INIT;
+		WGPUVertexBufferLayout normalBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
 		normalBufferLayout.attributeCount = normalAttributes.size();
 		normalBufferLayout.attributes = normalAttributes.data();
 		normalBufferLayout.arrayStride = 3 * sizeof(float);
 		normalBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
 
-		std::vector bufferLayouts{vertexBufferLayout, normalBufferLayout};
+		auto texCoordAttributes = std::vector { texCoordAttribute };
 
-		WGPURenderPipelineDescriptor pipelineDesc = WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT;
+		WGPUVertexBufferLayout texCoordBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
+		texCoordBufferLayout.attributeCount = texCoordAttributes.size();
+		texCoordBufferLayout.attributes = texCoordAttributes.data();
+		texCoordBufferLayout.arrayStride = 2 * sizeof(float);
+		texCoordBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
+
+		std::vector bufferLayouts{vertexBufferLayout, normalBufferLayout, texCoordBufferLayout};
+
+		WGPURenderPipelineDescriptor pipelineDesc{WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT};
 		pipelineDesc.vertex.module = shaderModule;
 		pipelineDesc.vertex.entryPoint = StringView("vs_main");
 		pipelineDesc.vertex.bufferCount = bufferLayouts.size();

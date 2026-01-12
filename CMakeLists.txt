@@ -23,6 +23,7 @@ find_package(nlohmann_json REQUIRED)
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(imgui REQUIRED)
+find_package(stb REQUIRED)
 
 add_library(libwebgpu
         external/dear-imgui-bindings/imgui_impl_sdl3.cpp
@@ -109,6 +110,11 @@ add_library(libwebgpu
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
+        src/webgpu/Texture.cpp
+        src/webgpu/Texture.h
+        src/webgpu/GpuData.cpp
+        src/webgpu/GpuData.h
+        src/resource/StbImage.cpp
 )
 
 target_include_directories(libwebgpu PUBLIC include)
@@ -122,6 +128,7 @@ target_link_libraries(libwebgpu
         glm::glm
         magic_enum::magic_enum
         imgui::imgui
+        stb::stb
 )
 set_target_properties(
         libwebgpu PROPERTIES

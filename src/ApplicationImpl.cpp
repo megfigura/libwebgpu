@@ -3,6 +3,8 @@
 #include "Application.h"
 #include "ApplicationImpl.h"
 
+#include <iostream>
+
 #include "WebGpuInstance.h"
 #include "Adapter.h"
 #include "Device.h"
@@ -118,8 +120,9 @@ int Application::ApplicationImpl::run()
 
     // TODO
     //auto gltfRes = m_resourceLoader->getGltf("models/AntiqueCamera/AntiqueCamera.gltf");
-    auto gltfRes = m_resourceLoader->getGltf("models/BuggyBlender.glb");
-    //auto gltfRes = m_resourceLoader->getGltf("models/DamagedHelmet.glb");
+    //auto gltfRes = m_resourceLoader->getGltf("models/BuggyBlender.glb");
+    //auto gltfRes = m_resourceLoader->getGltf("models/house.glb");
+    auto gltfRes = m_resourceLoader->getGltf("models/DamagedHelmet.glb");
     if (!gltfRes.has_value())
     {
         spdlog::error("Failed to load model: {}", gltfRes.error());

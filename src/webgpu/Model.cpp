@@ -6,6 +6,8 @@
 
 #include "Application.h"
 #include "Device.h"
+#include "Texture.h"
+#include "resource/RawResource.h"
 #include "resource/GltfResource.h"
 
 namespace webgpu
@@ -13,27 +15,71 @@ namespace webgpu
     Model::Model(const resource::GltfResource& res) : m_gltfRes{res}, m_gltf{res.getGltf()}
     {
         // TODO - move
-        WGPUBindGroupLayoutEntry modelBindGroupLayoutEntry = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
-        modelBindGroupLayoutEntry.binding = 0;
-        modelBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex;
-        modelBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
-        modelBindGroupLayoutEntry.buffer.minBindingSize = sizeof(ModelUniform);
+        {
+            WGPUSamplerDescriptor samplerDesc{WGPU_SAMPLER_DESCRIPTOR_INIT};
+            samplerDesc.addressModeU = WGPUAddressMode_Repeat;
+            samplerDesc.addressModeV = WGPUAddressMode_Repeat;
+            //samplerDesc.addressModeW = WGPUAddressMode_Repeat;
+            samplerDesc.magFilter = WGPUFilterMode_Linear;
+            samplerDesc.minFilter = WGPUFilterMode_Linear;
+            samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
+            //samplerDesc.lodMinClamp = 0.0f;
+            //samplerDesc.lodMaxClamp = 1.0f;
+            //samplerDesc.compare = WGPUCompareFunction_Undefined;
+            //samplerDesc.maxAnisotropy = 1;
+            m_sampler = wgpuDeviceCreateSampler(Application::get().getDevice()->get(), &samplerDesc);
 
-        WGPUBindGroupLayoutDescriptor modelBindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
-        modelBindGroupLayoutDescriptor.entryCount = 1;
-        modelBindGroupLayoutDescriptor.entries = &modelBindGroupLayoutEntry;
-        m_modelBindGroupLayout = wgpuDeviceCreateBindGroupLayout(Application::get().getDevice()->get(), &modelBindGroupLayoutDescriptor);
+            WGPUBindGroupLayoutEntry modelBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
+            modelBindGroupLayoutEntry.binding = 0;
+            modelBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex;
+            modelBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
+            modelBindGroupLayoutEntry.buffer.minBindingSize = sizeof(ModelUniform);
+
+            WGPUBindGroupLayoutEntry textureBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
+            textureBindGroupLayoutEntry.binding = 1;
+            textureBindGroupLayoutEntry.visibility = WGPUShaderStage_Fragment;
+            textureBindGroupLayoutEntry.texture.sampleType = WGPUTextureSampleType_Float;
+            textureBindGroupLayoutEntry.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+            WGPUBindGroupLayoutEntry samplerBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
+            samplerBindGroupLayoutEntry.binding = 2;
+            samplerBindGroupLayoutEntry.visibility = WGPUShaderStage_Fragment;
+            samplerBindGroupLayoutEntry.sampler.type = WGPUSamplerBindingType_Filtering;
+
+            std::vector bindGroupLayoutEntries{modelBindGroupLayoutEntry, textureBindGroupLayoutEntry, samplerBindGroupLayoutEntry};
+
+            WGPUBindGroupLayoutDescriptor modelBindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+            modelBindGroupLayoutDescriptor.entryCount = bindGroupLayoutEntries.size();
+            modelBindGroupLayoutDescriptor.entries = bindGroupLayoutEntries.data();
+            m_modelBindGroupLayout = wgpuDeviceCreateBindGroupLayout(Application::get().getDevice()->get(), &modelBindGroupLayoutDescriptor);
+        }
 
         const auto& mainScene = m_gltf.scenes.at(m_gltf.scene);
 
         m_indexBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::USHORT, GLAccessorType::SCALAR), WGPUBufferUsage_Index | WGPUBufferUsage_CopyDst);
         m_vertexBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::FLOAT, GLAccessorType::VEC3), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
         m_normalBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::FLOAT, GLAccessorType::VEC3), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
+        m_texCoordBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::FLOAT, GLAccessorType::VEC3), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
 
         m_uniforms = std::make_shared<GpuBuffer>(sizeof(ModelUniform), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
 
+        for (const auto& jImage : res.getGltf().images)
+        {
+            m_texture = std::make_shared<Texture>(jImage.name);
+
+            const auto& gltf = res.getGltf();
+            const auto& bufferView = gltf.bufferViews.at(jImage.bufferView);
+            const auto& buffer = gltf.buffers.at(bufferView.buffer);
+            const auto& bufferRes = res.getBuffers().at(buffer.uri);
+
+            int elementSize = 4;
+            m_texture->addData(bufferRes, bufferView.byteOffset, bufferView.byteStride, elementSize, bufferView.byteLength / elementSize);
+            m_texture->load(Application::get().getDevice());
+            break; // TODO
+        }
+
         glm::mat4 id{1};
-        glm::mat4 scale = glm::scale(id, glm::vec3(0.1,0.1,0.1)); // TODO
+        glm::mat4 scale = glm::scale(id, glm::vec3(5));
         for (int iNode : mainScene.nodes)
         {
             const auto& jNode = m_gltf.nodes.at(iNode);
@@ -44,6 +90,7 @@ namespace webgpu
         m_indexBuffer->load(Application::get().getDevice());
         m_vertexBuffer->load(Application::get().getDevice());
         m_normalBuffer->load(Application::get().getDevice());
+        m_texCoordBuffer->load(Application::get().getDevice());
         m_uniforms->load(Application::get().getDevice());
 
         for (auto& node : m_nodes)
@@ -57,6 +104,7 @@ namespace webgpu
         const auto& indexAccessor = gltf.accessors.at(primitive.indices);
         const auto& positionAccessor = gltf.accessors.at(primitive.attributes.at("POSITION"));
         const auto& normalAccessor = gltf.accessors.at(primitive.attributes.at("NORMAL"));
+        const auto& texCoordAccessor = gltf.accessors.at(primitive.attributes.at("TEXCOORD_0"));
 
         m_indexCount = indexAccessor.count;
         m_indexOffset = model->m_indexBuffer->currentElementOffset();
@@ -65,6 +113,7 @@ namespace webgpu
         loadBuffer(model, model->m_indexBuffer, gltf, indexAccessor);
         loadBuffer(model, model->m_vertexBuffer, gltf, positionAccessor);
         loadBuffer(model, model->m_normalBuffer, gltf, normalAccessor);
+        loadBuffer(model, model->m_texCoordBuffer, gltf, texCoordAccessor);
     }
 
     void Mesh::loadBuffer(const Model* model, const std::shared_ptr<GpuBuffer>& gpuBuffer, const resource::JGltf& gltf, const resource::JAccessor& accessor)
@@ -111,16 +160,36 @@ namespace webgpu
 
     void Node::setBindGroups(const Model* model)
     {
-        WGPUBindGroupEntry modelBindGroupEntry = WGPU_BIND_GROUP_ENTRY_INIT;
+        WGPUTextureViewDescriptor textureViewDesc{WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT};
+        textureViewDesc.aspect = WGPUTextureAspect_All;
+        textureViewDesc.baseArrayLayer = 0;
+        textureViewDesc.arrayLayerCount = 1;
+        textureViewDesc.baseMipLevel = 0;
+        textureViewDesc.mipLevelCount = 1;
+        textureViewDesc.dimension = WGPUTextureViewDimension_2D;
+        textureViewDesc.format = WGPUTextureFormat_RGBA8Unorm;
+        WGPUTextureView textureView = wgpuTextureCreateView(model->m_texture->getTexture(), &textureViewDesc);
+
+        WGPUBindGroupEntry modelBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
         modelBindGroupEntry.binding = 0;
         modelBindGroupEntry.buffer = model->m_uniforms->getGpuBuffer();
         modelBindGroupEntry.offset = m_bindGroupOffset;
         modelBindGroupEntry.size = sizeof(ModelUniform);
 
-        WGPUBindGroupDescriptor modelBindGroupDescriptor = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
+        WGPUBindGroupEntry textureBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
+        textureBindGroupEntry.binding = 1;
+        textureBindGroupEntry.textureView = textureView;
+
+        WGPUBindGroupEntry samplerBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
+        samplerBindGroupEntry.binding = 2;
+        samplerBindGroupEntry.sampler = model->m_sampler;
+
+        std::vector bindGroupEntries{modelBindGroupEntry, textureBindGroupEntry, samplerBindGroupEntry};
+
+        WGPUBindGroupDescriptor modelBindGroupDescriptor{WGPU_BIND_GROUP_DESCRIPTOR_INIT};
         modelBindGroupDescriptor.layout = model->m_modelBindGroupLayout;
-        modelBindGroupDescriptor.entryCount = 1;
-        modelBindGroupDescriptor.entries = &modelBindGroupEntry;
+        modelBindGroupDescriptor.entryCount = bindGroupEntries.size();
+        modelBindGroupDescriptor.entries = bindGroupEntries.data();
         m_modelBindGroup = wgpuDeviceCreateBindGroup(Application::get().getDevice()->get(), &modelBindGroupDescriptor);
 
         for (auto& child : m_children)
