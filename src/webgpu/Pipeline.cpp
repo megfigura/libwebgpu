@@ -41,7 +41,7 @@ namespace webgpu
 
 		WGPUBindGroupLayoutEntry cameraBindGroupLayoutEntry = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
 		cameraBindGroupLayoutEntry.binding = 0;
-		cameraBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex;
+		cameraBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
 		cameraBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
 		cameraBindGroupLayoutEntry.buffer.minBindingSize = sizeof(CameraUniform);
 

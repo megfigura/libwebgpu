@@ -1,5 +1,6 @@
 #include "Surface.h"
 
+#include <magic_enum/magic_enum.hpp>
 #include <SDL3/SDL_video.h>
 #include <spdlog/spdlog.h>
 
@@ -143,7 +144,13 @@ namespace webgpu
         // From the capabilities, we get the preferred format: it is always the first one!
         // (NB: There is always at least 1 format if the GetCapabilities was successful)
         config.format = capabilities.formats[0];
+        for (int i = 0; i < capabilities.formatCount; i++)
+        {
+            spdlog::info("Available texture format: {}", magic_enum::enum_name<>(capabilities.formats[i]));
+        }
+
         m_surfaceFormat = config.format;
+        spdlog::info("Surface texture format: {}", magic_enum::enum_name<>(config.format));
 
         // We no longer need to access the capabilities, so we release their memory.
         wgpuSurfaceCapabilitiesFreeMembers(capabilities);

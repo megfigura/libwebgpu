@@ -123,6 +123,7 @@ int Application::ApplicationImpl::run()
     //auto gltfRes = m_resourceLoader->getGltf("models/BuggyBlender.glb");
     //auto gltfRes = m_resourceLoader->getGltf("models/house.glb");
     auto gltfRes = m_resourceLoader->getGltf("models/DamagedHelmet.glb");
+    //auto gltfRes = m_resourceLoader->getGltf("models/sphere.glb");
     if (!gltfRes.has_value())
     {
         spdlog::error("Failed to load model: {}", gltfRes.error());
