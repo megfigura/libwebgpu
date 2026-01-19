@@ -21,7 +21,6 @@ namespace webgpu
         int alignment() override;
 
     private:
-        std::string m_name;
         WGPUTexture m_texture;
     };
 }

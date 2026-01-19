@@ -10,10 +10,11 @@ namespace webgpu
     class GpuBuffer : public GpuData
     {
     public:
-        GpuBuffer(size_t elementSize, WGPUBufferUsage usage);
+        GpuBuffer(std::string_view name, WGPUBufferUsage usage);
         ~GpuBuffer() override;
         void load(std::shared_ptr<Device> device) override;
         [[nodiscard]] WGPUBuffer getGpuBuffer() const;
+        [[nodiscard]] WGPUIndexFormat getIndexFormat() const;
 
     protected:
         int alignment() override;
@@ -21,5 +22,6 @@ namespace webgpu
     private:
         WGPUBufferUsage m_usage;
         WGPUBuffer m_buffer;
+        WGPUIndexFormat m_indexFormat;
     };
 }

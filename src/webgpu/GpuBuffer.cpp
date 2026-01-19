@@ -7,7 +7,7 @@
 
 namespace webgpu
 {
-    GpuBuffer::GpuBuffer(const size_t elementSize, WGPUBufferUsage usage) : GpuData{elementSize}, m_usage{usage}, m_buffer{nullptr}
+    GpuBuffer::GpuBuffer(const std::string_view name, const WGPUBufferUsage usage) : GpuData{name}, m_usage{usage}, m_buffer{nullptr}, m_indexFormat{WGPUIndexFormat_Undefined}
     {
     }
 
@@ -21,6 +21,17 @@ namespace webgpu
 
     void GpuBuffer::load(std::shared_ptr<Device> device)
     {
+        switch (m_elementSize)
+        {
+            case 2:
+                m_indexFormat = WGPUIndexFormat_Uint16;
+                break;
+
+            default:
+                m_indexFormat = WGPUIndexFormat_Uint32;
+                break;
+        }
+
         WGPUBufferDescriptor bufferDesc{WGPU_BUFFER_DESCRIPTOR_INIT};
         bufferDesc.size = m_tempData.size();
         bufferDesc.usage = m_usage;
@@ -46,5 +57,10 @@ namespace webgpu
     WGPUBuffer GpuBuffer::getGpuBuffer() const
     {
         return m_buffer;
+    }
+
+    WGPUIndexFormat GpuBuffer::getIndexFormat() const
+    {
+        return m_indexFormat;
     }
 }

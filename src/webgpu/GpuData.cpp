@@ -9,7 +9,7 @@
 
 namespace webgpu
 {
-    GpuData::GpuData(size_t elementSize) : m_elementSize{elementSize}
+    GpuData::GpuData(const std::string_view name) : m_name{name}, m_elementSize{-1}
     {
     }
 
@@ -22,6 +22,15 @@ namespace webgpu
 
     void GpuData::addData(const char* src, uint64_t srcOffset, int srcStride, int elementSize, int elementCount)
     {
+        if (m_elementSize == -1)
+        {
+            m_elementSize = elementSize;
+        }
+        if (m_elementSize != elementSize)
+        {
+            spdlog::error("Inconsistent element size on GpuData {}", m_name);
+        }
+
         uint64_t dataSize = elementSize * elementCount;
         uint64_t iDest = m_tempData.size();
         m_tempData.resize(m_tempData.size() + Util::nextPow2Multiple(dataSize, alignment()));
@@ -46,6 +55,11 @@ namespace webgpu
     uint64_t GpuData::currentByteOffset() const
     {
         return m_tempData.size();
+    }
+
+    std::string_view GpuData::getName() const
+    {
+        return m_name;
     }
 
     void GpuData::debug(std::string_view name, int tupleSize, int tupleCount)

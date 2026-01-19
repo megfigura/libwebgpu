@@ -6,7 +6,7 @@
 
 namespace webgpu
 {
-    Texture::Texture(std::string_view name) : GpuData{4}, m_name{name}, m_texture{nullptr}
+    Texture::Texture(const std::string_view name) : GpuData{name}, m_texture{nullptr}
     {
     }
 
@@ -23,7 +23,6 @@ namespace webgpu
         int x, y, channels;
         //stbi_set_flip_vertically_on_load(1);
         unsigned char* decodedData = stbi_load_from_memory(reinterpret_cast<stbi_uc const*>(m_tempData.data()), static_cast<int>(m_tempData.size()), &x, &y, &channels, 4);
-
 
         WGPUTextureDescriptor textureDesc{WGPU_TEXTURE_DESCRIPTOR_INIT};
         textureDesc.dimension = WGPUTextureDimension_2D;
@@ -52,7 +51,7 @@ namespace webgpu
         WGPUExtent3D writeSize{WGPU_EXTENT_3D_INIT};
         writeSize.width = x;
         writeSize.height = y;
-        writeSize.depthOrArrayLayers = 1; // TODO?
+        writeSize.depthOrArrayLayers = 1;
 
         WGPUQueue queue = device->getQueue();
         wgpuQueueWriteTexture(queue, &dest, decodedData, x * y * 4, &dataLayout, &writeSize);

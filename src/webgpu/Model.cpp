@@ -56,12 +56,13 @@ namespace webgpu
 
         const auto& mainScene = m_gltf.scenes.at(m_gltf.scene);
 
-        m_indexBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::USHORT, GLAccessorType::SCALAR), WGPUBufferUsage_Index | WGPUBufferUsage_CopyDst);
-        m_vertexBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::FLOAT, GLAccessorType::VEC3), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
-        m_normalBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::FLOAT, GLAccessorType::VEC3), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
-        m_texCoordBuffer = std::make_shared<GpuBuffer>(GLElementSize(GLDataType::FLOAT, GLAccessorType::VEC3), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
+        m_name = mainScene.name;
+        m_indexBuffer = std::make_shared<GpuBuffer>(m_name + " index buffer", WGPUBufferUsage_Index | WGPUBufferUsage_CopyDst);
+        m_vertexBuffer = std::make_shared<GpuBuffer>(m_name + " vertex buffer", WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
+        m_normalBuffer = std::make_shared<GpuBuffer>(m_name + " normal buffer", WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
+        m_texCoordBuffer = std::make_shared<GpuBuffer>(m_name + " texCoord buffer", WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
 
-        m_uniforms = std::make_shared<GpuBuffer>(sizeof(ModelUniform), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
+        m_uniforms = std::make_shared<GpuBuffer>(m_name + " uniform buffer", WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
 
         for (const auto& jImage : res.getGltf().images)
         {

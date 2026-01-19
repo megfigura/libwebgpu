@@ -70,6 +70,7 @@ namespace webgpu
     //private: TODO
         resource::GltfResource m_gltfRes;
         resource::JGltf m_gltf;
+        std::string m_name;
         std::vector<Node> m_nodes;
         std::shared_ptr<GpuBuffer> m_indexBuffer;
         std::shared_ptr<GpuBuffer> m_vertexBuffer;
