@@ -40,6 +40,7 @@ namespace webgpu
         uint64_t m_vertexOffset;
 
         static void loadBuffer(const Model* model, const std::shared_ptr<GpuBuffer>& gpuBuffer, const resource::JGltf& gltf, const resource::JAccessor& accessor);
+        static void loadAttributeBuffer(const Model* model, const std::shared_ptr<GpuBuffer>& gpuBuffer, const resource::JGltf& gltf, const resource::JAccessor& accessor, uint64_t elementIndex, int elementSize, int attributeOffset, int attributeSize);
     };
 
     class Node
@@ -74,8 +75,7 @@ namespace webgpu
         std::vector<Node> m_nodes;
         std::shared_ptr<GpuBuffer> m_indexBuffer;
         std::shared_ptr<GpuBuffer> m_vertexBuffer;
-        std::shared_ptr<GpuBuffer> m_normalBuffer;
-        std::shared_ptr<GpuBuffer> m_texCoordBuffer;
+        std::shared_ptr<GpuBuffer> m_attributeBuffer;
         std::shared_ptr<GpuBuffer> m_uniforms;
         WGPUBindGroupLayout m_modelBindGroupLayout;
 

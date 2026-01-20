@@ -88,7 +88,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let NoH = clamp(dot(n, h), 0.0, 1.0);
     let LoH = clamp(dot(l, h), 0.0, 1.0);
 
-    let metallic = 0.25;
+    let metallic = 0.0;
     let reflectance = 0.5;
     let perceptualRoughness = 0.2;
     let roughness = perceptualRoughness * perceptualRoughness;
@@ -111,6 +111,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 
     let color = vec3f(Fr + Fd) * NoL;
     let gammaColor = pow(color / (color + 1.0), vec3f(1.0 / 2.2));
-    //return clamp(vec4f(color, 1.0), vec4f(0, 0, 0, 0), vec4f(1, 1, 1, 1));
-    return vec4f(baseColor, 1);
+    return clamp(vec4f(color, 1.0), vec4f(0, 0, 0, 0), vec4f(1, 1, 1, 1));
 }

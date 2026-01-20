@@ -4,6 +4,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Device.h"
+#include "Util.h"
 
 namespace webgpu
 {
@@ -31,6 +32,8 @@ namespace webgpu
                 m_indexFormat = WGPUIndexFormat_Uint32;
                 break;
         }
+
+        m_tempData.resize(Util::nextPow2Multiple(m_tempData.size(), alignment()));
 
         WGPUBufferDescriptor bufferDesc{WGPU_BUFFER_DESCRIPTOR_INIT};
         bufferDesc.size = m_tempData.size();

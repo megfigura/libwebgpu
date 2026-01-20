@@ -85,6 +85,7 @@ add_library(libwebgpu
         src/resource/Resource.h
         src/resource/Settings.cpp
         src/resource/Settings.h
+        src/resource/StbImage.cpp
         src/resource/StringResource.cpp
         src/resource/StringResource.h
 
@@ -97,6 +98,8 @@ add_library(libwebgpu
         src/webgpu/GLTypes.h
         src/webgpu/GpuBuffer.cpp
         src/webgpu/GpuBuffer.h
+        src/webgpu/GpuData.cpp
+        src/webgpu/GpuData.h
         src/webgpu/Model.cpp
         src/webgpu/Model.h
         src/webgpu/Pipeline.cpp
@@ -104,17 +107,15 @@ add_library(libwebgpu
         src/webgpu/StringView.cpp
         src/webgpu/Surface.cpp
         src/webgpu/Surface.h
+        src/webgpu/Texture.cpp
+        src/webgpu/Texture.h
         src/webgpu/TextureView.cpp
         src/webgpu/TextureView.h
         src/webgpu/Util.cpp
         src/webgpu/Util.h
+        src/webgpu/VertexAttributes.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
-        src/webgpu/Texture.cpp
-        src/webgpu/Texture.h
-        src/webgpu/GpuData.cpp
-        src/webgpu/GpuData.h
-        src/resource/StbImage.cpp
 )
 
 target_include_directories(libwebgpu PUBLIC include)
@@ -153,8 +154,8 @@ if (CMAKE_OS STREQUAL "Linux")
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/include)
         target_link_directories(libwebgpu PUBLIC external/${CMAKE_OS}/${CMAKE_BUILD_TYPE}/lib)
         target_link_libraries(libwebgpu webgpu_dawn)
-        #target_compile_options(libwebgpu PUBLIC -fsanitize=undefined -O3)
-        target_link_options(libwebgpu PUBLIC -fsanitize=undefined)
+        target_compile_options(libwebgpu PUBLIC -fsanitize=undefined -fsanitize=address -g)
+        target_link_options(libwebgpu PUBLIC -fsanitize=undefined -fsanitize=address)
 elseif (CMAKE_OS STREQUAL "Windows")
         target_compile_definitions(libwebgpu PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_DAWN _WIN32)
         target_include_directories(libwebgpu PUBLIC external/${CMAKE_OS}/Release/include)

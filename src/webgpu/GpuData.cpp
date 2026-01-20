@@ -15,12 +15,22 @@ namespace webgpu
 
     GpuData::~GpuData() = default;
 
-    void GpuData::addData(const resource::RawResource& srcRes, uint64_t srcOffset, int srcStride, int elementSize, int elementCount)
+    void GpuData::addData(const resource::RawResource& srcRes, int elementSize, int elementCount, uint64_t srcOffset, int srcStride)
     {
-        addData(srcRes.getBytes().data(), srcOffset, srcStride, elementSize, elementCount);
+        addData(srcRes.getBytes().data(), elementSize, elementCount, srcOffset, srcStride);
     }
 
-    void GpuData::addData(const char* src, uint64_t srcOffset, int srcStride, int elementSize, int elementCount)
+    void GpuData::addData(const char* src, int elementSize, int elementCount, uint64_t srcOffset, int srcStride)
+    {
+        addAttribute(src, elementSize, elementCount, srcOffset, srcStride, m_tempData.size() / elementSize, 0, elementSize);
+    }
+
+    void GpuData::addAttribute(const resource::RawResource& srcRes, int elementSize, int elementCount, uint64_t srcOffset, int srcStride, uint64_t destElementIndex, int attributeOffset, int attributeSize)
+    {
+        addAttribute(srcRes.getBytes().data(), elementSize, elementCount, srcOffset, srcStride, destElementIndex, attributeOffset, attributeSize);
+    }
+
+    void GpuData::addAttribute(const char* src, int elementSize, int elementCount, uint64_t srcOffset, int srcStride, uint64_t destElementIndex, int attributeOffset, int attributeSize)
     {
         if (m_elementSize == -1)
         {
@@ -31,19 +41,21 @@ namespace webgpu
             spdlog::error("Inconsistent element size on GpuData {}", m_name);
         }
 
-        uint64_t dataSize = elementSize * elementCount;
-        uint64_t iDest = m_tempData.size();
-        m_tempData.resize(m_tempData.size() + Util::nextPow2Multiple(dataSize, alignment()));
-        for (uint64_t iByte = 0; iByte < dataSize;)
+        uint64_t iDest = (elementSize * destElementIndex);
+        uint64_t requiredSize = elementSize * (destElementIndex + elementCount);
+        m_tempData.resize(requiredSize);
+        uint64_t iByte = 0;
+        for (uint64_t iAttribute = 0; iAttribute < elementCount; iAttribute++)
         {
-            for (int iElementByte = 0; iElementByte < elementSize; iElementByte++, iByte++)
+            for (int iAttributeByte = 0; iAttributeByte < attributeSize; iAttributeByte++, iByte++)
             {
-                m_tempData[iDest++] = src[srcOffset + iByte];
+                m_tempData[iDest++ + attributeOffset] = src[srcOffset + iByte];
             }
             if (srcStride > 0)
             {
                 iByte += srcStride - elementSize;
             }
+            iDest += elementSize - attributeSize;
         }
     }
 

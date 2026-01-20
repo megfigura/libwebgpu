@@ -115,8 +115,7 @@ namespace webgpu
         wgpuQueueWriteBuffer(queue, pipeline->getCameraUniformBuffer(), 0, &camera, sizeof(camera));
 
         wgpuRenderPassEncoderSetVertexBuffer(renderPass, 0, m_model->m_vertexBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(m_model->m_vertexBuffer->getGpuBuffer()));
-        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 1, m_model->m_normalBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(m_model->m_normalBuffer->getGpuBuffer()));
-        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 2, m_model->m_texCoordBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(m_model->m_texCoordBuffer->getGpuBuffer()));
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass, 1, m_model->m_attributeBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(m_model->m_attributeBuffer->getGpuBuffer()));
         wgpuRenderPassEncoderSetIndexBuffer(renderPass, m_model->m_indexBuffer->getGpuBuffer(), m_model->m_indexBuffer->getIndexFormat(), 0, wgpuBufferGetSize(m_model->m_indexBuffer->getGpuBuffer()));
 
         wgpuRenderPassEncoderSetBindGroup(renderPass, 0, pipeline->getCameraBindGroup(), 0, nullptr);

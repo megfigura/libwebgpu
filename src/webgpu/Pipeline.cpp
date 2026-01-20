@@ -10,6 +10,7 @@
 #include "Application.h"
 #include "Model.h"
 #include "Util.h"
+#include "VertexAttributes.h"
 #include "spdlog/spdlog.h"
 #include "resource/Loader.h"
 
@@ -169,16 +170,6 @@ namespace webgpu
 		positionAttribute.format = WGPUVertexFormat_Float32x3;
 		positionAttribute.offset = 0;
 
-		WGPUVertexAttribute normalAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
-		normalAttribute.shaderLocation = 1;
-		normalAttribute.format = WGPUVertexFormat_Float32x3;
-		normalAttribute.offset = 0;
-
-		WGPUVertexAttribute texCoordAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
-		texCoordAttribute.shaderLocation = 2;
-		texCoordAttribute.format = WGPUVertexFormat_Float32x2;
-		texCoordAttribute.offset = 0;
-
 		auto positionAttributes = std::vector { positionAttribute };
 
 		WGPUVertexBufferLayout vertexBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
@@ -187,23 +178,25 @@ namespace webgpu
 		vertexBufferLayout.arrayStride = 3 * sizeof(float);
 		vertexBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
 
-		auto normalAttributes = std::vector { normalAttribute };
+		WGPUVertexAttribute normalAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
+		normalAttribute.shaderLocation = 1;
+		normalAttribute.format = WGPUVertexFormat_Float32x3;
+		normalAttribute.offset = offsetof(VertexAttributes, normal);
 
-		WGPUVertexBufferLayout normalBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
-		normalBufferLayout.attributeCount = normalAttributes.size();
-		normalBufferLayout.attributes = normalAttributes.data();
-		normalBufferLayout.arrayStride = 3 * sizeof(float);
-		normalBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
+		WGPUVertexAttribute texCoordAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
+		texCoordAttribute.shaderLocation = 2;
+		texCoordAttribute.format = WGPUVertexFormat_Float32x2;
+		texCoordAttribute.offset = offsetof(VertexAttributes, texCoord);
 
-		auto texCoordAttributes = std::vector { texCoordAttribute };
+		auto vertexAttributes = std::vector { normalAttribute, texCoordAttribute };
 
-		WGPUVertexBufferLayout texCoordBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
-		texCoordBufferLayout.attributeCount = texCoordAttributes.size();
-		texCoordBufferLayout.attributes = texCoordAttributes.data();
-		texCoordBufferLayout.arrayStride = 2 * sizeof(float);
-		texCoordBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
+		WGPUVertexBufferLayout vertexAttributeBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
+		vertexAttributeBufferLayout.attributeCount = vertexAttributes.size();
+		vertexAttributeBufferLayout.attributes = vertexAttributes.data();
+		vertexAttributeBufferLayout.arrayStride = sizeof(VertexAttributes);
+		vertexAttributeBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
 
-		std::vector bufferLayouts{vertexBufferLayout, normalBufferLayout, texCoordBufferLayout};
+		std::vector bufferLayouts{vertexBufferLayout, vertexAttributeBufferLayout};
 
 		WGPURenderPipelineDescriptor pipelineDesc{WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT};
 		pipelineDesc.vertex.module = shaderModule;
