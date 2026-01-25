@@ -79,7 +79,7 @@ namespace webgpu
         std::shared_ptr<GpuBuffer> m_uniforms;
         WGPUBindGroupLayout m_modelBindGroupLayout;
 
-        std::shared_ptr<Texture> m_texture;
+        std::vector<std::shared_ptr<Texture>> m_textures;
         WGPUSampler m_sampler;
     };
 }

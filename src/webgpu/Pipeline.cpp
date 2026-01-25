@@ -183,12 +183,22 @@ namespace webgpu
 		normalAttribute.format = WGPUVertexFormat_Float32x3;
 		normalAttribute.offset = offsetof(VertexAttributes, normal);
 
+		WGPUVertexAttribute tangentAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
+		tangentAttribute.shaderLocation = 2;
+		tangentAttribute.format = WGPUVertexFormat_Float32x3;
+		tangentAttribute.offset = offsetof(VertexAttributes, tangent);
+
+		WGPUVertexAttribute bitangentAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
+		bitangentAttribute.shaderLocation = 3;
+		bitangentAttribute.format = WGPUVertexFormat_Float32x3;
+		bitangentAttribute.offset = offsetof(VertexAttributes, bitangent);
+
 		WGPUVertexAttribute texCoordAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
-		texCoordAttribute.shaderLocation = 2;
+		texCoordAttribute.shaderLocation = 4;
 		texCoordAttribute.format = WGPUVertexFormat_Float32x2;
 		texCoordAttribute.offset = offsetof(VertexAttributes, texCoord);
 
-		auto vertexAttributes = std::vector { normalAttribute, texCoordAttribute };
+		auto vertexAttributes = std::vector { normalAttribute, tangentAttribute, bitangentAttribute, texCoordAttribute };
 
 		WGPUVertexBufferLayout vertexAttributeBufferLayout{WGPU_VERTEX_BUFFER_LAYOUT_INIT};
 		vertexAttributeBufferLayout.attributeCount = vertexAttributes.size();

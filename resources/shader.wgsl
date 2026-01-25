@@ -11,22 +11,29 @@ struct Model {
   normalMat : mat4x4f
 };
 @group(1) @binding(0) var<uniform> model : Model;
-
-@group(1) @binding(1) var tex : texture_2d<f32>;
-@group(1) @binding(2) var texSampler : sampler;
+@group(1) @binding(1) var texSampler : sampler;
+@group(1) @binding(2) var tex : texture_2d<f32>;
+@group(1) @binding(3) var metallicRoughnessTexture : texture_2d<f32>;
+@group(1) @binding(4) var emissiveTexture : texture_2d<f32>;
+@group(1) @binding(5) var occlusionTexture : texture_2d<f32>;
+@group(1) @binding(6) var normalTexture : texture_2d<f32>;
 
 struct VertexInput {
   @builtin(vertex_index) vertex_index: u32,
   @location(0) position: vec3f,
   @location(1) normal: vec3f,
-  @location(2) texCoord: vec2f
+  @location(2) tangent: vec3f,
+  @location(3) bitangent: vec3f,
+  @location(4) texCoord: vec2f
 };
 
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) worldPos: vec3f,
   @location(1) worldNormal: vec3f,
-  @location(2) texCoord: vec2f,
+  @location(2) worldTangent: vec3f,
+  @location(3) worldBitangent: vec3f,
+  @location(4) texCoord: vec2f,
 };
 
 @vertex
@@ -35,6 +42,8 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 	out.position = camera.projection * camera.view * model.worldMat * vec4f(in.position, 1);
 	out.worldPos = (model.worldMat * vec4f(in.position, 1)).xyz;
 	out.worldNormal = (model.worldMat * vec4f(in.normal, 0)).xyz;
+	out.worldTangent = (model.worldMat * vec4f(in.tangent, 0)).xyz;
+	out.worldBitangent = (model.worldMat * vec4f(in.bitangent, 0)).xyz;
 	out.texCoord = in.texCoord;
 	return out;
 }
@@ -73,27 +82,37 @@ fn Fd_Burley(NoV : f32, NoL : f32, LoH : f32, roughness : f32) -> f32 {
     return lightScatter * viewScatter * (1.0 / PI);
 }
 
-@fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+fn light(in: VertexOutput, lightPos : vec3f) -> vec3f {
 
-    let lightPos = vec3f(12.5, 10, 20);
     let v = normalize(camera.position - in.worldPos); // view unit vector
     let l = normalize(lightPos - in.worldPos); // light unit vector
 
     let h = normalize(v + l);
 
-    let n = normalize(in.worldNormal); // TODO - fragment normal
+    //let n = normalize(in.worldNormal);
+    let localN = (textureSample(normalTexture, texSampler, in.texCoord).rgb * 2.0) - 1.0;
+    let normalTransform = mat3x3f(
+        normalize(in.worldTangent),
+        normalize(in.worldBitangent),
+        normalize(in.worldNormal));
+    let n = normalize(normalTransform * localN);
+
     let NoV = abs(dot(n, v)) + 1e-5;
-    let NoL = clamp(dot(n, l), 0.0, 1.0);
+    let NoL = clamp(dot(n, l), 0.0, 1.0) + 1e-5; // Added to prevent NaN
     let NoH = clamp(dot(n, h), 0.0, 1.0);
     let LoH = clamp(dot(l, h), 0.0, 1.0);
 
-    let metallic = 0.0;
-    let reflectance = 0.5;
-    let perceptualRoughness = 0.2;
-    let roughness = perceptualRoughness * perceptualRoughness;
+    //let metallic = 0.0;
+    //let perceptualRoughness = 0.5;
+    let MR = textureSample(metallicRoughnessTexture, texSampler, in.texCoord).bg;
+    let metallic = MR[0];
+    //let perceptualRoughness = MR[1];
+    let roughness = MR[1];
 
-    let baseColor = textureSample(tex, texSampler, vec2f(in.texCoord.x, in.texCoord.y)).rgb;
+    let reflectance = 0.04;
+    //let roughness = perceptualRoughness * perceptualRoughness;
+
+    let baseColor = textureSample(tex, texSampler, in.texCoord).rgb;
     //let baseColor = vec3f(1, 0, 0);
     let diffuseColor = (1.0 - metallic) * baseColor;
 
@@ -109,7 +128,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     //let Fd = diffuseColor * Fd_Lambert();
     let Fd = diffuseColor * Fd_Burley(NoV, NoL, LoH, roughness);
 
-    let color = vec3f(Fr + Fd) * NoL;
-    let gammaColor = pow(color / (color + 1.0), vec3f(1.0 / 2.2));
-    return clamp(vec4f(color, 1.0), vec4f(0, 0, 0, 0), vec4f(1, 1, 1, 1));
+    let intensity = vec3f(1);
+    let color = vec3f(Fr + Fd) * NoL * intensity;
+    return clamp(color, vec3f(0), vec3f(1));
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+
+    var color = light(in, camera.position + vec3f(0, -5, 5)); //light(in, vec3f(0, 10, 5));
+    color += light(in, vec3f(10, 10, 0));
+    color += light(in, vec3f(-10, 5, 10));
+    color += light(in, vec3f(2, -5, -10));
+
+    let emissive = textureSample(emissiveTexture, texSampler, in.texCoord).rgb;
+
+    let gammaColor = pow(color / (color + 1.0), vec3f(1.0 / 2.2)); // convert linear -> srgb
+    return clamp(vec4f(gammaColor + (emissive * 1.0), 1.0), vec4f(0, 0, 0, 0), vec4f(1, 1, 1, 1));
+    //return vec4f(n, 1.0);
+    //return vec4f(color, 1);
 }

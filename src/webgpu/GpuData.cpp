@@ -69,9 +69,19 @@ namespace webgpu
         return m_tempData.size();
     }
 
+    int GpuData::getElementSize() const
+    {
+        return m_elementSize;
+    }
+
     std::string_view GpuData::getName() const
     {
         return m_name;
+    }
+
+    std::vector<char>& GpuData::getTempData()
+    {
+        return m_tempData;
     }
 
     void GpuData::debug(std::string_view name, int tupleSize, int tupleCount)

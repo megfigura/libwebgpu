@@ -26,7 +26,10 @@ namespace webgpu
         virtual void load(std::shared_ptr<Device> device) = 0;
         [[nodiscard]] uint64_t currentElementOffset() const;
         [[nodiscard]] uint64_t currentByteOffset() const;
+        [[nodiscard]] int getElementSize() const;
         [[nodiscard]] std::string_view getName() const;
+        [[nodiscard]] std::vector<char>& getTempData();
+
         void debug(std::string_view name, int tupleSize, int tupleCount);
 
     protected:

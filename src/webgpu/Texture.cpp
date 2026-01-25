@@ -3,6 +3,7 @@
 #include "Device.h"
 
 #include "stb_image.h"
+#include "StringView.h"
 
 namespace webgpu
 {
@@ -25,12 +26,21 @@ namespace webgpu
         unsigned char* decodedData = stbi_load_from_memory(reinterpret_cast<stbi_uc const*>(m_tempData.data()), static_cast<int>(m_tempData.size()), &x, &y, &channels, 4);
 
         WGPUTextureDescriptor textureDesc{WGPU_TEXTURE_DESCRIPTOR_INIT};
+        textureDesc.label = StringView(m_name);
         textureDesc.dimension = WGPUTextureDimension_2D;
         textureDesc.size.width = x;
         textureDesc.size.height = y;
         textureDesc.mipLevelCount = 1; // TODO
         textureDesc.sampleCount = 1; // TODO?
-        textureDesc.format = WGPUTextureFormat_RGBA8Unorm;
+        if (m_name == "Image 0")
+        {
+            textureDesc.format = WGPUTextureFormat_RGBA8UnormSrgb;
+        }
+        else
+        {
+            textureDesc.format = WGPUTextureFormat_RGBA8Unorm;
+        }
+
         textureDesc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
         textureDesc.viewFormatCount = 0;
         textureDesc.viewFormats = nullptr;
