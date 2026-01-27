@@ -32,15 +32,13 @@ add_library(libwebgpu
         external/dear-imgui-bindings/imgui_impl_wgpu.h
 
         include/Adapter.h
-        include/Application.h
         include/Device.h
         include/StringView.h
         include/WebGpuInstance.h
         include/Window.h
 
         src/Application.cpp
-        src/ApplicationImpl.cpp
-        src/ApplicationImpl.h
+        src/Application.h
 
         src/ecs/SmoothedSystem.cpp
         src/ecs/SmoothedSystem.h
@@ -142,7 +140,6 @@ set_target_properties(
 # Temporary test app
 add_executable(testapp
         main.cpp
-        TestApplication.cpp
 )
 target_link_libraries(testapp
         libwebgpu
