@@ -46,3 +46,8 @@
 /external
 /conandata.yml
 /conan_provider.cmake
+/resources/models/AntiqueCamera/AntiqueCamera.bin
+/resources/models/AntiqueCamera/AntiqueCamera.gltf
+/resources/models/Buggy.glb
+/resources/models/DamagedHelmet.glb
+/resources/models/sphere.glb
