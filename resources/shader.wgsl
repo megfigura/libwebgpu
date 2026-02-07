@@ -82,7 +82,7 @@ fn Fd_Burley(NoV : f32, NoL : f32, LoH : f32, roughness : f32) -> f32 {
     return lightScatter * viewScatter * (1.0 / PI);
 }
 
-fn light(in: VertexOutput, lightPos : vec3f) -> vec3f {
+fn light(in: VertexOutput, lightPos : vec3f, intensity : f32) -> vec3f {
 
     let v = normalize(camera.position - in.worldPos); // view unit vector
     let l = normalize(lightPos - in.worldPos); // light unit vector
@@ -128,23 +128,31 @@ fn light(in: VertexOutput, lightPos : vec3f) -> vec3f {
     //let Fd = diffuseColor * Fd_Lambert();
     let Fd = diffuseColor * Fd_Burley(NoV, NoL, LoH, roughness);
 
-    let intensity = vec3f(1);
-    let color = vec3f(Fr + Fd) * NoL * intensity;
-    return clamp(color, vec3f(0), vec3f(1));
+    return vec3f(Fr + Fd) * NoL * intensity;
+}
+
+fn exposureSettings(aperture : f32, shutterSpeed : f32, sensitivity : f32) -> f32 {
+    return log2((aperture * aperture) / shutterSpeed * 100 / sensitivity);
+}
+
+fn exposure(ev100 : f32) -> f32 {
+    return 1.0 / (pow(2.0, ev100) * 1.2);
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 
-    var color = light(in, camera.position + vec3f(0, -5, 5)); //light(in, vec3f(0, 10, 5));
-    color += light(in, vec3f(10, 10, 0));
-    color += light(in, vec3f(-10, 5, 10));
-    color += light(in, vec3f(2, -5, -10));
+    var color = light(in, camera.position + vec3f(0, -5, 5), 10); //light(in, vec3f(0, 10, 5));
+    color += light(in, vec3f(10, 10, 0), 1);
+    color += light(in, vec3f(-10, 5, 10), 1);
+    color += light(in, vec3f(2, -5, -10), 1);
 
     let emissive = textureSample(emissiveTexture, texSampler, in.texCoord).rgb;
 
-    let gammaColor = pow(color / (color + 1.0), vec3f(1.0 / 2.2)); // convert linear -> srgb
-    return clamp(vec4f(gammaColor + (emissive * 1.0), 1.0), vec4f(0, 0, 0, 0), vec4f(1, 1, 1, 1));
-    //return vec4f(n, 1.0);
-    //return vec4f(color, 1);
+    let gammaColor = pow(color / (color + vec3f(1)), vec3f(1.0 / 2.2)); // convert linear -> srgb
+
+    let ev100 = exposureSettings(1.4, 0.2, 1200);
+    let exposure = exposure(ev100);
+
+    return clamp(vec4f(gammaColor * exposure + (emissive * 1.0), 1.0), vec4f(0), vec4f(1));
 }
