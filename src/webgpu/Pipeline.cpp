@@ -115,16 +115,6 @@ namespace webgpu
 		return m_cameraBindGroup;
 	}
 
-	WGPUBuffer Pipeline::getModelUniformBuffer() const
-	{
-		return m_modelUniformBuffer;
-	}
-
-	WGPUBindGroup Pipeline::getModelBindGroup() const
-	{
-		return m_modelBindGroup;
-	}
-
 	float Pipeline ::getCurrTime()
 	{
 		m_currTime += 0.1;

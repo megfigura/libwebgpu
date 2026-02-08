@@ -6,6 +6,8 @@
 
 #include "resource/GltfResource.h"
 
+struct VertexAttributes;
+
 namespace webgpu
 {
     class Texture;
@@ -65,6 +67,7 @@ namespace webgpu
     {
     public:
         explicit Model(const resource::GltfResource& res);
+        void calcAttributes() const;
 
         friend class Mesh;
 
@@ -80,6 +83,7 @@ namespace webgpu
         WGPUBindGroupLayout m_modelBindGroupLayout;
 
         std::vector<std::shared_ptr<Texture>> m_textures;
-        WGPUSampler m_sampler;
+
+        static void calcTangents(glm::f32vec3* pos1, glm::f32vec3* pos2, glm::f32vec3* pos3, VertexAttributes* attr1, VertexAttributes* attr2, VertexAttributes* attr3);
     };
 }

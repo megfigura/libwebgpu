@@ -13,34 +13,6 @@
 
 namespace webgpu
 {
-    // TODO - move
-    void calcTangents(glm::f32vec3* pos1, glm::f32vec3* pos2, glm::f32vec3* pos3, VertexAttributes* attr1, VertexAttributes* attr2, VertexAttributes* attr3)
-    {
-        glm::f32vec3 ePos1 = *pos2 - *pos1;
-        glm::f32vec3 ePos2 = *pos3 - *pos1;
-
-        glm::f32vec2 eUV1 = attr2->texCoord - attr1->texCoord;
-        glm::f32vec2 eUV2 = attr3->texCoord - attr1->texCoord;
-
-        glm::f32vec3 T = glm::normalize((ePos1 * eUV2.y) - (ePos2 * eUV1.y));
-        glm::f32vec3 B = glm::normalize((ePos2 * eUV1.x) - (ePos1 * eUV2.x));
-        glm::f32vec3 N = glm::cross(T, B);
-
-        if (glm::dot(N, attr1->normal) < 0.0)
-        {
-            T *= -1;
-            B *= -1;
-            N *= -1;
-        }
-
-        N = attr1->normal;
-        T = glm::normalize(T - (glm::dot(T, N) * N));
-        B = glm::cross(N, T);
-
-        attr1->tangent = T;
-        attr1->bitangent = B;
-    }
-
     Model::Model(const resource::GltfResource& res) : m_gltfRes{res}, m_gltf{res.getGltf()}
     {
         const auto& mainScene = m_gltf.scenes.at(m_gltf.scene);
@@ -52,17 +24,35 @@ namespace webgpu
 
         m_uniforms = std::make_shared<GpuBuffer>(m_name + " uniform buffer", WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
 
-        for (const auto& jImage : res.getGltf().images)
+        for (const auto& jTexture : res.getGltf().textures)
         {
-            auto texture = std::make_shared<Texture>("Image " + std::to_string(m_textures.size()));
+            auto& jSampler = res.getGltf().samplers.at(jTexture.sampler);
+            auto sampler = Sampler::get(jSampler);
+            auto& jImage = res.getGltf().images.at(jTexture.source);
+
+            std::string textureName;
+            if (!jTexture.name.empty())
+            {
+                textureName = "Texture: " + jTexture.name;
+            }
+            else if (!jImage.name.empty())
+            {
+                textureName = "Image: " + jImage.name;
+            }
+            else
+            {
+                textureName = "Texture: " + std::to_string(jTexture.source);
+            }
+
+            bool isSrgb = m_textures.empty(); // TODO
+            auto texture = std::make_shared<Texture>(textureName, sampler, isSrgb);
 
             const auto& gltf = res.getGltf();
             const auto& bufferView = gltf.bufferViews.at(jImage.bufferView);
             const auto& buffer = gltf.buffers.at(bufferView.buffer);
             const auto& bufferRes = res.getBuffers().at(buffer.uri);
 
-            int elementSize = 1;
-            texture->addData(bufferRes, elementSize, bufferView.byteLength / elementSize, bufferView.byteOffset, bufferView.byteStride);
+            texture->addData(bufferRes, 1, bufferView.byteLength, bufferView.byteOffset, bufferView.byteStride);
             texture->load(Application::get().getDevice());
 
             m_textures.push_back(texture);
@@ -77,43 +67,7 @@ namespace webgpu
             m_nodes.push_back(node);
         }
 
-        for (int iIndex = 0; iIndex < m_indexBuffer->currentElementOffset(); iIndex += 3)
-        {
-            auto positionBase = reinterpret_cast<glm::f32vec3*>(m_vertexBuffer->getTempData().data());
-            glm::f32vec3* posA;
-            glm::f32vec3* posB;
-            glm::f32vec3* posC;
-
-            auto attributesBase = reinterpret_cast<VertexAttributes*>(m_attributeBuffer->getTempData().data());
-            VertexAttributes* attrA;
-            VertexAttributes* attrB;
-            VertexAttributes* attrC;
-
-            if (m_indexBuffer->getElementSize() == 2)
-            {
-                auto indices = reinterpret_cast<uint16_t*>(m_indexBuffer->getTempData().data());
-                posA = &positionBase[indices[iIndex + 0]];
-                posB = &positionBase[indices[iIndex + 1]];
-                posC = &positionBase[indices[iIndex + 2]];
-                attrA = &attributesBase[indices[iIndex + 0]];
-                attrB = &attributesBase[indices[iIndex + 1]];
-                attrC = &attributesBase[indices[iIndex + 2]];
-            }
-            else // 4
-            {
-                auto indices = reinterpret_cast<uint32_t*>(m_indexBuffer->getTempData().data());
-                posA = &positionBase[indices[iIndex + 0]];
-                posB = &positionBase[indices[iIndex + 1]];
-                posC = &positionBase[indices[iIndex + 2]];
-                attrA = &attributesBase[indices[iIndex + 0]];
-                attrB = &attributesBase[indices[iIndex + 1]];
-                attrC = &attributesBase[indices[iIndex + 2]];
-            }
-
-            calcTangents(posA, posB, posC, attrA, attrB, attrC);
-            calcTangents(posB, posC, posA, attrB, attrC, attrA);
-            calcTangents(posC, posA, posB, attrC, attrA, attrB);
-        }
+        calcAttributes();
 
         m_indexBuffer->load(Application::get().getDevice());
         m_vertexBuffer->load(Application::get().getDevice());
@@ -122,19 +76,6 @@ namespace webgpu
 
         // TODO - move
         {
-            WGPUSamplerDescriptor samplerDesc{WGPU_SAMPLER_DESCRIPTOR_INIT};
-            samplerDesc.addressModeU = WGPUAddressMode_Repeat;
-            samplerDesc.addressModeV = WGPUAddressMode_Repeat;
-            //samplerDesc.addressModeW = WGPUAddressMode_Repeat;
-            samplerDesc.magFilter = WGPUFilterMode_Linear;
-            samplerDesc.minFilter = WGPUFilterMode_Linear;
-            samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
-            //samplerDesc.lodMinClamp = 0.0f;
-            //samplerDesc.lodMaxClamp = 1.0f;
-            //samplerDesc.compare = WGPUCompareFunction_Undefined;
-            //samplerDesc.maxAnisotropy = 1;
-            m_sampler = wgpuDeviceCreateSampler(Application::get().getDevice()->get(), &samplerDesc);
-
             std::vector<WGPUBindGroupLayoutEntry> bindGroupLayoutEntries{};
 
             WGPUBindGroupLayoutEntry modelBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
@@ -170,6 +111,74 @@ namespace webgpu
         {
             node.setBindGroups(this);
         }
+    }
+
+    void Model::calcAttributes() const
+    {
+        for (int iIndex = 0; iIndex < m_indexBuffer->currentElementOffset(); iIndex += 3)
+        {
+            auto positionBase = reinterpret_cast<glm::f32vec3*>(m_vertexBuffer->getTempData().data());
+            glm::f32vec3* posA;
+            glm::f32vec3* posB;
+            glm::f32vec3* posC;
+
+            auto attributesBase = reinterpret_cast<VertexAttributes*>(m_attributeBuffer->getTempData().data());
+            VertexAttributes* attrA;
+            VertexAttributes* attrB;
+            VertexAttributes* attrC;
+
+            if (m_indexBuffer->getElementSize() == 2)
+            {
+                const auto indices = reinterpret_cast<uint16_t*>(m_indexBuffer->getTempData().data());
+                posA = &positionBase[indices[iIndex + 0]];
+                posB = &positionBase[indices[iIndex + 1]];
+                posC = &positionBase[indices[iIndex + 2]];
+                attrA = &attributesBase[indices[iIndex + 0]];
+                attrB = &attributesBase[indices[iIndex + 1]];
+                attrC = &attributesBase[indices[iIndex + 2]];
+            }
+            else // 4
+            {
+                const auto indices = reinterpret_cast<uint32_t*>(m_indexBuffer->getTempData().data());
+                posA = &positionBase[indices[iIndex + 0]];
+                posB = &positionBase[indices[iIndex + 1]];
+                posC = &positionBase[indices[iIndex + 2]];
+                attrA = &attributesBase[indices[iIndex + 0]];
+                attrB = &attributesBase[indices[iIndex + 1]];
+                attrC = &attributesBase[indices[iIndex + 2]];
+            }
+
+            calcTangents(posA, posB, posC, attrA, attrB, attrC);
+            calcTangents(posB, posC, posA, attrB, attrC, attrA);
+            calcTangents(posC, posA, posB, attrC, attrA, attrB);
+        }
+    }
+
+    void Model::calcTangents(glm::f32vec3* pos1, glm::f32vec3* pos2, glm::f32vec3* pos3, VertexAttributes* attr1, VertexAttributes* attr2, VertexAttributes* attr3)
+    {
+        glm::f32vec3 ePos1 = *pos2 - *pos1;
+        glm::f32vec3 ePos2 = *pos3 - *pos1;
+
+        glm::f32vec2 eUV1 = attr2->texCoord - attr1->texCoord;
+        glm::f32vec2 eUV2 = attr3->texCoord - attr1->texCoord;
+
+        glm::f32vec3 T = glm::normalize((ePos1 * eUV2.y) - (ePos2 * eUV1.y));
+        glm::f32vec3 B = glm::normalize((ePos2 * eUV1.x) - (ePos1 * eUV2.x));
+        glm::f32vec3 N = glm::cross(T, B);
+
+        if (glm::dot(N, attr1->normal) < 0.0)
+        {
+            T *= -1;
+            B *= -1;
+            N *= -1;
+        }
+
+        N = attr1->normal;
+        T = glm::normalize(T - (glm::dot(T, N) * N));
+        B = glm::cross(N, T);
+
+        attr1->tangent = T;
+        attr1->bitangent = B;
     }
 
     Mesh::Mesh(const Model* model, const resource::JGltf& gltf, const resource::JMeshPrimitive& primitive)
@@ -214,7 +223,7 @@ namespace webgpu
         gpuBuffer->addAttribute(bufferRes, elementSize, accessor.count, accessor.byteOffset + bufferView.byteOffset, bufferView.byteStride, elementIndex, attributeOffset, attributeSize);
     }
 
-    Node::Node(const Model* model, const resource::JGltf& gltf, const resource::JNode& jNode, const glm::mat4& parentModelMatrix)
+    Node::Node(const Model* model, const resource::JGltf& gltf, const resource::JNode& jNode, const glm::mat4& parentModelMatrix) : m_modelBindGroup{nullptr}
     {
         m_modelUniform.matrix = parentModelMatrix * loadModelMatrix(jNode);
         m_modelUniform.normalMatrix = loadNormalMatrix(m_modelUniform.matrix);
@@ -253,32 +262,14 @@ namespace webgpu
 
         WGPUBindGroupEntry samplerBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
         samplerBindGroupEntry.binding = bindGroupEntries.size();
-        samplerBindGroupEntry.sampler = model->m_sampler;
+        samplerBindGroupEntry.sampler = model->m_textures.at(0)->getSampler().get(); // TODO
         bindGroupEntries.push_back(samplerBindGroupEntry);
 
         for (const auto& texture : model->m_textures)
         {
-            WGPUTextureViewDescriptor textureViewDesc{WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT};
-            textureViewDesc.aspect = WGPUTextureAspect_All;
-            textureViewDesc.baseArrayLayer = 0;
-            textureViewDesc.arrayLayerCount = 1;
-            textureViewDesc.baseMipLevel = 0;
-            textureViewDesc.mipLevelCount = 1;
-            textureViewDesc.dimension = WGPUTextureViewDimension_2D;
-            if (bindGroupEntries.size() == 2)
-            {
-                textureViewDesc.format = WGPUTextureFormat_RGBA8UnormSrgb;
-            }
-            else
-            {
-                textureViewDesc.format = WGPUTextureFormat_RGBA8Unorm;
-            }
-
-            WGPUTextureView textureView = wgpuTextureCreateView(texture->getTexture(), &textureViewDesc);
-
             WGPUBindGroupEntry textureBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
             textureBindGroupEntry.binding = bindGroupEntries.size();
-            textureBindGroupEntry.textureView = textureView;
+            textureBindGroupEntry.textureView = texture->getTextureView();
 
             bindGroupEntries.push_back(textureBindGroupEntry);
         }

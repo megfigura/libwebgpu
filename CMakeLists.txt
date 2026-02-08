@@ -102,6 +102,8 @@ add_library(libwebgpu
         src/webgpu/Model.h
         src/webgpu/Pipeline.cpp
         src/webgpu/Pipeline.h
+        src/webgpu/Sampler.cpp
+        src/webgpu/Sampler.h
         src/webgpu/StringView.cpp
         src/webgpu/Surface.cpp
         src/webgpu/Surface.h

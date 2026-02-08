@@ -32,8 +32,6 @@ namespace webgpu
 
         [[nodiscard]] WGPUBuffer getCameraUniformBuffer() const;
         [[nodiscard]] WGPUBindGroup getCameraBindGroup() const;
-        [[nodiscard]] WGPUBuffer getModelUniformBuffer() const;
-        [[nodiscard]] WGPUBindGroup getModelBindGroup() const;
         float getCurrTime();
 
         int m_vertexIndices;
@@ -45,11 +43,9 @@ namespace webgpu
         WGPUBindGroupLayout m_cameraBindGroupLayout;
         WGPUPipelineLayout m_pipelineLayout;
         WGPUBindGroup m_cameraBindGroup;
-        WGPUBindGroup m_modelBindGroup;
         WGPUTextureFormat m_depthFormat;
 
         WGPUBuffer m_cameraUniformBuffer;
-        WGPUBuffer m_modelUniformBuffer;
         float m_currTime;
 
         [[nodiscard]] WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
