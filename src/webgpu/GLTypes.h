@@ -49,13 +49,7 @@ namespace webgpu
         ELEMENT_ARRAY_BUFFER = 34963
     };
 
-    enum class GLMagFilter
-    {
-        NEAREST = 9728,
-        LINEAR = 9729
-    };
-
-    enum class GLMinFilter
+    enum class GLFilter
     {
         NEAREST = 9728,
         LINEAR = 9729,

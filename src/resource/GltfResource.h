@@ -101,8 +101,8 @@ namespace resource
 
     struct JSampler
     {
-        webgpu::GLMagFilter magFilter{webgpu::GLMagFilter::LINEAR};
-        webgpu::GLMinFilter minFilter{webgpu::GLMinFilter::LINEAR};
+        webgpu::GLFilter magFilter{webgpu::GLFilter::LINEAR};
+        webgpu::GLFilter minFilter{webgpu::GLFilter::LINEAR};
         webgpu::GLWrapMode wrapS{webgpu::GLWrapMode::REPEAT};
         webgpu::GLWrapMode wrapT{webgpu::GLWrapMode::REPEAT};
         std::string name{};
