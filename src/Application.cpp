@@ -9,16 +9,15 @@
 #include "event/EventManager.h"
 #include "input/Controller.h"
 #include "resource/Loader.h"
-#include "webgpu/Pipeline.h"
 #include "webgpu/Surface.h"
 #include "physics/Player.h"
-#include "webgpu/Frame.h"
-#include "webgpu/Model.h"
-#include "webgpu/TextureView.h"
 #include "game/Console.h"
 #include "input/InputManager.h"
 #include "resource/Settings.h"
 #include "SDL3/SDL.h"
+#include "webgpu/MaterialManager.h"
+#include "webgpu/ModelManager.h"
+#include "webgpu/RenderManager.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -28,7 +27,7 @@ using namespace webgpu;
 
 Application *Application::m_theAppInstance = nullptr;
 
-Application::Application() : m_isShuttingDown{false}, m_lastFrameTimestamp{0}, m_lastTickTimestamp{0}
+Application::Application() : m_isShuttingDown{false}
 {
     if (m_theAppInstance != nullptr)
     {
@@ -104,6 +103,16 @@ std::shared_ptr<game::Console> Application::getConsole()
     return m_console;
 }
 
+ModelManager& Application::getModelManager() const
+{
+    return *m_modelManager;
+}
+
+MaterialManager& Application::getMaterialManager() const
+{
+    return *m_materialManager;
+}
+
 int Application::run()
 {
     initLogging();
@@ -117,13 +126,13 @@ int Application::run()
     m_settings = std::make_shared<resource::Settings>();
     m_instance = std::make_shared<WebGpuInstance>();
     m_eventManager = std::make_shared<event::EventManager>(m_instance);
-    m_window = std::make_shared<Window>(m_eventManager);
-    m_surface = std::make_shared<Surface>(m_window, m_instance);
-    m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
-    m_device = std::make_shared<Device>(m_instance, m_adapter);
     m_controller = std::make_shared<input::Controller>(m_eventManager);
     m_inputManager = std::make_shared<input::InputManager>(m_controller);
     input::KeyMap keyMap{};
+    m_window = std::make_shared<Window>(m_eventManager, m_inputManager, keyMap);
+    m_surface = std::make_shared<Surface>(m_window, m_instance);
+    m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
+    m_device = std::make_shared<Device>(m_instance, m_adapter);
     m_player = std::make_shared<physics::Player>(0, keyMap, m_inputManager);
 
     //m_adapter->print();
@@ -131,34 +140,18 @@ int Application::run()
 
     m_surface->configureSurface(m_window->getWidth(), m_window->getHeight());
 
-    WGPUTextureFormat depthFormat  = WGPUTextureFormat_Depth24Plus;
-    m_depthTextureView = std::make_unique<TextureView>(m_device, StringView("depth texture"), depthFormat, m_surface->getWidth(), m_surface->getHeight());
+    m_console = std::make_shared<game::Console>(m_eventManager, m_inputManager, keyMap, m_device, m_window, m_surface->getTextureFormat(), WGPUTextureFormat_Depth24Plus /* TODO */);
 
-    auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
-    wgpuSurfaceGetCurrentTexture(m_surface->get(), &surfaceTexture);
-    WGPUTextureFormat surfaceTextureFormat = wgpuTextureGetFormat(surfaceTexture.texture);
-    m_msaaTextureView = std::make_unique<TextureView>(m_device, StringView("msaa texture"), surfaceTextureFormat, m_surface->getWidth(), m_surface->getHeight());
-    wgpuTextureRelease(surfaceTexture.texture);
-
-    // TODO
-    //auto gltfRes = m_resourceLoader->getGltf("models/AntiqueCamera/AntiqueCamera.gltf");
-    //auto gltfRes = m_resourceLoader->getGltf("models/BuggyBlender.glb");
-    //auto gltfRes = m_resourceLoader->getGltf("models/house.glb");
-    auto gltfRes = m_resourceLoader->getGltf("models/DamagedHelmet.glb");
-    //auto gltfRes = m_resourceLoader->getGltf("models/sphere.glb");
-    if (!gltfRes.has_value())
-    {
-        spdlog::error("Failed to load model: {}", gltfRes.error());
-    }
-    else
-    {
-        m_model = std::make_shared<Model>(gltfRes.value<>());
-        m_pipelines.push_back(std::make_shared<Pipeline>(m_device, m_surface, m_model));
-    }
-
-    m_console = std::make_shared<game::Console>(m_eventManager, m_inputManager, keyMap, m_device, m_window, surfaceTextureFormat, depthFormat);
-
+    m_tickNanos = m_settings->getInt("physics.tickNanos").value_or(10000000);
     m_lastFrameTimestamp = m_lastTickTimestamp = SDL_GetTicksNS();
+
+    m_materialManager = std::make_shared<MaterialManager>();
+
+    m_modelManager = std::make_shared<ModelManager>();
+    m_modelManager->loadModels();
+    m_modelManager->createBindGroups(); // TODO - move?
+
+    m_renderManager = std::make_shared<RenderManager>();
 
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
@@ -194,8 +187,6 @@ uint64_t accumulator = 0;
 
 bool Application::mainLoop()
 {
-    constexpr int tenMillis = 10000000;
-
     uint64_t now = SDL_GetTicksNS();
     uint64_t frameNanos = now - m_lastFrameTimestamp;
     accumulator += frameNanos;
@@ -203,21 +194,22 @@ bool Application::mainLoop()
     m_eventManager->processEvents();
 
     bool processPartialInput = true;
-    while (accumulator >= tenMillis)
+    while (accumulator >= m_tickNanos)
     {
-        accumulator -= tenMillis;
+        accumulator -= m_tickNanos;
 
-        processPartialInput = m_inputManager->processInputTick(m_lastTickTimestamp, tenMillis);
-        m_lastTickTimestamp += tenMillis;
+        processPartialInput = m_inputManager->processInputTick(m_lastTickTimestamp, m_tickNanos);
+        m_lastTickTimestamp += m_tickNanos;
     }
 
     if (processPartialInput)
     {
-        m_inputManager->processPartialInputTick(m_lastTickTimestamp, tenMillis, static_cast<int>(accumulator));
+        m_inputManager->processPartialInputTick(m_lastTickTimestamp, m_tickNanos, static_cast<int>(accumulator));
     }
 
-    Frame frame(m_device, m_surface, m_pipelines, m_model, m_depthTextureView, m_msaaTextureView);
-    frame.draw();
+    //Frame frame(m_device, m_surface, m_pipelines, m_model, m_depthTextureView, m_msaaTextureView);
+    //frame.draw();
+    m_renderManager->run();
 
     m_lastFrameTimestamp = now;
 

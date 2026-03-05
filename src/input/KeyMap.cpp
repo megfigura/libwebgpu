@@ -21,12 +21,13 @@ namespace input
         // action settings
         std::string key{};
         int button{-1};
+        std::string modifierKey{};
 
         // axis settings
         std::vector<std::string> keys{};
         std::string direction{};
     };
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JBinding, action, axis, intensity, key, button, keys, direction);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JBinding, action, axis, intensity, key, button, modifierKey, keys, direction);
 
     struct JDevice
     {
@@ -166,6 +167,7 @@ namespace input
         binding.inputType = magic_enum::enum_cast<InputDeviceType>(jDevice.type, magic_enum::case_insensitive).value_or(InputDeviceType::INVALID);
         binding.inputTypeId = jDevice.id;
         binding.key = SDL_SCANCODE_UNKNOWN;
+        binding.modifierKey = SDL_SCANCODE_UNKNOWN;
         binding.button = -1;
 
         if (binding.inputType == InputDeviceType::INVALID)
@@ -188,6 +190,21 @@ namespace input
                     {
                         spdlog::warn("Unknown keyName '{}' for {}, action: {}", jBinding.key, errorContext, magic_enum::enum_name(action));
                         return std::nullopt;
+                    }
+                    if (jBinding.modifierKey.empty())
+                    {
+                        binding.hasModifier = false;
+                        binding.modifierKey = SDL_SCANCODE_UNKNOWN;
+                    }
+                    else
+                    {
+                        binding.hasModifier = true;
+                        binding.modifierKey = SDL_GetScancodeFromName(jBinding.modifierKey.c_str());
+                        if (binding.modifierKey == SDL_SCANCODE_UNKNOWN)
+                        {
+                            spdlog::warn("Unknown modifierKey '{}' for {}, action: {}", jBinding.modifierKey, errorContext, magic_enum::enum_name(action));
+                            return std::nullopt;
+                        }
                     }
 
                     return binding;

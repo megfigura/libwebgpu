@@ -6,17 +6,18 @@ struct Camera {
 };
 @group(0) @binding(0) var<uniform> camera : Camera;
 
+@group(1) @binding(0) var texSampler : sampler;
+@group(1) @binding(1) var tex : texture_2d<f32>;
+@group(1) @binding(2) var metallicRoughnessTexture : texture_2d<f32>;
+@group(1) @binding(3) var emissiveTexture : texture_2d<f32>;
+@group(1) @binding(4) var occlusionTexture : texture_2d<f32>;
+@group(1) @binding(5) var normalTexture : texture_2d<f32>;
+
 struct Model {
   worldMat : mat4x4f,
   normalMat : mat4x4f
 };
-@group(1) @binding(0) var<uniform> model : Model;
-@group(1) @binding(1) var texSampler : sampler;
-@group(1) @binding(2) var tex : texture_2d<f32>;
-@group(1) @binding(3) var metallicRoughnessTexture : texture_2d<f32>;
-@group(1) @binding(4) var emissiveTexture : texture_2d<f32>;
-@group(1) @binding(5) var occlusionTexture : texture_2d<f32>;
-@group(1) @binding(6) var normalTexture : texture_2d<f32>;
+@group(2) @binding(0) var<uniform> model : Model;
 
 struct VertexInput {
   @builtin(vertex_index) vertex_index: u32,

@@ -88,20 +88,40 @@ add_library(libwebgpu
         src/resource/StringResource.h
 
         src/webgpu/Adapter.cpp
+        src/webgpu/BasePass.cpp
+        src/webgpu/BasePass.h
+        src/webgpu/BindGroup.cpp
+        src/webgpu/BindGroup.h
+        src/webgpu/BindGroupLayout.cpp
+        src/webgpu/BindGroupLayout.h
         src/webgpu/Camera.cpp
         src/webgpu/Camera.h
+        src/webgpu/ComputePass.cpp
+        src/webgpu/ComputePass.h
         src/webgpu/Device.cpp
-        src/webgpu/Frame.cpp
-        src/webgpu/Frame.h
         src/webgpu/GLTypes.h
         src/webgpu/GpuBuffer.cpp
         src/webgpu/GpuBuffer.h
         src/webgpu/GpuData.cpp
         src/webgpu/GpuData.h
+        src/webgpu/Material.cpp
+        src/webgpu/Material.h
+        src/webgpu/MaterialInstance.cpp
+        src/webgpu/MaterialInstance.h
+        src/webgpu/MaterialManager.cpp
+        src/webgpu/MaterialManager.h
         src/webgpu/Model.cpp
         src/webgpu/Model.h
+        src/webgpu/ModelManager.cpp
+        src/webgpu/ModelManager.h
         src/webgpu/Pipeline.cpp
         src/webgpu/Pipeline.h
+        src/webgpu/RenderManager.cpp
+        src/webgpu/RenderManager.h
+        src/webgpu/RenderPass.cpp
+        src/webgpu/RenderPass.h
+        src/webgpu/RenderTargetTextureView.cpp
+        src/webgpu/RenderTargetTextureView.h
         src/webgpu/Sampler.cpp
         src/webgpu/Sampler.h
         src/webgpu/StringView.cpp
@@ -111,9 +131,10 @@ add_library(libwebgpu
         src/webgpu/Texture.h
         src/webgpu/TextureView.cpp
         src/webgpu/TextureView.h
+        src/webgpu/Uniform.h
+        src/webgpu/UniformsAndAttributes.h
         src/webgpu/Util.cpp
         src/webgpu/Util.h
-        src/webgpu/VertexAttributes.h
         src/webgpu/WebGpuInstance.cpp
         src/webgpu/Window.cpp
 )

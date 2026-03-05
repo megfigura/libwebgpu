@@ -6,8 +6,11 @@
 
 #include "Application.h"
 #include "Device.h"
+#include "MaterialManager.h"
+#include "ModelManager.h"
+#include "Sampler.h"
 #include "Texture.h"
-#include "VertexAttributes.h"
+#include "UniformsAndAttributes.h"
 #include "resource/RawResource.h"
 #include "resource/GltfResource.h"
 
@@ -22,41 +25,26 @@ namespace webgpu
         m_vertexBuffer = std::make_shared<GpuBuffer>(m_name + " vertex buffer", WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
         m_attributeBuffer = std::make_shared<GpuBuffer>(m_name + " attribute buffer", WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst);
 
-        m_uniforms = std::make_shared<GpuBuffer>(m_name + " uniform buffer", WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
-
-        for (const auto& jTexture : res.getGltf().textures)
+        for (const auto& jMaterial : res.getGltf().materials)
         {
-            auto& jSampler = res.getGltf().samplers.at(jTexture.sampler);
-            auto sampler = Sampler::get(jSampler);
-            auto& jImage = res.getGltf().images.at(jTexture.source);
+            Material& material = Material::get(jMaterial);
+            MaterialInstance materialInstance{material};
 
-            std::string textureName;
-            if (!jTexture.name.empty())
-            {
-                textureName = "Texture: " + jTexture.name;
-            }
-            else if (!jImage.name.empty())
-            {
-                textureName = "Image: " + jImage.name;
-            }
-            else
-            {
-                textureName = "Texture: " + std::to_string(jTexture.source);
-            }
+            // TODO
+            const Sampler& sampler = Sampler::get(res.getGltf().samplers.at(res.getGltf().textures.at(jMaterial.pbrMetallicRoughness.baseColorTexture.index).sampler));
 
-            bool isSrgb = m_textures.empty(); // TODO
-            auto texture = std::make_shared<Texture>(textureName, sampler, isSrgb);
+            materialInstance.setSampler(sampler);
+            materialInstance.setAlbedoTextureId(getTextureId(res, jMaterial.pbrMetallicRoughness.baseColorTexture, true));
+            materialInstance.setMetallicRoughnessTextureId(getTextureId(res, jMaterial.pbrMetallicRoughness.metallicRoughnessTexture, false));
+            materialInstance.setEmissiveTextureId(getTextureId(res, jMaterial.emissiveTexture, true));
+            materialInstance.setOcclusionTextureId(getTextureId(res, jMaterial.occlusionTexture, false));
+            materialInstance.setNormalTextureId(getTextureId(res, jMaterial.normalTexture, false));
+            materialInstance.create();
 
-            const auto& gltf = res.getGltf();
-            const auto& bufferView = gltf.bufferViews.at(jImage.bufferView);
-            const auto& buffer = gltf.buffers.at(bufferView.buffer);
-            const auto& bufferRes = res.getBuffers().at(buffer.uri);
-
-            texture->addData(bufferRes, 1, bufferView.byteLength, bufferView.byteOffset, bufferView.byteStride);
-            texture->load(Application::get().getDevice());
-
-            m_textures.push_back(texture);
+            // TODO
+            Application::get().getMaterialManager().addMaterialInstance(materialInstance);
         }
+
 
         glm::mat4 id{1};
         glm::mat4 scale = glm::scale(id, glm::vec3(5));
@@ -72,45 +60,6 @@ namespace webgpu
         m_indexBuffer->load(Application::get().getDevice());
         m_vertexBuffer->load(Application::get().getDevice());
         m_attributeBuffer->load(Application::get().getDevice());
-        m_uniforms->load(Application::get().getDevice());
-
-        // TODO - move
-        {
-            std::vector<WGPUBindGroupLayoutEntry> bindGroupLayoutEntries{};
-
-            WGPUBindGroupLayoutEntry modelBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
-            modelBindGroupLayoutEntry.binding = bindGroupLayoutEntries.size();
-            modelBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex;
-            modelBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
-            modelBindGroupLayoutEntry.buffer.minBindingSize = sizeof(ModelUniform);
-            bindGroupLayoutEntries.push_back(modelBindGroupLayoutEntry);
-
-            WGPUBindGroupLayoutEntry samplerBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
-            samplerBindGroupLayoutEntry.binding = bindGroupLayoutEntries.size();
-            samplerBindGroupLayoutEntry.visibility = WGPUShaderStage_Fragment;
-            samplerBindGroupLayoutEntry.sampler.type = WGPUSamplerBindingType_Filtering;
-            bindGroupLayoutEntries.push_back(samplerBindGroupLayoutEntry);
-
-            for (int iTexture = 0; iTexture < m_textures.size(); iTexture++)
-            {
-                WGPUBindGroupLayoutEntry textureBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
-                textureBindGroupLayoutEntry.binding = bindGroupLayoutEntries.size();
-                textureBindGroupLayoutEntry.visibility = WGPUShaderStage_Fragment;
-                textureBindGroupLayoutEntry.texture.sampleType = WGPUTextureSampleType_Float;
-                textureBindGroupLayoutEntry.texture.viewDimension = WGPUTextureViewDimension_2D;
-                bindGroupLayoutEntries.push_back(textureBindGroupLayoutEntry);
-            }
-
-            WGPUBindGroupLayoutDescriptor modelBindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
-            modelBindGroupLayoutDescriptor.entryCount = bindGroupLayoutEntries.size();
-            modelBindGroupLayoutDescriptor.entries = bindGroupLayoutEntries.data();
-            m_modelBindGroupLayout = wgpuDeviceCreateBindGroupLayout(Application::get().getDevice()->get(), &modelBindGroupLayoutDescriptor);
-        }
-
-        for (auto& node : m_nodes)
-        {
-            node.setBindGroups(this);
-        }
     }
 
     void Model::calcAttributes() const
@@ -152,6 +101,47 @@ namespace webgpu
             calcTangents(posB, posC, posA, attrB, attrC, attrA);
             calcTangents(posC, posA, posB, attrC, attrA, attrB);
         }
+    }
+
+    std::optional<int> Model::getTextureId(const resource::GltfResource& gltfRes, const resource::JTextureInfo& textureInfo, bool isSrgb)
+    {
+        if (textureInfo.index == -1)
+        {
+            return std::nullopt;
+        }
+
+        auto& gltf = gltfRes.getGltf();
+        auto& jTexture = gltf.textures.at(textureInfo.index);
+
+        auto& jSampler = gltf.samplers.at(jTexture.sampler);
+        auto& sampler = Sampler::get(jSampler); // TODO
+        auto& jImage = gltf.images.at(jTexture.source);
+
+        std::string textureName;
+        if (!jTexture.name.empty())
+        {
+            textureName = "Texture: " + jTexture.name;
+        }
+        else if (!jImage.name.empty())
+        {
+            textureName = "Image: " + jImage.name;
+        }
+        else
+        {
+            textureName = "Texture: " + std::to_string(jTexture.source);
+        }
+
+        auto texture = Texture{textureName, isSrgb};
+
+        const auto& bufferView = gltf.bufferViews.at(jImage.bufferView);
+        const auto& buffer = gltf.buffers.at(bufferView.buffer);
+        const auto& bufferRes = gltfRes.getBuffers().at(buffer.uri);
+
+        texture.addData(bufferRes, 1, bufferView.byteLength, bufferView.byteOffset, bufferView.byteStride);
+        texture.load(Application::get().getDevice());
+
+        int textureId = Application::get().getMaterialManager().addTexture(texture);
+        return std::make_optional(textureId);
     }
 
     void Model::calcTangents(glm::f32vec3* pos1, glm::f32vec3* pos2, glm::f32vec3* pos3, VertexAttributes* attr1, VertexAttributes* attr2, VertexAttributes* attr3)
@@ -223,13 +213,13 @@ namespace webgpu
         gpuBuffer->addAttribute(bufferRes, elementSize, accessor.count, accessor.byteOffset + bufferView.byteOffset, bufferView.byteStride, elementIndex, attributeOffset, attributeSize);
     }
 
-    Node::Node(const Model* model, const resource::JGltf& gltf, const resource::JNode& jNode, const glm::mat4& parentModelMatrix) : m_modelBindGroup{nullptr}
+    Node::Node(const Model* model, const resource::JGltf& gltf, const resource::JNode& jNode, const glm::mat4& parentModelMatrix)
     {
-        m_modelUniform.matrix = parentModelMatrix * loadModelMatrix(jNode);
-        m_modelUniform.normalMatrix = loadNormalMatrix(m_modelUniform.matrix);
-
-        m_bindGroupOffset = model->m_uniforms->currentByteOffset();
-        model->m_uniforms->addData(reinterpret_cast<const char*>(&m_modelUniform), sizeof(ModelUniform), 1, 0, 256);
+        auto& uniforms = Application::get().getModelManager().getModelUniforms();
+        m_modelUniformIndex = uniforms.nextInstanceIndex();
+        glm::mat4x4 modelMatrix = parentModelMatrix * loadModelMatrix(jNode);
+        uniforms.getInstance(m_modelUniformIndex).matrix = modelMatrix;
+        uniforms.getInstance(m_modelUniformIndex).normalMatrix = Util::modelToNormalMatrix(modelMatrix);
 
         if (jNode.mesh != -1)
         {
@@ -244,45 +234,8 @@ namespace webgpu
         for (int iNode : jNode.children)
         {
             const auto& childJNode = gltf.nodes.at(iNode);
-            Node child(model, gltf, childJNode, m_modelUniform.matrix);
+            Node child(model, gltf, childJNode, modelMatrix);
             m_children.push_back(child);
-        }
-    }
-
-    void Node::setBindGroups(const Model* model)
-    {
-        std::vector<WGPUBindGroupEntry> bindGroupEntries{};
-
-        WGPUBindGroupEntry modelBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
-        modelBindGroupEntry.binding = bindGroupEntries.size();
-        modelBindGroupEntry.buffer = model->m_uniforms->getGpuBuffer();
-        modelBindGroupEntry.offset = m_bindGroupOffset;
-        modelBindGroupEntry.size = sizeof(ModelUniform);
-        bindGroupEntries.push_back(modelBindGroupEntry);
-
-        WGPUBindGroupEntry samplerBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
-        samplerBindGroupEntry.binding = bindGroupEntries.size();
-        samplerBindGroupEntry.sampler = model->m_textures.at(0)->getSampler().get(); // TODO
-        bindGroupEntries.push_back(samplerBindGroupEntry);
-
-        for (const auto& texture : model->m_textures)
-        {
-            WGPUBindGroupEntry textureBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
-            textureBindGroupEntry.binding = bindGroupEntries.size();
-            textureBindGroupEntry.textureView = texture->getTextureView();
-
-            bindGroupEntries.push_back(textureBindGroupEntry);
-        }
-
-        WGPUBindGroupDescriptor modelBindGroupDescriptor{WGPU_BIND_GROUP_DESCRIPTOR_INIT};
-        modelBindGroupDescriptor.layout = model->m_modelBindGroupLayout;
-        modelBindGroupDescriptor.entryCount = bindGroupEntries.size();
-        modelBindGroupDescriptor.entries = bindGroupEntries.data();
-        m_modelBindGroup = wgpuDeviceCreateBindGroup(Application::get().getDevice()->get(), &modelBindGroupDescriptor);
-
-        for (auto& child : m_children)
-        {
-            child.setBindGroups(model);
         }
     }
 
@@ -290,7 +243,7 @@ namespace webgpu
     {
         if (node.matrix.size() == 16)
         {
-            return vectorToMatrix(node.matrix);
+            return Util::vectorToMatrix(node.matrix);
         }
 
         auto t = glm::identity<glm::mat4x4>();
@@ -310,25 +263,5 @@ namespace webgpu
         }
 
         return t * r * s;
-    }
-
-    glm::mat4x4 Node::vectorToMatrix(const std::vector<float>& v)
-    {
-        return {
-            v.at(0), v.at(1), v.at(2), v.at(3),
-            v.at(4), v.at(5), v.at(6), v.at(7),
-            v.at(8), v.at(9), v.at(10), v.at(11),
-            v.at(12), v.at(13), v.at(14), v.at(15)};
-    }
-
-    glm::mat4 Node::loadNormalMatrix(const glm::mat4& modelMatrix)
-    {
-        glm::mat4x4 normalMatrix = modelMatrix;
-        normalMatrix[3][0] = 0.0f;
-        normalMatrix[3][1] = 0.0f;
-        normalMatrix[3][2] = 0.0f;
-        normalMatrix = glm::transpose(glm::inverse(normalMatrix));
-
-        return normalMatrix;
     }
 }

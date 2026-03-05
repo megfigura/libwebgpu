@@ -36,6 +36,26 @@ namespace webgpu
 {
     std::unordered_map<resource::JSampler, std::shared_ptr<Sampler>> Sampler::m_samplers;
 
+    Sampler::Sampler(const resource::JSampler& jSampler)
+    {
+        WGPUSamplerDescriptor samplerDesc{WGPU_SAMPLER_DESCRIPTOR_INIT};
+        samplerDesc.addressModeU = addressMode(jSampler.wrapS);
+        samplerDesc.addressModeV = addressMode(jSampler.wrapT);
+        //samplerDesc.addressModeW = WGPUAddressMode_Repeat;
+        samplerDesc.magFilter = filterMode(jSampler.magFilter);
+        samplerDesc.minFilter = filterMode(jSampler.minFilter);
+        samplerDesc.mipmapFilter = mipMapFilterMode(jSampler.minFilter);;
+        //samplerDesc.lodMinClamp = 0.0f;
+        //samplerDesc.lodMaxClamp = 1.0f;
+        //samplerDesc.compare = WGPUCompareFunction_Undefined;
+        //samplerDesc.maxAnisotropy = 1;
+
+        m_isFiltering = (samplerDesc.magFilter == WGPUFilterMode_Linear) || (samplerDesc.minFilter == WGPUFilterMode_Linear);
+
+        WGPUSampler sampler = wgpuDeviceCreateSampler(Application::get().getDevice()->get(), &samplerDesc);
+        m_sampler = std::shared_ptr<WGPUSamplerImpl>(sampler, [](WGPUSampler s) { wgpuSamplerRelease(s); });
+    }
+
     const Sampler& Sampler::get(const resource::JSampler& jSampler)
     {
         auto it = m_samplers.find(jSampler);
@@ -53,21 +73,23 @@ namespace webgpu
         return m_sampler.get();
     }
 
-    Sampler::Sampler(const resource::JSampler& jSampler)
+    WGPUBindGroupEntry Sampler::getBindGroupEntry(int index) const
     {
-        WGPUSamplerDescriptor samplerDesc{WGPU_SAMPLER_DESCRIPTOR_INIT};
-        samplerDesc.addressModeU = addressMode(jSampler.wrapS);
-        samplerDesc.addressModeV = addressMode(jSampler.wrapT);
-        //samplerDesc.addressModeW = WGPUAddressMode_Repeat;
-        samplerDesc.magFilter = filterMode(jSampler.magFilter);
-        samplerDesc.minFilter = filterMode(jSampler.minFilter);
-        samplerDesc.mipmapFilter = mipMapFilterMode(jSampler.minFilter);;
-        //samplerDesc.lodMinClamp = 0.0f;
-        //samplerDesc.lodMaxClamp = 1.0f;
-        //samplerDesc.compare = WGPUCompareFunction_Undefined;
-        //samplerDesc.maxAnisotropy = 1;
-        WGPUSampler sampler = wgpuDeviceCreateSampler(Application::get().getDevice()->get(), &samplerDesc);
-        m_sampler = std::shared_ptr<WGPUSamplerImpl>(sampler, [](WGPUSampler s) { wgpuSamplerRelease(s); });
+        WGPUBindGroupEntry samplerBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
+        samplerBindGroupEntry.binding = index;
+        samplerBindGroupEntry.sampler = m_sampler.get();
+
+        return samplerBindGroupEntry;
+    }
+
+    WGPUBindGroupLayoutEntry Sampler::getBindGroupLayoutEntry(int index, bool isFiltering)
+    {
+        WGPUBindGroupLayoutEntry samplerBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
+        samplerBindGroupLayoutEntry.binding = index;
+        samplerBindGroupLayoutEntry.visibility = WGPUShaderStage_Fragment;
+        samplerBindGroupLayoutEntry.sampler.type = isFiltering ? WGPUSamplerBindingType_Filtering : WGPUSamplerBindingType_NonFiltering;
+
+        return samplerBindGroupLayoutEntry;
     }
 
     WGPUAddressMode Sampler::addressMode(const GLWrapMode wrapMode)

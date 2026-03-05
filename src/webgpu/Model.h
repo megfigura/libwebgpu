@@ -25,12 +25,6 @@ namespace webgpu
 {
     class Model;
 
-    struct ModelUniform
-    {
-        glm::mat4x4 matrix = glm::identity<glm::mat4x4>();
-        glm::mat4x4 normalMatrix = glm::identity<glm::mat4x4>();
-    };
-
     class Mesh
     {
     public:
@@ -51,16 +45,11 @@ namespace webgpu
         Node(const Model* model, const resource::JGltf& gltf, const resource::JNode& jNode, const glm::mat4& parentModelMatrix);
 
     //private: // TODO
-        ModelUniform m_modelUniform;
-        WGPUBindGroup m_modelBindGroup;
-        uint64_t m_bindGroupOffset;
+        int m_modelUniformIndex;
         std::vector<Mesh> m_meshes;
         std::vector<Node> m_children;
 
-        void setBindGroups(const Model* model);
         static glm::mat4 loadModelMatrix(const resource::JNode& node);
-        static glm::mat4 loadNormalMatrix(const glm::mat4& modelMatrix);
-        static glm::mat4 vectorToMatrix(const std::vector<float>& v);
     };
 
     class Model
@@ -79,11 +68,10 @@ namespace webgpu
         std::shared_ptr<GpuBuffer> m_indexBuffer;
         std::shared_ptr<GpuBuffer> m_vertexBuffer;
         std::shared_ptr<GpuBuffer> m_attributeBuffer;
-        std::shared_ptr<GpuBuffer> m_uniforms;
-        WGPUBindGroupLayout m_modelBindGroupLayout;
 
-        std::vector<std::shared_ptr<Texture>> m_textures;
+        std::map<int, int> m_gltfTextureToTextureId;
 
+        std::optional<int> getTextureId(const resource::GltfResource& gltfRes, const resource::JTextureInfo& textureInfo, bool isSrgb);
         static void calcTangents(glm::f32vec3* pos1, glm::f32vec3* pos2, glm::f32vec3* pos3, VertexAttributes* attr1, VertexAttributes* attr2, VertexAttributes* attr3);
     };
 }

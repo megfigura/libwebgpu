@@ -1,11 +1,7 @@
 #include "GpuData.h"
-
 #include <spdlog/spdlog.h>
-
 #include "resource/RawResource.h"
-
 #include "Device.h"
-#include "Util.h"
 
 namespace webgpu
 {
@@ -82,33 +78,5 @@ namespace webgpu
     std::vector<char>& GpuData::getTempData()
     {
         return m_tempData;
-    }
-
-    void GpuData::debug(std::string_view name, int tupleSize, int tupleCount)
-    {
-        std::string elements{};
-        if (m_elementSize == 2)
-        {
-            for (int iEl = 0; iEl < tupleCount; iEl++)
-            {
-                unsigned short el = reinterpret_cast<unsigned short *>(m_tempData.data())[iEl];
-                elements += std::to_string(el) + ", ";
-            }
-        }
-        else if (m_elementSize == 12) // assume floats for now
-        {
-            for (int iTuple = 0; iTuple < tupleCount; iTuple++)
-            {
-                elements += "(";
-                for (int iEl = 0; iEl < tupleSize; iEl++)
-                {
-                    float el = reinterpret_cast<float *>(m_tempData.data())[(iTuple * tupleSize) + iEl];
-                    elements += std::to_string(el) + ", ";
-                }
-                elements += "), ";
-            }
-        }
-
-        spdlog::info("{}: {}", name, elements);
     }
 }

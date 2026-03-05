@@ -2,8 +2,7 @@
 #include <memory>
 
 #include "GpuData.h"
-#include "Sampler.h"
-#include "TextureView.h"
+#include "RenderTargetTextureView.h"
 
 namespace webgpu
 {
@@ -12,13 +11,14 @@ namespace webgpu
     class Texture : public GpuData
     {
     public:
-        explicit Texture(std::string_view name, Sampler sampler, bool isSrgb);
+        explicit Texture(std::string_view name, bool isSrgb);
 
         void load(std::shared_ptr<Device> device) override;
         [[nodiscard]] WGPUTexture getTexture() const;
         [[nodiscard]] WGPUTextureView getTextureView() const;
 
-        [[nodiscard]] const Sampler& getSampler() const;
+        static WGPUBindGroupLayoutEntry getBindGroupLayoutEntry(int index);
+        [[nodiscard]] WGPUBindGroupEntry getBindGroupEntry(int index) const;
 
     protected:
         int alignment() override;
@@ -26,7 +26,6 @@ namespace webgpu
     private:
         std::shared_ptr<WGPUTextureImpl> m_texture;
         std::shared_ptr<WGPUTextureViewImpl> m_textureView;
-        Sampler m_sampler;
         WGPUTextureFormat m_format;
         int m_width;
         int m_height;

@@ -10,7 +10,7 @@ namespace input
     class InputConsumer
     {
     public:
-        InputConsumer(int priority, std::shared_ptr<InputManager> eventManager);
+        InputConsumer(int priority, std::shared_ptr<InputManager> inputManager);
         virtual ~InputConsumer();
 
         virtual bool processInputTick(const ControllerState& controllerState, int tickNanos) = 0;

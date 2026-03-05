@@ -12,15 +12,16 @@ namespace webgpu
     {
     public:
         Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
-        ~Device();
 
         [[nodiscard]] WGPUDevice get() const;
         [[nodiscard]] WGPUQueue getQueue() const;
+        [[nodiscard]] std::shared_ptr<WGPUCommandEncoderImpl> createCommandEncoder() const;
 
         void print() const;
 
     private:
-        WGPUDevice m_device;
+        std::shared_ptr<WGPUDeviceImpl> m_device;
+        std::shared_ptr<WGPUQueueImpl> m_queue;
 
         WGPUDevice requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter);
         WGPUDeviceDescriptor createDeviceDescriptor(const WGPULimits &requiredLimits);

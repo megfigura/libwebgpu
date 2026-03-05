@@ -22,9 +22,13 @@ namespace webgpu
 
         [[nodiscard]] WGPUSampler get() const;
 
+        static WGPUBindGroupLayoutEntry getBindGroupLayoutEntry(int index, bool isFiltering);
+        [[nodiscard]] WGPUBindGroupEntry getBindGroupEntry(int index) const;
+
     private:
         static std::unordered_map<resource::JSampler, std::shared_ptr<Sampler>> m_samplers;
         std::shared_ptr<WGPUSamplerImpl> m_sampler;
+        bool m_isFiltering;
 
         static WGPUAddressMode addressMode(GLWrapMode wrapMode);
         static WGPUFilterMode filterMode(GLFilter filterMode);

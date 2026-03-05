@@ -1,7 +1,5 @@
 #include "Texture.h"
 
-#include <utility>
-
 #include "Device.h"
 
 #include "stb_image.h"
@@ -10,8 +8,8 @@
 
 namespace webgpu
 {
-    Texture::Texture(const std::string_view name, Sampler sampler, bool isSrgb)
-    : GpuData{name}, m_texture{nullptr}, m_sampler{std::move(sampler)}, m_format{isSrgb ? WGPUTextureFormat_RGBA8UnormSrgb : WGPUTextureFormat_RGBA8Unorm}, m_width{}, m_height{}
+    Texture::Texture(const std::string_view name, bool isSrgb)
+    : GpuData{name}, m_texture{nullptr}, m_format{isSrgb ? WGPUTextureFormat_RGBA8UnormSrgb : WGPUTextureFormat_RGBA8Unorm}, m_width{}, m_height{}
     {
     }
 
@@ -60,9 +58,7 @@ namespace webgpu
         writeSize.height = m_height;
         writeSize.depthOrArrayLayers = 1;
 
-        WGPUQueue queue = device->getQueue();
-        wgpuQueueWriteTexture(queue, &dest, imageData.get(), m_width * m_height * 4, &dataLayout, &writeSize);
-        wgpuQueueRelease(queue);
+        wgpuQueueWriteTexture(device->getQueue(), &dest, imageData.get(), m_width * m_height * 4, &dataLayout, &writeSize);
     }
 
     void Texture::createTextureView()
@@ -90,13 +86,27 @@ namespace webgpu
         return m_textureView.get();
     }
 
-    const Sampler& Texture::getSampler() const
-    {
-        return m_sampler;
-    }
-
     int Texture::alignment()
     {
         return 1; // TODO?
+    }
+
+    WGPUBindGroupLayoutEntry Texture::getBindGroupLayoutEntry(int index)
+    {
+        WGPUBindGroupLayoutEntry textureBindGroupLayoutEntry{WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT};
+        textureBindGroupLayoutEntry.binding = index;
+        textureBindGroupLayoutEntry.visibility = WGPUShaderStage_Fragment;
+        textureBindGroupLayoutEntry.texture.sampleType = WGPUTextureSampleType_Float;
+        textureBindGroupLayoutEntry.texture.viewDimension = WGPUTextureViewDimension_2D;
+        return textureBindGroupLayoutEntry;
+    }
+
+    WGPUBindGroupEntry Texture::getBindGroupEntry(int index) const
+    {
+        WGPUBindGroupEntry textureBindGroupEntry{WGPU_BIND_GROUP_ENTRY_INIT};
+        textureBindGroupEntry.binding = index;
+        textureBindGroupEntry.textureView = getTextureView();
+
+        return textureBindGroupEntry;
     }
 }

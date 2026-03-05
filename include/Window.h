@@ -4,6 +4,9 @@
 
 #include "event/EventManager.h"
 #include "event/EventConsumer.h"
+#include "input/InputConsumer.h"
+#include "input/InputManager.h"
+#include "input/KeyMap.h"
 
 namespace webgpu
 {
@@ -12,10 +15,10 @@ namespace webgpu
     class Adapter;
     class WebGpuInstance;
 
-    class Window : public event::EventConsumer
+    class Window : public event::EventConsumer, public input::InputConsumer
     {
     public:
-        explicit Window(std::shared_ptr<event::EventManager> eventManager);
+        explicit Window(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap);
         ~Window() override;
 
         [[nodiscard]] bool isFullscreen() const;
@@ -28,9 +31,11 @@ namespace webgpu
         [[nodiscard]] int getHeight() const;
 
         bool processEvent(const SDL_Event& event) override;
+        bool processInputTick(const input::ControllerState& controllerState, int tickNanos) override;
         [[nodiscard]] SDL_Window *get() const;
 
     private:
+        input::PlayerKeyMap m_keyMap;
         bool m_isFullscreen;
         bool m_isMouseCaptured;
         SDL_Window* m_window;

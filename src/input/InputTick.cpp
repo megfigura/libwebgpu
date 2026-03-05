@@ -39,10 +39,13 @@ namespace input
             {
                 case InputDeviceType::KEYBOARD:
                 {
-                    constexpr float keySpeed = 15;
-                    int actionNanos = state.keyboardState.activeNanos.at(deviceActionBinding.key);
-                    actionValue.value += keySpeed * ((deviceActionBinding.intensity * static_cast<float>(intoTick)) / 1000000000.0f) * keyPressProportion(actionNanos, intoTick);
-                    actionValue.isNew = state.keyboardState.isNew.at(deviceActionBinding.key);
+                    if (!deviceActionBinding.hasModifier || (state.keyboardState.activeNanos.at(deviceActionBinding.modifierKey) > 0))
+                    {
+                        constexpr float keySpeed = 15;
+                        int actionNanos = state.keyboardState.activeNanos.at(deviceActionBinding.key);
+                        actionValue.value += keySpeed * ((deviceActionBinding.intensity * static_cast<float>(intoTick)) / 1000000000.0f) * keyPressProportion(actionNanos, intoTick);
+                        actionValue.isNew = state.keyboardState.isNew.at(deviceActionBinding.key);
+                    }
                     break;
                 }
 

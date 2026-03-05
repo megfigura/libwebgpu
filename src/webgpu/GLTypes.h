@@ -66,6 +66,13 @@ namespace webgpu
         REPEAT = 10497
     };
 
+    enum class GLAlphaMode
+    {
+        OPAQUE,
+        MASK,
+        BLEND
+    };
+
     enum class GLAccessorType
     {
         SCALAR,

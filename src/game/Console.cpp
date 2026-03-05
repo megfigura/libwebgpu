@@ -50,18 +50,27 @@ namespace game
     {
         input::InputTick inputTick(m_keyMap.contexts.at("default"), controllerState, tickNanos);
 
+        bool continueProcessing = true;
         if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::OPEN_CONSOLE)].isNew)
         {
-            m_isOpen = true;
-            spdlog::info("Open console");
+            if (!m_isOpen)
+            {
+                m_isOpen = true;
+                spdlog::info("Open console");
+                continueProcessing = false;
+            }
         }
         if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::CLOSE)].isNew)
         {
-            m_isOpen = false;
-            spdlog::info("Close console");
+            if (m_isOpen)
+            {
+                m_isOpen = false;
+                spdlog::info("Close console");
+                continueProcessing = false;
+            }
         }
 
-        return !m_isOpen;
+        return continueProcessing;
     }
 
     void Console::draw(WGPURenderPassEncoder renderPassEncoder)

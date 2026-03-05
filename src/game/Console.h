@@ -3,7 +3,7 @@
 #include <SDL3/SDL_events.h>
 
 #include "input/InputConsumer.h"
-#include "webgpu/TextureView.h"
+#include "webgpu/RenderTargetTextureView.h"
 #include "input/KeyMap.h"
 
 namespace input

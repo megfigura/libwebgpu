@@ -13,26 +13,24 @@ namespace webgpu
 {
 	Device::Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
 	{
-		m_device = requestDevice(instance, adapter);
-	}
-
-	Device::~Device()
-	{
-		if (m_device != nullptr)
-		{
-			wgpuDeviceRelease(m_device);
-			m_device = nullptr;
-		}
+		m_device = std::shared_ptr<WGPUDeviceImpl>(requestDevice(instance, adapter), [](WGPUDevice d) { wgpuDeviceRelease(d); });
+		m_queue = std::shared_ptr<WGPUQueueImpl>(wgpuDeviceGetQueue(m_device.get()), [](WGPUQueue q) { wgpuQueueRelease(q); });
 	}
 
 	WGPUDevice Device::get() const
 	{
-		return m_device;
+		return m_device.get();
 	}
 
 	WGPUQueue Device::getQueue() const
 	{
-		return wgpuDeviceGetQueue(m_device);
+		return m_queue.get();
+	}
+
+	std::shared_ptr<WGPUCommandEncoderImpl> Device::createCommandEncoder() const
+	{
+		WGPUCommandEncoderDescriptor commandEncoderDesc{WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT};
+		return {wgpuDeviceCreateCommandEncoder(m_device.get(), &commandEncoderDesc), [](WGPUCommandEncoder e) { wgpuCommandEncoderRelease(e); }};
 	}
 
 	WGPUDevice Device::requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
@@ -92,7 +90,7 @@ namespace webgpu
 	{
 		WGPUDeviceDescriptor deviceDesc = WGPU_DEVICE_DESCRIPTOR_INIT;
 		// Any name works here, that's your call
-		deviceDesc.label = StringView("My Device").toWgpu();
+		deviceDesc.label = StringView("My Device");
 		std::vector<WGPUFeatureName> features;
 		// No required feature for now
 		deviceDesc.requiredFeatureCount = features.size();
@@ -100,7 +98,7 @@ namespace webgpu
 		// Make sure 'features' lives until the call to wgpuAdapterRequestDevice!
 		deviceDesc.requiredLimits = &requiredLimits;
 		// Make sure that the 'requiredLimits' variable lives until the call to wgpuAdapterRequestDevice!
-		deviceDesc.defaultQueue.label = StringView("The Default Queue").toWgpu();
+		deviceDesc.defaultQueue.label = StringView("The Default Queue");
 		auto onDeviceLost = [](
 			WGPUDevice const * device,
 			WGPUDeviceLostReason reason,
@@ -137,7 +135,7 @@ namespace webgpu
 	void Device::print() const
 	{
 		WGPUSupportedFeatures features = WGPU_SUPPORTED_FEATURES_INIT;
-		wgpuDeviceGetFeatures(m_device, &features);
+		wgpuDeviceGetFeatures(m_device.get(), &features);
 		spdlog::debug("Device features:");
 		for (size_t i = 0; i < features.featureCount; ++i)
 		{
@@ -148,7 +146,7 @@ namespace webgpu
 		wgpuSupportedFeaturesFreeMembers(features);
 
 		WGPULimits limits = WGPU_LIMITS_INIT;
-		bool success = wgpuDeviceGetLimits(m_device, &limits) == WGPUStatus_Success;
+		bool success = wgpuDeviceGetLimits(m_device.get(), &limits) == WGPUStatus_Success;
 
 		if (success)
 		{

@@ -17,6 +17,10 @@ namespace input
         INVALID = -1,
         OPEN_CONSOLE,
         CLOSE,
+        FULL_SCREEN,
+        JUMP,
+        FLASHLIGHT,
+        FIRE,
     };
 
     enum class Axis

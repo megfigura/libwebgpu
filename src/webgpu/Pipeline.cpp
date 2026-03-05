@@ -1,159 +1,42 @@
 #include "Pipeline.h"
 
 #include <vector>
-#include <glm/mat4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
 
-#include "Device.h"
-#include "StringView.h"
-#include "Surface.h"
 #include "Application.h"
+#include "Device.h"
+#include "MaterialManager.h"
 #include "Model.h"
-#include "Util.h"
-#include "VertexAttributes.h"
-#include "spdlog/spdlog.h"
-#include "resource/Loader.h"
+#include "ModelManager.h"
+#include "RenderManager.h"
+#include "RenderPass.h"
+#include "StringView.h"
+#include "UniformsAndAttributes.h"
 
 namespace webgpu
 {
-	Pipeline::Pipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::shared_ptr<Model>& model)
-	{
-		CameraUniform c;
-		c.projection = glm::identity<glm::mat4x4>();
+    Pipeline::Pipeline(const RenderPass& renderPass, WGPUTextureFormat colorTextureFormat, std::string_view shaderSource) : m_renderPass{renderPass}
+    {
+    	auto device = Application::get().getDevice();
 
-		m_device = device;
-		m_surface = surface;
-		m_vertexIndices = 0;
-		m_pipeline = nullptr;
-		m_depthFormat = WGPUTextureFormat_Depth24Plus;
-
-		m_currTime = 1.0f;
-
-		WGPUBufferDescriptor cameraUniformBufferDesc = WGPU_BUFFER_DESCRIPTOR_INIT;
-		cameraUniformBufferDesc.size = Util::nextPow2Multiple(sizeof(CameraUniform), 4);
-		cameraUniformBufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
-		m_cameraUniformBuffer = wgpuDeviceCreateBuffer(m_device->get(), &cameraUniformBufferDesc);
-
-		CameraUniform camera{glm::identity<glm::mat4x4>(), glm::identity<glm::mat4x4>(), glm::vec3(0, 0, 0), m_currTime};
-
-		WGPUQueue queue = wgpuDeviceGetQueue(m_device->get());
-		wgpuQueueWriteBuffer(queue, m_cameraUniformBuffer, 0, &camera, sizeof(camera));
-		wgpuQueueRelease(queue);
-
-		WGPUBindGroupLayoutEntry cameraBindGroupLayoutEntry = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
-		cameraBindGroupLayoutEntry.binding = 0;
-		cameraBindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
-		cameraBindGroupLayoutEntry.buffer.type = WGPUBufferBindingType_Uniform;
-		cameraBindGroupLayoutEntry.buffer.minBindingSize = sizeof(CameraUniform);
-
-		WGPUBindGroupLayoutDescriptor cameraBindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
-		cameraBindGroupLayoutDescriptor.entryCount = 1;
-		cameraBindGroupLayoutDescriptor.entries = &cameraBindGroupLayoutEntry;
-		m_cameraBindGroupLayout = wgpuDeviceCreateBindGroupLayout(m_device->get(), &cameraBindGroupLayoutDescriptor);
-
-
-
-		std::vector layouts{m_cameraBindGroupLayout, model->m_modelBindGroupLayout};
-
-		WGPUPipelineLayoutDescriptor pipelineLayoutDescriptor = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
-		pipelineLayoutDescriptor.bindGroupLayoutCount = layouts.size();
-		pipelineLayoutDescriptor.bindGroupLayouts = layouts.data();
-		m_pipelineLayout = wgpuDeviceCreatePipelineLayout(device->get(), &pipelineLayoutDescriptor);
-
-		WGPUBindGroupEntry cameraBindGroupEntry = WGPU_BIND_GROUP_ENTRY_INIT;
-		cameraBindGroupEntry.binding = 0;
-		cameraBindGroupEntry.buffer = m_cameraUniformBuffer;
-		cameraBindGroupEntry.offset = 0;
-		cameraBindGroupEntry.size = sizeof(CameraUniform);
-
-		WGPUBindGroupDescriptor cameraBindGroupDescriptor = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
-		cameraBindGroupDescriptor.layout = m_cameraBindGroupLayout;
-		cameraBindGroupDescriptor.entryCount = 1;
-		cameraBindGroupDescriptor.entries = &cameraBindGroupEntry;
-		m_cameraBindGroup = wgpuDeviceCreateBindGroup(m_device->get(), &cameraBindGroupDescriptor);
-	}
-
-	Pipeline::~Pipeline()
-	{
-		wgpuRenderPipelineRelease(m_pipeline);
-		//wgpuBufferRelease(m_pointBuffer); // TODO
-		//wgpuBufferRelease(m_indexBuffer);
-		//wgpuBufferRelease(m_uniformBuffer);
-		//wgpuBindGroupLayoutRelease(m_bindGroupLayout);
-		wgpuPipelineLayoutRelease(m_pipelineLayout);
-		//wgpuBindGroupRelease(m_bindGroup);
-	}
-
-	void Pipeline::setDepthFormat(const WGPUTextureFormat& format)
-	{
-		m_depthFormat = format;
-		if (m_pipeline != nullptr)
-		{
-			wgpuRenderPipelineRelease(m_pipeline);
-			m_pipeline = nullptr;
-		}
-	}
-
-	WGPURenderPipeline Pipeline::get()
-	{
-		if (!m_pipeline)
-		{
-			m_pipeline = createPipeline(m_device, m_surface);
-		}
-		return m_pipeline;
-	}
-
-
-
-	WGPUBuffer Pipeline::getCameraUniformBuffer() const
-	{
-		return m_cameraUniformBuffer;
-	}
-
-	WGPUBindGroup Pipeline::getCameraBindGroup() const
-	{
-		return m_cameraBindGroup;
-	}
-
-	float Pipeline ::getCurrTime()
-	{
-		m_currTime += 0.1;
-		return m_currTime;
-	}
-
-	WGPURenderPipeline Pipeline::createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const
-	{
-		WGPUBlendState blendState{WGPU_BLEND_STATE_INIT};
+        WGPUBlendState blendState{WGPU_BLEND_STATE_INIT};
 		blendState.color = { WGPUBlendOperation_Add, WGPUBlendFactor_One, WGPUBlendFactor_OneMinusSrcAlpha };
 		blendState.alpha = { WGPUBlendOperation_Add, WGPUBlendFactor_One, WGPUBlendFactor_OneMinusSrcAlpha };
 
 		WGPUColorTargetState colorTarget{WGPU_COLOR_TARGET_STATE_INIT};
-		colorTarget.format = surface->getTextureFormat();
+		colorTarget.format = colorTextureFormat;
 		colorTarget.blend = &blendState;
 
 		WGPUDepthStencilState depthStencilState{WGPU_DEPTH_STENCIL_STATE_INIT};
 		depthStencilState.depthCompare = WGPUCompareFunction_Less;
 		depthStencilState.depthWriteEnabled = WGPUOptionalBool_True;
-		depthStencilState.format = m_depthFormat;
-
-		auto shaderSource = Application::get().getResourceLoader()->getShader("shader.wgsl").and_then(&resource::StringResource::getString);
-		if (!shaderSource.has_value())
-		{
-			spdlog::error("Shader not loaded: {}", shaderSource.error());
-		}
+		depthStencilState.format = WGPUTextureFormat_Depth24Plus;
 
 		WGPUShaderSourceWGSL wgslDesc{WGPU_SHADER_SOURCE_WGSL_INIT};
-		wgslDesc.code = StringView(shaderSource.value<>());
+		wgslDesc.code = StringView(shaderSource);
 		WGPUShaderModuleDescriptor shaderDesc{WGPU_SHADER_MODULE_DESCRIPTOR_INIT};
 		shaderDesc.nextInChain = &wgslDesc.chain; // connect the chained extension
-		shaderDesc.label = StringView("Shader source from Application.cpp");
+		shaderDesc.label = StringView("shader");
 		WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device->get(), &shaderDesc);
-
-		WGPUFragmentState fragmentState{WGPU_FRAGMENT_STATE_INIT};
-		fragmentState.module = shaderModule;
-		fragmentState.entryPoint = StringView("fs_main");
-		fragmentState.targetCount = 1;
-		fragmentState.targets = &colorTarget;
 
 		WGPUVertexAttribute positionAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
 		positionAttribute.shaderLocation = 0;
@@ -198,21 +81,88 @@ namespace webgpu
 
 		std::vector bufferLayouts{vertexBufferLayout, vertexAttributeBufferLayout};
 
-		WGPURenderPipelineDescriptor pipelineDesc{WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT};
-		pipelineDesc.vertex.module = shaderModule;
-		pipelineDesc.vertex.entryPoint = StringView("vs_main");
-		pipelineDesc.vertex.bufferCount = bufferLayouts.size();
-		pipelineDesc.vertex.buffers = bufferLayouts.data();
-		pipelineDesc.fragment = &fragmentState;
-		pipelineDesc.depthStencil = &depthStencilState;
-		pipelineDesc.primitive.frontFace = WGPUFrontFace_CCW;
-		pipelineDesc.primitive.cullMode = WGPUCullMode_Back;
-		pipelineDesc.multisample.count = 4;
-		pipelineDesc.layout = m_pipelineLayout;
+    	WGPUVertexState vertexState{WGPU_VERTEX_STATE_INIT};
+    	vertexState.module = shaderModule;
+    	vertexState.entryPoint = StringView("vs_main");
+    	vertexState.bufferCount = bufferLayouts.size();
+    	vertexState.buffers = bufferLayouts.data();
 
-		WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device->get(), &pipelineDesc);
-		wgpuShaderModuleRelease(shaderModule);
+    	WGPUFragmentState fragmentState{WGPU_FRAGMENT_STATE_INIT};
+    	fragmentState.module = shaderModule;
+    	fragmentState.entryPoint = StringView("fs_main");
+    	fragmentState.targetCount = 1;
+    	fragmentState.targets = &colorTarget;
 
-		return pipeline;
-	}
+    	WGPUPipelineLayout pipelineLayout = createPipelineLayout(device);
+
+    	WGPURenderPipelineDescriptor pipelineDesc{WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT};
+    	pipelineDesc.vertex = vertexState;
+    	pipelineDesc.fragment = &fragmentState;
+    	pipelineDesc.depthStencil = &depthStencilState;
+    	pipelineDesc.primitive.frontFace = WGPUFrontFace_CCW;
+    	pipelineDesc.primitive.cullMode = WGPUCullMode_Back;
+    	pipelineDesc.multisample.count = 4;
+    	pipelineDesc.layout = pipelineLayout;
+
+    	WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device->get(), &pipelineDesc);
+    	m_renderPipeline = std::shared_ptr<WGPURenderPipelineImpl>(pipeline, [](WGPURenderPipeline p) { wgpuRenderPipelineRelease(p); });
+
+    	wgpuPipelineLayoutRelease(pipelineLayout);
+    	wgpuShaderModuleRelease(shaderModule);
+    }
+
+    WGPURenderPipeline Pipeline::get() const
+    {
+	    return m_renderPipeline.get();
+    }
+
+    const RenderPass& Pipeline::getRenderPass() const
+    {
+	    return m_renderPass;
+    }
+
+    void Pipeline::run(WGPURenderPassEncoder renderPassEncoder)
+    {
+    	auto& model = Application::get().getModelManager().getModel(0); // TODO
+    	wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder, 0, model.m_vertexBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(model.m_vertexBuffer->getGpuBuffer()));
+    	wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder, 1, model.m_attributeBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(model.m_attributeBuffer->getGpuBuffer()));
+    	wgpuRenderPassEncoderSetIndexBuffer(renderPassEncoder, model.m_indexBuffer->getGpuBuffer(), model.m_indexBuffer->getIndexFormat(), 0, wgpuBufferGetSize(model.m_indexBuffer->getGpuBuffer()));
+
+    	for (const auto& node : model.m_nodes)
+    	{
+    		drawNode(renderPassEncoder, node);
+    	}
+    }
+
+    void Pipeline::drawNode(const WGPURenderPassEncoder& renderPassEncoder, const Node& node)
+    {
+    	auto& materialBindGroup = Application::get().getMaterialManager().getMaterialInstance(0).getBindGroup(); // TODO
+    	auto& modelBindGroup = Application::get().getModelManager().getBindGroup(node.m_modelUniformIndex);
+
+    	wgpuRenderPassEncoderSetBindGroup(renderPassEncoder, 1, materialBindGroup.getBindGroup(), 0, nullptr);
+    	wgpuRenderPassEncoderSetBindGroup(renderPassEncoder, 2, modelBindGroup.getBindGroup(), 0, nullptr);
+
+    	for (const auto& mesh : node.m_meshes)
+    	{
+    		wgpuRenderPassEncoderDrawIndexed(renderPassEncoder, mesh.m_indexCount, 1, mesh.m_indexOffset, static_cast<int32_t>(mesh.m_vertexOffset), 0);
+    	}
+
+    	for (const auto& child : node.m_children)
+    	{
+    		drawNode(renderPassEncoder, child);
+    	}
+    }
+
+    WGPUPipelineLayout Pipeline::createPipelineLayout(const std::shared_ptr<Device>& device) const
+    {
+    	const BindGroupLayout& frameBindGroupLayout = m_renderPass.getRenderManager().getFrameBindGroupLayout();
+    	const BindGroupLayout& materialBindGroupLayout = Application::get().getMaterialManager().getMaterialInstance(0).getMaterial().getBindGroupLayout();
+    	const BindGroupLayout& modelBindGroupLayout = Application::get().getModelManager().getBindGroupLayout();
+		std::vector layouts{frameBindGroupLayout.getBindGroupLayout(), materialBindGroupLayout.getBindGroupLayout(), modelBindGroupLayout.getBindGroupLayout()};
+
+		WGPUPipelineLayoutDescriptor pipelineLayoutDescriptor = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+		pipelineLayoutDescriptor.bindGroupLayoutCount = layouts.size();
+		pipelineLayoutDescriptor.bindGroupLayouts = layouts.data();
+		return wgpuDeviceCreatePipelineLayout(device->get(), &pipelineLayoutDescriptor);
+    }
 }

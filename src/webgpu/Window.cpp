@@ -4,13 +4,17 @@
 #include <spdlog/spdlog.h>
 
 #include <utility>
+#include <magic_enum/magic_enum.hpp>
 
 #include "Application.h"
 #include "Surface.h"
+#include "input/InputTick.h"
 
 namespace webgpu
 {
-    Window::Window(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{1, std::move(eventManager)}, m_isFullscreen{false}, m_isMouseCaptured{false}
+    Window::Window(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap)
+        : EventConsumer{1, eventManager},
+          InputConsumer{1, inputManager}, m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isFullscreen{false}, m_isMouseCaptured{false}
     {
         constexpr int width = 800;
         constexpr int height = 600;
@@ -77,11 +81,11 @@ namespace webgpu
                 {
                     pSurface->configureSurface(width, height);
                 }
-            }
                 break;
+            }
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                setMouseCapture(true); // TODO
+                setMouseCapture(true);
                 break;
 
             default:
@@ -89,6 +93,46 @@ namespace webgpu
         }
 
         return true;
+    }
+
+    bool Window::processInputTick(const input::ControllerState& controllerState, int tickNanos)
+    {
+        input::InputTick inputTick(m_keyMap.contexts.at("default"), controllerState, tickNanos);
+
+        bool continueProcessing = true;
+        if (inputTick.getActionValues()[magic_enum::enum_integer(input::Action::FULL_SCREEN)].isNew)
+        {
+            if (!isFullscreen())
+            {
+                setFullscreen(true);
+                setMouseCapture(true);
+            }
+            else
+            {
+                setFullscreen(false);
+            }
+
+            continueProcessing = false;
+        }
+        else if(inputTick.getActionValues()[magic_enum::enum_integer(input::Action::CLOSE)].isNew)
+        {
+            if (isFullscreen())
+            {
+                setFullscreen(false);
+                continueProcessing = false;
+            }
+            else if(isMouseCaptured())
+            {
+                setMouseCapture(false);
+                continueProcessing = false;
+            }
+            else
+            {
+                Application::get().setShuttingDown();
+            }
+        }
+
+        return continueProcessing;
     }
 
     SDL_Window *Window::get() const

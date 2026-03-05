@@ -30,8 +30,6 @@ namespace webgpu
         [[nodiscard]] std::string_view getName() const;
         [[nodiscard]] std::vector<char>& getTempData();
 
-        void debug(std::string_view name, int tupleSize, int tupleCount);
-
     protected:
         std::string m_name;
         int m_elementSize;

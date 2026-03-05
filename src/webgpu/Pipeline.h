@@ -1,53 +1,46 @@
 #pragma once
-#include <memory>
+#include <string>
 #include <webgpu/webgpu.h>
-#include <glm/glm.hpp>
-#include <glm/ext/matrix_transform.hpp>
 
-#include "resource/GltfResource.h"
+#include "BindGroupLayout.h"
+#include "Uniform.h"
+#include "UniformsAndAttributes.h"
 
 namespace webgpu
 {
-    class Model;
-    class Surface;
-    class Device;
-
-    struct CameraUniform
-    {
-        glm::mat4x4 projection = glm::identity<glm::mat4x4>();
-        glm::mat4x4 view = glm::identity<glm::mat4x4>();
-        glm::vec3 position{};
-        float time{};
-    };
+    class Node;
+    class RenderPass;
 
     class Pipeline
     {
     public:
-        Pipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface, const std::shared_ptr<Model>& model);
-        ~Pipeline();
+        Pipeline(const RenderPass& renderPass, WGPUTextureFormat colorTextureFormat, std::string_view shaderSource);
 
-        void setDepthFormat(const WGPUTextureFormat& format);
+        [[nodiscard]] WGPURenderPipeline get() const;
+        [[nodiscard]] const RenderPass& getRenderPass() const;
 
-        [[nodiscard]] WGPURenderPipeline get();
-
-        [[nodiscard]] WGPUBuffer getCameraUniformBuffer() const;
-        [[nodiscard]] WGPUBindGroup getCameraBindGroup() const;
-        float getCurrTime();
-
-        int m_vertexIndices;
+        void run(WGPURenderPassEncoder renderPassEncoder);
 
     private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<Surface> m_surface;
-        WGPURenderPipeline m_pipeline;
-        WGPUBindGroupLayout m_cameraBindGroupLayout;
-        WGPUPipelineLayout m_pipelineLayout;
-        WGPUBindGroup m_cameraBindGroup;
-        WGPUTextureFormat m_depthFormat;
+        const RenderPass& m_renderPass;
+        std::shared_ptr<WGPURenderPipelineImpl> m_renderPipeline;
 
-        WGPUBuffer m_cameraUniformBuffer;
-        float m_currTime;
+        //WGPUBlendState m_blendState;
+        //WGPUColorTargetState m_colorTargetState;
+        //WGPUDepthStencilState m_depthStencilState;
+        //WGPUPrimitiveState m_primitiveState;
 
-        [[nodiscard]] WGPURenderPipeline createPipeline(const std::shared_ptr<Device>& device, const std::shared_ptr<Surface>& surface) const;
+        //std::string m_vertexShader; // TODO - different type?
+        //std::string m_fragmentShader;
+
+        // TODO - different buffer layouts?
+
+        //bool m_isMultiSample;
+
+        //bool m_isDoubleSided;
+
+        [[nodiscard]] WGPUPipelineLayout createPipelineLayout(const std::shared_ptr<Device>& device) const;
+
+        void drawNode(const WGPURenderPassEncoder& renderPassEncoder, const Node& node);
     };
 }

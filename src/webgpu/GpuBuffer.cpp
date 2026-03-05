@@ -41,10 +41,8 @@ namespace webgpu
 
         m_buffer = wgpuDeviceCreateBuffer(device->get(), &bufferDesc);
 
-        WGPUQueue queue = device->getQueue();
         const char* data = m_tempData.data();
-        wgpuQueueWriteBuffer(queue, m_buffer, 0, data, bufferDesc.size);
-        wgpuQueueRelease(queue);
+        wgpuQueueWriteBuffer(device->getQueue(), m_buffer, 0, data, bufferDesc.size);
     }
 
     int GpuBuffer::alignment()

@@ -124,18 +124,14 @@ namespace resource
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JTextureInfo, index, texCoord);
 
-    struct JNormalTextureInfo
+    struct JNormalTextureInfo : JTextureInfo
     {
-        int index{-1};
-        int texCoord{0};
         float scale{1};
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JNormalTextureInfo, index, texCoord, scale);
 
-    struct JOcclusionTextureInfo
+    struct JOcclusionTextureInfo : JTextureInfo
     {
-        int index{-1};
-        int texCoord{0};
         float strength{1};
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JOcclusionTextureInfo, index, texCoord, strength);

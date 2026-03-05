@@ -24,6 +24,8 @@ namespace input
             int button{-1};
             SDL_Scancode key;
         };
+        bool hasModifier{false};
+        SDL_Scancode modifierKey;
     };
 
     struct ActionBinding

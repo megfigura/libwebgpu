@@ -33,7 +33,7 @@ namespace physics
 
         // Process complete tick
         InputTick inputTick(m_keyMap.contexts.at("default"), controllerState, tickNanos);
-        processInputTick(inputTick, m_rotations, currTranslations, up, forward, right, 1.0f);
+        processInputTick(inputTick, m_rotations, currTranslations, up, forward, right);
 
         m_position += currTranslations;
 
@@ -58,9 +58,8 @@ namespace physics
         // This will happen when the tick has completed.
         glm::mat4 rotations = m_rotations;
         glm::vec3 currTranslations = m_position;
-        auto tickProportion = 1.0f; // TODO static_cast<float>(static_cast<double>(intoTick) / static_cast<double>(tickNanos));
         InputTick inputTick(m_keyMap.contexts.at("default"), controllerState, intoTick);
-        processInputTick(inputTick, rotations, currTranslations, up, forward, right, tickProportion);
+        processInputTick(inputTick, rotations, currTranslations, up, forward, right);
 
         glm::mat4x4 translate{1.0};
         translate = glm::translate(translate, -currTranslations);
@@ -70,19 +69,19 @@ namespace physics
         return true;
     }
 
-    void Player::processInputTick(const InputTick& inputTick, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right, const float tickProportion)
+    void Player::processInputTick(const InputTick& inputTick, glm::mat4& rotation, glm::vec3& translation, const glm::vec3& up, const glm::vec3& forward, const glm::vec3& right)
     {
         for (const auto& tickValue : inputTick.getActionValues())
         {
             // TODO
         }
 
-        rotation = glm::rotate(rotation, tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::ROLL)].value, forward);
-        rotation = glm::rotate(rotation, tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::YAW)].value, up);
-        rotation = glm::rotate(rotation, tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::PITCH)].value, right);
+        rotation = glm::rotate(rotation, inputTick.getAxisValues()[magic_enum::enum_integer(Axis::ROLL)].value, forward);
+        rotation = glm::rotate(rotation, inputTick.getAxisValues()[magic_enum::enum_integer(Axis::YAW)].value, up);
+        rotation = glm::rotate(rotation, inputTick.getAxisValues()[magic_enum::enum_integer(Axis::PITCH)].value, right);
 
-        translation += tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::FORWARD_BACKWARD)].value * forward;
-        translation += tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::UP_DOWN)].value * up;
-        translation += tickProportion * inputTick.getAxisValues()[magic_enum::enum_integer(Axis::LEFT_RIGHT)].value * right;
+        translation += inputTick.getAxisValues()[magic_enum::enum_integer(Axis::FORWARD_BACKWARD)].value * forward;
+        translation += inputTick.getAxisValues()[magic_enum::enum_integer(Axis::UP_DOWN)].value * up;
+        translation += inputTick.getAxisValues()[magic_enum::enum_integer(Axis::LEFT_RIGHT)].value * right;
     }
 }

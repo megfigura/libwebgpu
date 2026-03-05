@@ -1,6 +1,6 @@
-#include <cstring>
 #include <StringView.h>
 #include <string_view>
+#include <spdlog/spdlog.h>
 
 namespace webgpu
 {
@@ -12,11 +12,6 @@ namespace webgpu
     {
         data = other.data;
         length = other.length;
-    }
-
-    WGPUStringView StringView::toWgpu() const
-    {
-        return WGPUStringView { data, length };
     }
 
     std::string_view StringView::toString() const

@@ -13,7 +13,6 @@ namespace input
     Controller::Controller(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{2, std::move(eventManager)}, m_useEventsForKeyboard{true}, m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
-        //Application::get().getWindow()->setMouseCapture(true); TODO
         int numKeys;
         SDL_GetKeyboardState(&numKeys);
         m_keyboardDownTimes.resize(numKeys);
@@ -63,36 +62,6 @@ namespace input
         switch (event.type)
         {
             case SDL_EVENT_KEY_DOWN:
-                // TODO - move somewhere else
-                if ((event.key.scancode == SDL_SCANCODE_RETURN) && (event.key.mod & SDL_KMOD_ALT))
-                {
-                    std::shared_ptr<webgpu::Window> window = Application::get().getWindow();
-                    window->setFullscreen(true);
-                    window->setMouseCapture(true);
-                }
-                if (event.key.scancode == SDL_SCANCODE_ESCAPE)
-                {
-                    std::shared_ptr<webgpu::Window> window = Application::get().getWindow();
-                    if (window->isFullscreen())
-                    {
-                        window->setFullscreen(false);
-                        window->setMouseCapture(false);
-                    }
-                    else if(window->isMouseCaptured())
-                    {
-                        window->setMouseCapture(false);
-                    }
-                    else
-                    {
-                        Application::get().setShuttingDown();
-                    }
-                }
-                if (m_useEventsForKeyboard)
-                {
-                    m_frameEvents.push_back(event);
-                }
-                break;
-
             case SDL_EVENT_KEY_UP:
                 if (m_useEventsForKeyboard)
                 {
