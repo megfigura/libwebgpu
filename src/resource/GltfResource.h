@@ -1,6 +1,5 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include <tl/expected.hpp>
 
 #include "Resource.h"
 #include "webgpu/GLTypes.h"
@@ -192,6 +191,6 @@ namespace resource
         std::unordered_map<std::string, RawResource> m_bufferResources;
         bool m_loaded;
 
-        tl::expected<std::pair<nlohmann::json, std::optional<RawResource>>, std::string> readGltf(const std::filesystem::path& path);
+        std::optional<std::pair<nlohmann::json, std::optional<RawResource>>> readGltf(const std::filesystem::path& path);
     };
 }

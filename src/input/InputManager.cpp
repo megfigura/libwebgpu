@@ -7,7 +7,7 @@
 
 namespace input
 {
-    InputManager::InputManager(std::shared_ptr<Controller> controller) : m_controller{std::move(controller)}
+    InputManager::InputManager(const std::shared_ptr<Controller>& controller) : m_controller{controller}
     {
     }
 

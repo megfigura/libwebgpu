@@ -1,7 +1,5 @@
 #include "ModelManager.h"
-
 #include <spdlog/spdlog.h>
-
 #include "resource/Loader.h"
 
 namespace webgpu
@@ -17,11 +15,11 @@ namespace webgpu
         auto gltfRes = Application::get().getResourceLoader()->getGltf("models/DamagedHelmet.glb");
         if (!gltfRes.has_value())
         {
-            spdlog::error("Failed to load model: {}", gltfRes.error());
+            spdlog::error("Failed to load model");
         }
         else
         {
-            m_models.emplace_back(gltfRes.value<>());
+            m_models.emplace_back(gltfRes.value());
         }
     }
 

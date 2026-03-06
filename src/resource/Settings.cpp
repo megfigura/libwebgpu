@@ -13,14 +13,14 @@ namespace resource
 {
     Settings::Settings()
     {
-        auto json = Application::get().getResourceLoader()->getConfig("settings.config").and_then(&StringResource::getString);
-        if (json.has_value())
+        auto optSettings = Application::get().getResourceLoader()->getConfig("settings.config");
+        if (optSettings.has_value())
         {
-            m_json = json::parse(json.value<>());
+            m_json = json::parse(optSettings->getString());
         }
         else
         {
-            spdlog::error("Failed to load settings.config: {}", json.error());
+            spdlog::error("Failed to load settings.config");
         }
     }
 

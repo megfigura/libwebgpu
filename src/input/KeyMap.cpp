@@ -62,10 +62,10 @@ namespace input
 
     KeyMap::KeyMap()
     {
-        auto expJson = Application::get().getResourceLoader()->getConfig("input.config").and_then(&resource::StringResource::getString);
+        auto expJson = Application::get().getResourceLoader()->getConfig("input.config");
         if (expJson.has_value())
         {
-            JKeyMap jKeyMap = json::parse(expJson.value<>()).get<JKeyMap>();
+            JKeyMap jKeyMap = json::parse(expJson->getString()).get<JKeyMap>();
             m_name = jKeyMap.name;
             for (const auto& jPlayer : jKeyMap.players)
             {
@@ -75,7 +75,7 @@ namespace input
         }
         else
         {
-            spdlog::error("Failed to load input.config: {}", expJson.error());
+            spdlog::error("Failed to load input.config");
         }
     }
 

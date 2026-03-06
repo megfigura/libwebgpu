@@ -13,7 +13,7 @@ namespace resource
         loadDir(directory);
     }
 
-    tl::expected<StringResource, std::string> Loader::getShader(const std::string& name)
+    std::optional<StringResource> Loader::getShader(const std::string& name)
     {
         auto it = m_shaders.find(name);
         if (it != m_shaders.end())
@@ -21,10 +21,10 @@ namespace resource
             return it->second;
         }
 
-        return tl::make_unexpected("No such shader " + name);
+        return std::nullopt;
     }
 
-    tl::expected<GltfResource, std::string> Loader::getGltf(const std::string& name)
+    std::optional<GltfResource> Loader::getGltf(const std::string& name)
     {
         auto it = m_gltfs.find(name);
         if (it != m_gltfs.end())
@@ -32,7 +32,7 @@ namespace resource
             return it->second;
         }
 
-        return tl::make_unexpected("No such model " + name);
+        return std::nullopt;
     }
 
     std::vector<GltfResource> Loader::getGltfs()
@@ -47,7 +47,7 @@ namespace resource
         return v;
     }
 
-    tl::expected<RawResource, std::string> Loader::getBin(const std::string& name)
+    std::optional<RawResource> Loader::getBin(const std::string& name)
     {
         auto it = m_bins.find(name);
         if (it != m_bins.end())
@@ -55,10 +55,10 @@ namespace resource
             return it->second;
         }
 
-        return tl::make_unexpected("No such bin " + name);
+        return std::nullopt;
     }
 
-    tl::expected<StringResource, std::string> Loader::getConfig(const std::string& name)
+    std::optional<StringResource> Loader::getConfig(const std::string& name)
     {
         auto it = m_configs.find(name);
         if (it != m_configs.end())
@@ -66,7 +66,7 @@ namespace resource
             return it->second;
         }
 
-        return tl::make_unexpected("No such config " + name);
+        return std::nullopt;
     }
 
     void Loader::loadDir(const std::filesystem::path& dir)

@@ -49,6 +49,11 @@ namespace resource
         return m_resourceDir;
     }
 
+    std::optional<std::string> Resource::getError() const
+    {
+        return m_error;
+    }
+
     void Resource::setError(const std::string& errorMessage)
     {
         m_error = errorMessage;

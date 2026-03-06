@@ -10,7 +10,7 @@ namespace input
     class InputManager
     {
     public:
-        InputManager(std::shared_ptr<Controller> controller);
+        InputManager(const std::shared_ptr<Controller>& controller);
         ~InputManager();
 
         bool processInputTick(uint64_t tickStartTimestamp, int tickNanos) const;

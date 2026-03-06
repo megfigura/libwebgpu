@@ -10,8 +10,8 @@ using namespace input;
 
 namespace physics
 {
-    Player::Player(const int id, const KeyMap& keyMap, std::shared_ptr<InputManager> inputManager)
-    : InputConsumer(2, std::move(inputManager)), m_rotations{1}, m_view{1}, m_position{0, 0, -10}, m_id{id}, m_keyMap{keyMap.getPlayerKeyMap(id)}
+    Player::Player(const int id, const KeyMap& keyMap, const std::shared_ptr<InputManager>& inputManager)
+    : InputConsumer(2, inputManager), m_rotations{1}, m_view{1}, m_position{0, 0, -10}, m_id{id}, m_keyMap{keyMap.getPlayerKeyMap(id)}
     {
     }
 

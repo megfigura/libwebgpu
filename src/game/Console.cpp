@@ -13,8 +13,8 @@
 
 namespace game
 {
-    Console::Console(std::shared_ptr<event::EventManager> eventManager, std::shared_ptr<input::InputManager> inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat) :
-    EventConsumer{0, std::move(eventManager)}, InputConsumer(0, std::move(inputManager)), m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isOpen{false}, m_commandInput{}
+    Console::Console(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat) :
+    EventConsumer{0, eventManager}, InputConsumer(0, inputManager), m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isOpen{false}, m_commandInput{}
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();

@@ -4,22 +4,17 @@
 #include <fstream>
 #include <cstring>
 #include <unistd.h>
-#include <tl/expected.hpp>
 #include <utility>
 #include <spdlog/spdlog.h>
 
 namespace resource
 {
-    RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename), m_data{}
+    RawResource::RawResource(const std::filesystem::path& resourceDir, const std::filesystem::path& filename) : Resource(resourceDir, filename)
     {
         auto expectedBytes = loadResource(filename);
-        if (!expectedBytes.has_value())
+        if (expectedBytes.has_value())
         {
-            setError(expectedBytes.error());
-        }
-        else
-        {
-            m_data = std::move(expectedBytes.value<>());
+            m_data = std::move(expectedBytes.value());
         }
     }
 
@@ -32,14 +27,15 @@ namespace resource
         return m_data;
     }
 
-    tl::expected<std::vector<char>, std::string> RawResource::loadResource(const std::filesystem::path& filename)
+    std::optional<std::vector<char>> RawResource::loadResource(const std::filesystem::path& filename)
     {
         char cwd[256];
         getcwd(cwd, 256);
         std::ifstream ifs(filename, std::ios::binary | std::ios::ate);
         if (!ifs)
         {
-            return tl::unexpected(std::string("File " + filename.string() + " could not be opened: " + std::strerror(errno)));
+            setError("File " + filename.string() + " could not be opened: " + std::strerror(errno));
+            return std::nullopt;
         }
 
         const auto end = ifs.tellg();
@@ -47,13 +43,15 @@ namespace resource
         const auto size = end - ifs.tellg();
         if (size == 0)
         {
-            return tl::unexpected(std::string("File " + filename.string() + " is empty"));
+            setError("File " + filename.string() + " is empty");
+            return std::nullopt;
         }
 
         std::vector<char> buffer(size);
         if (!ifs.read(buffer.data(), size))
         {
-            return tl::unexpected(std::string("Failed to read file " + filename.string() + ": " + std::strerror(errno)));
+            setError("Failed to read file " + filename.string() + ": " + std::strerror(errno));
+            return std::nullopt;
         }
 
         return buffer;

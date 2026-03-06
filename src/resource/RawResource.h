@@ -1,8 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <string>
-#include <tl/expected.hpp>
 
 #include "Resource.h"
 
@@ -18,6 +16,6 @@ namespace resource
     private:
         std::vector<char> m_data;
 
-        static tl::expected<std::vector<char>, std::string> loadResource(const std::filesystem::path& filename);
+        std::optional<std::vector<char>> loadResource(const std::filesystem::path& filename);
     };
 }

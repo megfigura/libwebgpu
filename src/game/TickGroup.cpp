@@ -20,8 +20,8 @@ namespace game
         }
     }
 
-    void TickGroup::add(std::unique_ptr<TickableObject> obj)
+    void TickGroup::add(const std::shared_ptr<TickableObject>& obj)
     {
-        m_objects.push_back(std::move(obj));
+        m_objects.push_back(obj);
     }
 }

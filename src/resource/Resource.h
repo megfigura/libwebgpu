@@ -15,6 +15,7 @@ namespace resource
         [[nodiscard]] virtual std::string getName() const;
         [[nodiscard]] virtual std::filesystem::path getPath() const;
         [[nodiscard]] std::filesystem::path getResourceDir() const;
+        [[nodiscard]] std::optional<std::string> getError() const;
 
     protected:
         void setError(const std::string& errorMessage);

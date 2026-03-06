@@ -10,7 +10,7 @@ namespace resource
         explicit StringResource(const RawResource& rawResource);
         [[nodiscard]] bool isOk(std::string& error) const override;
 
-        [[nodiscard]] tl::expected<std::string, std::string> getString() const;
+        [[nodiscard]] std::string getString() const;
 
     private:
         const RawResource m_rawResource;

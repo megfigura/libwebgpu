@@ -14,12 +14,12 @@ namespace event
     class EventManager
     {
     public:
-        EventManager(std::shared_ptr<webgpu::WebGpuInstance> gpuInstance);
+        explicit EventManager(const std::shared_ptr<webgpu::WebGpuInstance>& gpuInstance);
         ~EventManager();
 
         void processEvents() const;
 
-        bool shouldExit() const;
+        [[nodiscard]] bool shouldExit() const;
 
         void addConsumer(int priority, EventConsumer* consumer);
         void removeConsumer(EventConsumer* consumer);

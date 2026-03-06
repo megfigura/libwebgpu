@@ -9,11 +9,11 @@ namespace resource
     {
     public:
         explicit Loader(const std::filesystem::path& directory);
-        tl::expected<StringResource, std::string> getShader(const std::string& name);
-        tl::expected<GltfResource, std::string> getGltf(const std::string& name);
+        std::optional<StringResource> getShader(const std::string& name);
+        std::optional<GltfResource> getGltf(const std::string& name);
         std::vector<GltfResource> getGltfs();
-        tl::expected<RawResource, std::string> getBin(const std::string& name);
-        tl::expected<StringResource, std::string> getConfig(const std::string& name);
+        std::optional<RawResource> getBin(const std::string& name);
+        std::optional<StringResource> getConfig(const std::string& name);
 
     private:
         std::filesystem::path m_dir;

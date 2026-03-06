@@ -9,7 +9,7 @@ namespace event
     class EventConsumer
     {
     public:
-        EventConsumer(int priority, std::shared_ptr<EventManager> eventManager);
+        EventConsumer(int priority, const std::shared_ptr<EventManager>& eventManager);
         virtual ~EventConsumer();
 
         virtual bool processEvent(const SDL_Event& event) = 0;

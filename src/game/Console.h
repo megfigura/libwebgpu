@@ -21,7 +21,7 @@ namespace game
     class Console : public event::EventConsumer, public input::InputConsumer
     {
     public:
-        Console(std::shared_ptr<event::EventManager> eventManager, std::shared_ptr<input::InputManager> inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat);
+        Console(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat);
         ~Console() override;
 
         bool processEvent(const SDL_Event& event) override;

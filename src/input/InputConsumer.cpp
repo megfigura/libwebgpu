@@ -3,7 +3,7 @@
 
 namespace input
 {
-    InputConsumer::InputConsumer(int priority, std::shared_ptr<InputManager> inputManager) : m_inputManager{std::move(inputManager)}
+    InputConsumer::InputConsumer(int priority, const std::shared_ptr<InputManager>& inputManager) : m_inputManager{inputManager}
     {
         m_inputManager->addConsumer(priority, this);
     }

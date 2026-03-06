@@ -10,7 +10,7 @@
 
 namespace input
 {
-    Controller::Controller(std::shared_ptr<event::EventManager> eventManager) : EventConsumer{2, std::move(eventManager)}, m_useEventsForKeyboard{true}, m_isMouseCaptured{false}
+    Controller::Controller(const std::shared_ptr<event::EventManager>& eventManager) : EventConsumer{2, eventManager}, m_useEventsForKeyboard{true}, m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
         int numKeys;

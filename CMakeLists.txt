@@ -145,7 +145,6 @@ target_include_directories(libwebgpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
 target_link_libraries(libwebgpu
         SDL3::SDL3
         spdlog::spdlog
-        tl::expected
         nlohmann_json::nlohmann_json
         glm::glm
         magic_enum::magic_enum

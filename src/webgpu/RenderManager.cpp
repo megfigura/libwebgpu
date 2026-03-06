@@ -24,14 +24,16 @@ namespace webgpu
         m_frameBindGroup.create("Frame BindGroup", m_frameBindGroupLayout);
 
         // TODO
-        auto shaderSource = Application::get().getResourceLoader()->getShader("shader.wgsl").and_then(&resource::StringResource::getString);
+        auto shaderSource = Application::get().getResourceLoader()->getShader("shader.wgsl");
         if (!shaderSource.has_value())
         {
-            spdlog::error("Shader not loaded: {}", shaderSource.error());
+            spdlog::error("Shader not loaded");
         }
-
-        Pipeline pipeline{m_mainRenderPass, m_msaaTextureView.getTextureFormat(), shaderSource.value<>()};
-        m_mainRenderPass.addPipeline(pipeline);
+        else
+        {
+            Pipeline pipeline{m_mainRenderPass, m_msaaTextureView.getTextureFormat(), shaderSource.value().getString()};
+            m_mainRenderPass.addPipeline(pipeline);
+        }
     }
 
     RenderTargetTextureView RenderManager::createMsaaTextureView()

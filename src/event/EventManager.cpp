@@ -4,14 +4,12 @@
 #include <spdlog/spdlog.h>
 #include <WebGpuInstance.h>
 
-#include <utility>
-
 #include "Application.h"
 #include "EventConsumer.h"
 
 namespace event
 {
-    EventManager::EventManager(std::shared_ptr<webgpu::WebGpuInstance> gpuInstance) : m_gpuInstance{std::move(gpuInstance)}, m_shouldExit{false}
+    EventManager::EventManager(const std::shared_ptr<webgpu::WebGpuInstance>& gpuInstance) : m_gpuInstance{gpuInstance}, m_shouldExit{false}
     {
     }
 

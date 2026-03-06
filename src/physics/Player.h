@@ -16,7 +16,7 @@ namespace physics
     class Player : public input::InputConsumer
     {
     public:
-        Player(int id, const input::KeyMap& keyMap, std::shared_ptr<input::InputManager> inputManager);
+        Player(int id, const input::KeyMap& keyMap, const std::shared_ptr<input::InputManager>& inputManager);
 
         bool processInputTick(const input::ControllerState& controllerState, int tickNanos) override;
         bool processPartialInputTick(const input::ControllerState& controllerState, int tickNanos, int intoTick) override;
