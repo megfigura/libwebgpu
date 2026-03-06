@@ -3,24 +3,28 @@
 #include <SDL3/SDL.h>
 #include <spdlog/spdlog.h>
 
-#include <utility>
 #include <magic_enum/magic_enum.hpp>
 
 #include "Application.h"
 #include "Surface.h"
 #include "input/InputTick.h"
+#include "resource/Settings.h"
 
 namespace webgpu
 {
     Window::Window(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap)
         : EventConsumer{1, eventManager},
-          InputConsumer{1, inputManager}, m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isFullscreen{false}, m_isMouseCaptured{false}
+          InputConsumer{1, inputManager}, m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isFullscreen{false}, m_isMouseCaptured{false}, m_enableMouseCapture{true}
     {
         constexpr int width = 800;
         constexpr int height = 600;
 
         m_window = SDL_CreateWindow("webgputest", width, height, SDL_WINDOW_RESIZABLE);
         SDL_SetWindowFullscreenMode(m_window, nullptr);
+
+#ifdef __linux__
+        m_enableMouseCapture = Application::get().getSettings()->getBool("input/captureMouseInLinux").value_or(true);
+#endif
     }
 
     Window::~Window()
@@ -47,7 +51,7 @@ namespace webgpu
 
     void Window::setMouseCapture(bool capture)
     {
-        if (capture != m_isMouseCaptured)
+        if (m_enableMouseCapture && (capture != m_isMouseCaptured))
         {
             SDL_SetWindowRelativeMouseMode(m_window, capture);
             m_isMouseCaptured = capture;

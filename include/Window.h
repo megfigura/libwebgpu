@@ -38,6 +38,7 @@ namespace webgpu
         input::PlayerKeyMap m_keyMap;
         bool m_isFullscreen;
         bool m_isMouseCaptured;
+        bool m_enableMouseCapture;
         SDL_Window* m_window;
         std::shared_ptr<Surface> m_surface;
     };

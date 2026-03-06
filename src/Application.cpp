@@ -154,7 +154,7 @@ int Application::run()
     m_renderManager = std::make_shared<RenderManager>();
 
 #ifdef __EMSCRIPTEN__
-    auto emscriptenMainLoop = [](void *arg) { static_cast<ApplicationImpl *>(arg)->mainLoop(); };
+    auto emscriptenMainLoop = [](void *arg) { static_cast<Application*>(arg)->mainLoop(); };
     emscripten_set_main_loop_arg(emscriptenMainLoop, this, 0, true);
 #else
     while (mainLoop())
