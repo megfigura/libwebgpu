@@ -1,12 +1,13 @@
 # libwebgpu
 Utilities for WebGPU development
 
-Currently heavily based on: https://eliemichel.github.io/LearnWebGPU/index.html
-
 # Pre-reqs
 I'm using WSL2 with Debian along with CLion. [https://www.jetbrains.com/toolbox-app/](https://www.jetbrains.com/toolbox-app/)
 
 If using Toolbox and you want to login to your Jetbrains account, make sure to install a browser and the `xdg-utils` package.
+
+# Thanks
+See the [thanks page](THANKS.md) for projects / tutorials that helped a lot!
 
 ## Useful packages
 ```shell
