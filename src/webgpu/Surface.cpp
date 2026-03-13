@@ -24,9 +24,13 @@ namespace x11
 
 namespace webgpu
 {
-    Surface::Surface(const std::shared_ptr<Window>& window, const std::shared_ptr<WebGpuInstance>& instance)
+    Surface::Surface()
     {
-        m_surface = createSurface(instance, window);
+        WGPUSurface surface = createSurface();
+        m_surface = std::shared_ptr<WGPUSurfaceImpl>(surface, [](WGPUSurface s){
+            wgpuSurfaceUnconfigure(s);
+            wgpuSurfaceRelease(s);
+        });
 
         // will set in configureSurface() since we can't configure without Adapter and Device
         m_isConfigured = false;
@@ -35,14 +39,7 @@ namespace webgpu
         m_height = -1;
     }
 
-    Surface::~Surface()
-    {
-        wgpuSurfaceUnconfigure(m_surface);
-        wgpuSurfaceRelease(m_surface);
-        m_surface = nullptr;
-    }
-
-    WGPUSurface Surface::createSurface(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window)
+    WGPUSurface Surface::createSurface()
     {
 #ifdef __EMSCRIPTEN__
         WGPUEmscriptenSurfaceSourceCanvasHTMLSelector selector = WGPU_EMSCRIPTEN_SURFACE_SOURCE_CANVAS_HTML_SELECTOR_INIT;
@@ -75,27 +72,29 @@ namespace webgpu
         return nullptr;
 
 #elif _WIN32
-        auto hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window->get()), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-        auto hinst = static_cast<HINSTANCE>(SDL_GetPointerProperty(SDL_GetWindowProperties(window->get()), SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER, nullptr));
+        Window& window = Application::getWindow();
+
+        auto hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        auto hinst = static_cast<HINSTANCE>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER, nullptr));
         WGPUSurfaceSourceWindowsHWND windowsSurfaceDesc = WGPU_SURFACE_SOURCE_WINDOWS_HWND_INIT;
         windowsSurfaceDesc.hwnd = hwnd;
         windowsSurfaceDesc.hinstance = hinst;
-        return createSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&windowsSurfaceDesc));
+        return createSurface(reinterpret_cast<WGPUChainedStruct*>(&windowsSurfaceDesc));
 
 #else
         return nulptr;
 #endif
     }
 
-    WGPUSurface Surface::createSurface(const std::shared_ptr<WebGpuInstance>& instance, WGPUChainedStruct *surfaceSourceDesc)
+    WGPUSurface Surface::createSurface(WGPUChainedStruct *surfaceSourceDesc)
     {
         const WGPUSurfaceDescriptor surfaceDescriptor = { surfaceSourceDesc, StringView("Surface") };
-        return wgpuInstanceCreateSurface(instance->get(), &surfaceDescriptor);
+        return wgpuInstanceCreateSurface(Application::getWebGpuInstance().get(), &surfaceDescriptor);
     }
 
     WGPUSurface Surface::get() const
     {
-        return m_surface;
+        return m_surface.get();
     }
 
     WGPUTextureFormat Surface::getTextureFormat() const
@@ -103,12 +102,12 @@ namespace webgpu
         return m_surfaceFormat;
     }
 
-    int Surface::getWidth()
+    int Surface::getWidth() const
     {
         return m_width;
     }
 
-    int Surface::getHeight()
+    int Surface::getHeight() const
     {
         return m_height;
     }
@@ -128,14 +127,14 @@ namespace webgpu
         WGPUSurfaceConfiguration config = WGPU_SURFACE_CONFIGURATION_INIT;
         config.width = width;
         config.height = height;
-        config.device = Application::get().getDevice()->get();
+        config.device = Application::getDevice().get();
 
         // We initialize an empty capability struct:
         WGPUSurfaceCapabilities capabilities = WGPU_SURFACE_CAPABILITIES_INIT;
 
         // We get the capabilities for a pair of (surface, adapter).
         // If it works, this populates the `capabilities` structure
-        WGPUStatus status = wgpuSurfaceGetCapabilities(get(), Application::get().getAdapter()->get(), &capabilities);
+        WGPUStatus status = wgpuSurfaceGetCapabilities(get(), Application::getAdapter().get(), &capabilities);
         if (status != WGPUStatus_Success)
         {
             spdlog::get("stderr")->error("wgpuSurfaceGetCapabilities failed");
@@ -159,15 +158,15 @@ namespace webgpu
 
         if (m_isConfigured)
         {
-            wgpuSurfaceUnconfigure(m_surface);
+            wgpuSurfaceUnconfigure(m_surface.get());
         }
 
-        wgpuSurfaceConfigure(m_surface, &config);
+        wgpuSurfaceConfigure(m_surface.get(), &config);
         m_isConfigured = true;
     }
 
     void Surface::present() const
     {
-        wgpuSurfacePresent(m_surface);
+        wgpuSurfacePresent(m_surface.get());
     }
 }

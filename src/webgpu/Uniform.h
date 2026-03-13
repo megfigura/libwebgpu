@@ -29,11 +29,11 @@ namespace webgpu
         {
             m_instances.reserve(count);
 
-            auto device = Application::get().getDevice();
+            auto& device = Application::getDevice();
             WGPUBufferDescriptor uniformBufferDesc = WGPU_BUFFER_DESCRIPTOR_INIT;
             uniformBufferDesc.size = Util::nextPow2Multiple(sizeof(T) * count, 4);
             uniformBufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
-            WGPUBuffer buffer = wgpuDeviceCreateBuffer(device->get(), &uniformBufferDesc);
+            WGPUBuffer buffer = wgpuDeviceCreateBuffer(device.get(), &uniformBufferDesc);
             m_buffer = std::shared_ptr<WGPUBufferImpl>(buffer, [](WGPUBuffer b) { wgpuBufferRelease(b); });
         }
 

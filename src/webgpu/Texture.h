@@ -13,7 +13,7 @@ namespace webgpu
     public:
         explicit Texture(std::string_view name, bool isSrgb);
 
-        void load(std::shared_ptr<Device> device) override;
+        void load() override;
         [[nodiscard]] WGPUTexture getTexture() const;
         [[nodiscard]] WGPUTextureView getTextureView() const;
 
@@ -30,7 +30,7 @@ namespace webgpu
         int m_width;
         int m_height;
 
-        void createTexture(const std::shared_ptr<Device>& device);
+        void createTexture();
         void createTextureView();
     };
 }

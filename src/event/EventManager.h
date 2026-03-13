@@ -14,7 +14,7 @@ namespace event
     class EventManager
     {
     public:
-        explicit EventManager(const std::shared_ptr<webgpu::WebGpuInstance>& gpuInstance);
+        explicit EventManager();
         ~EventManager();
 
         void processEvents() const;
@@ -25,7 +25,6 @@ namespace event
         void removeConsumer(EventConsumer* consumer);
 
     private:
-        std::shared_ptr<webgpu::WebGpuInstance> m_gpuInstance;
         std::vector<EventConsumer*> m_consumers;
         bool m_shouldExit;
     };

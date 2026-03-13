@@ -8,7 +8,6 @@
 #include "Model.h"
 #include "ModelManager.h"
 #include "RenderManager.h"
-#include "RenderPass.h"
 #include "StringView.h"
 #include "UniformsAndAttributes.h"
 
@@ -16,7 +15,7 @@ namespace webgpu
 {
     Pipeline::Pipeline(const RenderPass& renderPass, WGPUTextureFormat colorTextureFormat, std::string_view shaderSource) : m_renderPass{renderPass}
     {
-    	auto device = Application::get().getDevice();
+    	auto& device = Application::getDevice();
 
         WGPUBlendState blendState{WGPU_BLEND_STATE_INIT};
 		blendState.color = { WGPUBlendOperation_Add, WGPUBlendFactor_One, WGPUBlendFactor_OneMinusSrcAlpha };
@@ -36,7 +35,7 @@ namespace webgpu
 		WGPUShaderModuleDescriptor shaderDesc{WGPU_SHADER_MODULE_DESCRIPTOR_INIT};
 		shaderDesc.nextInChain = &wgslDesc.chain; // connect the chained extension
 		shaderDesc.label = StringView("shader");
-		WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device->get(), &shaderDesc);
+		WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device.get(), &shaderDesc);
 
 		WGPUVertexAttribute positionAttribute{WGPU_VERTEX_ATTRIBUTE_INIT};
 		positionAttribute.shaderLocation = 0;
@@ -104,7 +103,7 @@ namespace webgpu
     	pipelineDesc.multisample.count = 4;
     	pipelineDesc.layout = pipelineLayout;
 
-    	WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device->get(), &pipelineDesc);
+    	WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device.get(), &pipelineDesc);
     	m_renderPipeline = std::shared_ptr<WGPURenderPipelineImpl>(pipeline, [](WGPURenderPipeline p) { wgpuRenderPipelineRelease(p); });
 
     	wgpuPipelineLayoutRelease(pipelineLayout);
@@ -123,7 +122,7 @@ namespace webgpu
 
     void Pipeline::run(WGPURenderPassEncoder renderPassEncoder)
     {
-    	auto& model = Application::get().getModelManager().getModel(0); // TODO
+    	auto& model = Application::getModelManager().getModel(0); // TODO
     	wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder, 0, model.m_vertexBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(model.m_vertexBuffer->getGpuBuffer()));
     	wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder, 1, model.m_attributeBuffer->getGpuBuffer(), 0, wgpuBufferGetSize(model.m_attributeBuffer->getGpuBuffer()));
     	wgpuRenderPassEncoderSetIndexBuffer(renderPassEncoder, model.m_indexBuffer->getGpuBuffer(), model.m_indexBuffer->getIndexFormat(), 0, wgpuBufferGetSize(model.m_indexBuffer->getGpuBuffer()));
@@ -136,8 +135,8 @@ namespace webgpu
 
     void Pipeline::drawNode(const WGPURenderPassEncoder& renderPassEncoder, const Node& node)
     {
-    	auto& materialBindGroup = Application::get().getMaterialManager().getMaterialInstance(0).getBindGroup(); // TODO
-    	auto& modelBindGroup = Application::get().getModelManager().getBindGroup(node.m_modelUniformIndex);
+    	auto& materialBindGroup = Application::getMaterialManager().getMaterialInstance(0).getBindGroup(); // TODO
+    	auto& modelBindGroup = Application::getModelManager().getBindGroup(node.m_modelUniformIndex);
 
     	wgpuRenderPassEncoderSetBindGroup(renderPassEncoder, 1, materialBindGroup.getBindGroup(), 0, nullptr);
     	wgpuRenderPassEncoderSetBindGroup(renderPassEncoder, 2, modelBindGroup.getBindGroup(), 0, nullptr);
@@ -153,16 +152,16 @@ namespace webgpu
     	}
     }
 
-    WGPUPipelineLayout Pipeline::createPipelineLayout(const std::shared_ptr<Device>& device) const
+    WGPUPipelineLayout Pipeline::createPipelineLayout(const Device& device) const
     {
-    	const BindGroupLayout& frameBindGroupLayout = m_renderPass.getRenderManager().getFrameBindGroupLayout();
-    	const BindGroupLayout& materialBindGroupLayout = Application::get().getMaterialManager().getMaterialInstance(0).getMaterial().getBindGroupLayout();
-    	const BindGroupLayout& modelBindGroupLayout = Application::get().getModelManager().getBindGroupLayout();
+    	const BindGroupLayout& frameBindGroupLayout = Application::getRenderManager().getFrameBindGroupLayout();
+    	const BindGroupLayout& materialBindGroupLayout = Application::getMaterialManager().getMaterialInstance(0).getMaterial().getBindGroupLayout();
+    	const BindGroupLayout& modelBindGroupLayout = Application::getModelManager().getBindGroupLayout();
 		std::vector layouts{frameBindGroupLayout.getBindGroupLayout(), materialBindGroupLayout.getBindGroupLayout(), modelBindGroupLayout.getBindGroupLayout()};
 
 		WGPUPipelineLayoutDescriptor pipelineLayoutDescriptor = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
 		pipelineLayoutDescriptor.bindGroupLayoutCount = layouts.size();
 		pipelineLayoutDescriptor.bindGroupLayouts = layouts.data();
-		return wgpuDeviceCreatePipelineLayout(device->get(), &pipelineLayoutDescriptor);
+		return wgpuDeviceCreatePipelineLayout(device.get(), &pipelineLayoutDescriptor);
     }
 }

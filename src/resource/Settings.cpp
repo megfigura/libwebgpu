@@ -13,7 +13,7 @@ namespace resource
 {
     Settings::Settings()
     {
-        auto optSettings = Application::get().getResourceLoader()->getConfig("settings.config");
+        auto optSettings = Application::getResourceLoader().getConfig("settings.config");
         if (optSettings.has_value())
         {
             m_json = json::parse(optSettings->getString());

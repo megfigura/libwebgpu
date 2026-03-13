@@ -3,6 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Application.h"
 #include "Device.h"
 #include "Util.h"
 
@@ -20,8 +21,10 @@ namespace webgpu
         }
     }
 
-    void GpuBuffer::load(std::shared_ptr<Device> device)
+    void GpuBuffer::load()
     {
+        auto& device = Application::getDevice();
+
         switch (m_elementSize)
         {
             case 2:
@@ -39,10 +42,10 @@ namespace webgpu
         bufferDesc.size = m_tempData.size();
         bufferDesc.usage = m_usage;
 
-        m_buffer = wgpuDeviceCreateBuffer(device->get(), &bufferDesc);
+        m_buffer = wgpuDeviceCreateBuffer(device.get(), &bufferDesc);
 
         const char* data = m_tempData.data();
-        wgpuQueueWriteBuffer(device->getQueue(), m_buffer, 0, data, bufferDesc.size);
+        wgpuQueueWriteBuffer(device.getQueue(), m_buffer, 0, data, bufferDesc.size);
     }
 
     int GpuBuffer::alignment()

@@ -92,7 +92,7 @@ namespace input
     class Controller : public event::EventConsumer
     {
     public:
-        explicit Controller(const std::shared_ptr<event::EventManager>& eventManager);
+        explicit Controller();
 
         bool processEvent(const SDL_Event &event) override;
         ControllerState getTickState(uint64_t tickStart, int tickNanos);

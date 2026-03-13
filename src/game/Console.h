@@ -5,6 +5,7 @@
 #include "input/InputConsumer.h"
 #include "webgpu/RenderTargetTextureView.h"
 #include "input/KeyMap.h"
+#include "webgpu/RenderPass.h"
 
 namespace input
 {
@@ -18,15 +19,16 @@ namespace webgpu
 
 namespace game
 {
-    class Console : public event::EventConsumer, public input::InputConsumer
+    class Console : public event::EventConsumer, public input::InputConsumer, public webgpu::RenderPass
     {
     public:
-        Console(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat);
+        Console(const webgpu::RenderTargetTextureView& m_canvasTextureView, const webgpu::RenderTargetTextureView& m_depthTextureView);
         ~Console() override;
 
         bool processEvent(const SDL_Event& event) override;
         bool processInputTick(const input::ControllerState& controllerState, int tickNanos) override;
-        void draw(WGPURenderPassEncoder renderPassEncoder);
+
+        void runPass(const WGPURenderPassEncoder& renderPassEncoder) override;
 
     private:
         input::PlayerKeyMap m_keyMap;

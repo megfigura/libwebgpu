@@ -62,7 +62,7 @@ namespace input
 
     KeyMap::KeyMap()
     {
-        auto expJson = Application::get().getResourceLoader()->getConfig("input.config");
+        auto expJson = Application::getResourceLoader().getConfig("input.config");
         if (expJson.has_value())
         {
             JKeyMap jKeyMap = json::parse(expJson->getString()).get<JKeyMap>();

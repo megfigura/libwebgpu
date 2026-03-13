@@ -7,14 +7,15 @@
 
 #include "Application.h"
 #include "Surface.h"
+#include "input/InputManager.h"
 #include "input/InputTick.h"
 #include "resource/Settings.h"
 
 namespace webgpu
 {
-    Window::Window(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap)
-        : EventConsumer{1, eventManager},
-          InputConsumer{1, inputManager}, m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isFullscreen{false}, m_isMouseCaptured{false}, m_enableMouseCapture{true}
+    Window::Window()
+        : EventConsumer{1},
+          InputConsumer{1}, m_keyMap{Application::getInputManager().getKeyMap().getPlayerKeyMap(0)}, m_isFullscreen{false}, m_isMouseCaptured{false}, m_enableMouseCapture{true}
     {
         constexpr int width = 800;
         constexpr int height = 600;
@@ -23,7 +24,7 @@ namespace webgpu
         SDL_SetWindowFullscreenMode(m_window, nullptr);
 
 #ifdef __linux__
-        m_enableMouseCapture = Application::get().getSettings()->getBool("input/captureMouseInLinux").value_or(true);
+        m_enableMouseCapture = Application::getSettings().getBool("input/captureMouseInLinux").value_or(true);
 #endif
     }
 
@@ -80,11 +81,7 @@ namespace webgpu
             {
                 const int width = event.window.data1;
                 const int height = event.window.data2;
-                std::shared_ptr<Surface> pSurface = Application::get().getSurface();
-                if (pSurface)
-                {
-                    pSurface->configureSurface(width, height);
-                }
+                Application::getSurface().configureSurface(width, height);
                 break;
             }
 
@@ -132,7 +129,7 @@ namespace webgpu
             }
             else
             {
-                Application::get().setShuttingDown();
+                Application::setShuttingDown();
             }
         }
 

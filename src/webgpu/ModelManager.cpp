@@ -12,7 +12,7 @@ namespace webgpu
 
     void ModelManager::loadModels()
     {
-        auto gltfRes = Application::get().getResourceLoader()->getGltf("models/DamagedHelmet.glb");
+        auto gltfRes = Application::getResourceLoader().getGltf("models/DamagedHelmet.glb");
         if (!gltfRes.has_value())
         {
             spdlog::error("Failed to load model");
@@ -35,8 +35,8 @@ namespace webgpu
 
     void ModelManager::createBindGroups()
     {
-        const auto& device = Application::get().getDevice();
-        m_modelUniforms.write(device->getQueue()); // TODO - move?
+        const auto& device = Application::getDevice();
+        m_modelUniforms.write(device.getQueue()); // TODO - move?
 
         for (int iUniform = 0; iUniform < m_modelUniforms.size(); iUniform++)
         {

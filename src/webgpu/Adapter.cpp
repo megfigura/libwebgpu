@@ -1,8 +1,8 @@
 #include "Adapter.h"
 #include <iostream>
-#include <vector>
 #include <spdlog/spdlog.h>
 
+#include "Application.h"
 #include "Device.h"
 #include "StringView.h"
 #include "Surface.h"
@@ -12,25 +12,19 @@
 
 namespace webgpu
 {
-	Adapter::Adapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface>& surface)
+	Adapter::Adapter()
 	{
-		m_adapter = requestAdapter(instance, surface);
+		WGPUAdapter adapter = requestAdapter();
+		m_adapter = std::shared_ptr<WGPUAdapterImpl>(adapter, [](WGPUAdapter a) { wgpuAdapterRelease(a); });
 	}
 
-	Adapter::~Adapter()
+	WGPUAdapter Adapter::requestAdapter()
 	{
-		if (m_adapter != nullptr)
-		{
-			wgpuAdapterRelease(m_adapter);
-			m_adapter = nullptr;
-		}
-	}
+		WebGpuInstance& instance = Application::getWebGpuInstance();
 
-	WGPUAdapter Adapter::requestAdapter(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Surface> &surface)
-	{
 		WGPURequestAdapterOptions opts = WGPU_REQUEST_ADAPTER_OPTIONS_INIT;
 		opts.powerPreference = WGPUPowerPreference_HighPerformance;
-		opts.compatibleSurface = surface->get();
+		opts.compatibleSurface = Application::getSurface().get();
 
 		struct UserData {
 			WGPUAdapter adapter = nullptr;
@@ -66,14 +60,14 @@ namespace webgpu
 			/* userdata2 = */ nullptr
 		};
 
-		wgpuInstanceRequestAdapter(instance->get(), &opts, callbackInfo);
+		wgpuInstanceRequestAdapter(instance.get(), &opts, callbackInfo);
 
-		instance->processEvents();
+		instance.processEvents();
 
 		while (!userData.requestEnded)
 		{
 			Util::sleep(50);
-			instance->processEvents();
+			instance.processEvents();
 		}
 
 		return userData.adapter;
@@ -81,15 +75,17 @@ namespace webgpu
 
 	WGPUAdapter Adapter::get() const
 	{
-		return m_adapter;
+		return m_adapter.get();
 	}
 
 	void Adapter::print()
 	{
+		Adapter& adapter = Application::getAdapter();
+
 		WGPULimits supportedLimits = {};
 		supportedLimits.nextInChain = nullptr;
 
-		bool success = wgpuAdapterGetLimits(m_adapter, &supportedLimits) == WGPUStatus_Success;
+		bool success = wgpuAdapterGetLimits(adapter.get(), &supportedLimits) == WGPUStatus_Success;
 
 		if (success)
 		{
@@ -103,7 +99,7 @@ namespace webgpu
 		WGPUSupportedFeatures features;
 
 		// Get adapter features. This may allocate memory that we must later free with wgpuSupportedFeaturesFreeMembers()
-		wgpuAdapterGetFeatures(m_adapter, &features);
+		wgpuAdapterGetFeatures(adapter.get(), &features);
 
 		spdlog::debug("Adapter features:");
 		for (size_t i = 0; i < features.featureCount; ++i)
@@ -118,7 +114,7 @@ namespace webgpu
 		// One shall no longer use features beyond this line.
 		WGPUAdapterInfo properties;
 		properties.nextInChain = nullptr;
-		wgpuAdapterGetInfo(m_adapter, &properties);
+		wgpuAdapterGetInfo(adapter.get(), &properties);
 		spdlog::debug("Adapter properties:");
 		spdlog::debug(" - vendorID: {}", properties.vendorID);
 		spdlog::debug(" - vendorName: {}", StringView(properties.vendor).toString());

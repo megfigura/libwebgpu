@@ -5,12 +5,12 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "Window.h"
+#include "../webgpu/Window.h"
 #include "resource/Settings.h"
 
 namespace input
 {
-    Controller::Controller(const std::shared_ptr<event::EventManager>& eventManager) : EventConsumer{2, eventManager}, m_useEventsForKeyboard{true}, m_isMouseCaptured{false}
+    Controller::Controller() : EventConsumer{2}, m_useEventsForKeyboard{true}, m_isMouseCaptured{false}
     {
         SDL_ResetKeyboard();
         int numKeys;
@@ -21,10 +21,10 @@ namespace input
         int numButtons = 16;
         m_mouseButtonDownTimes.resize(numButtons);
 
-        m_useEventsForKeyboard = Application::get().getSettings()->getBool("input.useEventsForKeyboard").value_or(m_useEventsForKeyboard);
+        m_useEventsForKeyboard = Application::getSettings().getBool("input.useEventsForKeyboard").value_or(m_useEventsForKeyboard);
 
 #ifdef _WIN32
-        m_useEventsForKeyboard = Application::get().getSettings()->getBool("input.useEventsForKeyboardInWindows").value_or(m_useEventsForKeyboard);
+        m_useEventsForKeyboard = Application::getSettings().getBool("input.useEventsForKeyboardInWindows").value_or(m_useEventsForKeyboard);
 #endif
     }
 

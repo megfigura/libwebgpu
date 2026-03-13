@@ -2,8 +2,7 @@
 
 #include <memory>
 #include <SDL3/SDL_init.h>
-
-#include "webgpu/RenderTargetTextureView.h"
+#include <spdlog/spdlog.h>
 
 namespace event
 {
@@ -20,7 +19,6 @@ namespace webgpu
     class MaterialManager;
     class ModelManager;
     class RenderManager;
-    class RenderTargetTextureView;
     class WebGpuInstance;
     class Adapter;
     class Device;
@@ -47,27 +45,40 @@ namespace physics
 
 class Application
 {
+
 public:
     Application();
     virtual ~Application();
 
-    static Application& get();
+    static void setShuttingDown();
+    [[nodiscard]] static bool isShuttingDown();
 
-    void setShuttingDown();
-    [[nodiscard]] bool isShuttingDown() const;
-
-    std::shared_ptr<resource::Loader> getResourceLoader();
-    std::shared_ptr<resource::Settings> getSettings();
-    std::shared_ptr<webgpu::WebGpuInstance> getInstance();
-    std::shared_ptr<webgpu::Adapter> getAdapter();
-    std::shared_ptr<webgpu::Device> getDevice();
-    std::shared_ptr<webgpu::Surface> getSurface();
-    std::shared_ptr<webgpu::Window> getWindow();
-    std::shared_ptr<input::Controller> getController();
-    std::shared_ptr<physics::Player> getPlayer();
-    std::shared_ptr<game::Console> getConsole();
-    [[nodiscard]] webgpu::ModelManager& getModelManager() const;
-    [[nodiscard]] webgpu::MaterialManager& getMaterialManager() const;
+#define COMPONENT_GETTER(type, var, method)\
+private:\
+std::unique_ptr<type> var;\
+public:\
+[[nodiscard]] static type& method()\
+{\
+if (!m_theAppInstance->var)\
+{\
+spdlog::error("Calling " #method "() when " #var " is null");\
+}\
+return *m_theAppInstance->var;\
+}
+    COMPONENT_GETTER(resource::Loader, m_resourceLoader, getResourceLoader);
+    COMPONENT_GETTER(resource::Settings, m_settings, getSettings);
+    COMPONENT_GETTER(webgpu::WebGpuInstance, m_webGpuInstance, getWebGpuInstance);
+    COMPONENT_GETTER(event::EventManager, m_eventManager, getEventManager);
+    COMPONENT_GETTER(input::InputManager, m_inputManager, getInputManager);
+    COMPONENT_GETTER(webgpu::Adapter, m_adapter, getAdapter);
+    COMPONENT_GETTER(webgpu::Device, m_device, getDevice);
+    COMPONENT_GETTER(webgpu::Surface, m_surface, getSurface);
+    COMPONENT_GETTER(webgpu::Window, m_window, getWindow);
+    COMPONENT_GETTER(input::Controller, m_controller, getController);
+    COMPONENT_GETTER(physics::Player, m_player, getPlayer);
+    COMPONENT_GETTER(webgpu::RenderManager, m_renderManager, getRenderManager);
+    COMPONENT_GETTER(webgpu::ModelManager, m_modelManager, getModelManager);
+    COMPONENT_GETTER(webgpu::MaterialManager, m_materialManager, getMaterialManager);
 
     int run();
     virtual void initLogging();
@@ -76,21 +87,6 @@ public:
 private:
     static Application *m_theAppInstance;
     bool m_isShuttingDown;
-    std::shared_ptr<resource::Loader> m_resourceLoader;
-    std::shared_ptr<resource::Settings> m_settings;
-    std::shared_ptr<webgpu::WebGpuInstance> m_instance;
-    std::shared_ptr<event::EventManager> m_eventManager;
-    std::shared_ptr<input::Controller> m_controller;
-    std::shared_ptr<input::InputManager> m_inputManager;
-    std::shared_ptr<webgpu::Adapter> m_adapter;
-    std::shared_ptr<webgpu::Device> m_device;
-    std::shared_ptr<webgpu::Window> m_window;
-    std::shared_ptr<webgpu::Surface> m_surface;
-    std::shared_ptr<physics::Player> m_player;
-    std::shared_ptr<game::Console> m_console;
-    std::shared_ptr<webgpu::RenderManager> m_renderManager;
-    std::shared_ptr<webgpu::ModelManager> m_modelManager;
-    std::shared_ptr<webgpu::MaterialManager> m_materialManager;
 
     int m_tickNanos{};
     uint64_t m_lastFrameTimestamp{};

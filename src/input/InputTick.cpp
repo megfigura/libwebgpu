@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
-#include "Window.h"
+#include "../webgpu/Window.h"
 
 namespace input
 {
@@ -88,11 +88,11 @@ namespace input
                     switch (deviceAxisBinding.direction)
                     {
                         case Direction::X:
-                            axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dx / static_cast<float>(Application::get().getWindow()->getWidth()));
+                            axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dx / static_cast<float>(Application::getWindow().getWidth()));
                             break;
 
                         case Direction::Y:
-                            axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dy / static_cast<float>(Application::get().getWindow()->getHeight()));
+                            axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dy / static_cast<float>(Application::getWindow().getHeight()));
                             break;
 
                         default:

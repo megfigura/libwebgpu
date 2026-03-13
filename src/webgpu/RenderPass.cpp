@@ -1,7 +1,5 @@
 #include "RenderPass.h"
 
-#include <spdlog/spdlog.h>
-
 #include "Pipeline.h"
 #include "RenderManager.h"
 
@@ -11,7 +9,8 @@
 
 namespace webgpu
 {
-    RenderPass::RenderPass(const RenderManager& renderManager, const std::string_view name, const RenderPassStage stage) : BasePass{name}, m_renderManager{renderManager}, m_stage{stage}
+    RenderPass::RenderPass(const std::string_view name, const RenderPassStage stage, const RenderTargetTextureView& canvasTextureView, const RenderTargetTextureView& depthTextureView)
+    : BasePass{name}, m_stage{stage}, m_canvasTextureView{canvasTextureView}, m_depthTextureView{depthTextureView}
     {
     }
 
@@ -22,7 +21,7 @@ namespace webgpu
 
     void RenderPass::runPass(const WGPURenderPassEncoder& renderPassEncoder)
     {
-        const BindGroup& frameBindGroup = getRenderManager().getFrameBindGroup();
+        const BindGroup& frameBindGroup = Application::getRenderManager().getFrameBindGroup();
         wgpuRenderPassEncoderSetBindGroup(renderPassEncoder, 0, frameBindGroup.getBindGroup(), 0, nullptr);
 
         for (Pipeline& pipeline : m_pipelines)
@@ -30,12 +29,5 @@ namespace webgpu
             wgpuRenderPassEncoderSetPipeline(renderPassEncoder, pipeline.get());
             pipeline.run(renderPassEncoder);
         }
-
-        Application::get().getConsole()->draw(renderPassEncoder); // TODO
-    }
-
-    const RenderManager& RenderPass::getRenderManager() const
-    {
-        return m_renderManager;
     }
 }

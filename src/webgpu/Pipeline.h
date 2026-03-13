@@ -1,10 +1,7 @@
 #pragma once
-#include <string>
 #include <webgpu/webgpu.h>
 
-#include "BindGroupLayout.h"
 #include "Uniform.h"
-#include "UniformsAndAttributes.h"
 
 namespace webgpu
 {
@@ -39,7 +36,7 @@ namespace webgpu
 
         //bool m_isDoubleSided;
 
-        [[nodiscard]] WGPUPipelineLayout createPipelineLayout(const std::shared_ptr<Device>& device) const;
+        [[nodiscard]] WGPUPipelineLayout createPipelineLayout(const Device& device) const;
 
         void drawNode(const WGPURenderPassEncoder& renderPassEncoder, const Node& node);
     };

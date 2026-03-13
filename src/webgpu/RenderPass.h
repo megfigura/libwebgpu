@@ -12,23 +12,24 @@ namespace webgpu
     {
         G_BUFFER,
         RENDER,
-        MSAA // Just for example with 2 render passes for now
+        CONSOLE,
     };
 
     class RenderPass : public BasePass
     {
     public:
-        RenderPass(const RenderManager& renderManager, std::string_view name, RenderPassStage stage);
+        RenderPass(std::string_view name, RenderPassStage stage, const RenderTargetTextureView& canvasTextureView, const RenderTargetTextureView& depthTextureView);
 
         void addPipeline(const Pipeline& pipeline);
 
-        void runPass(const WGPURenderPassEncoder& renderPassEncoder);
-
-        [[nodiscard]] const RenderManager& getRenderManager() const;
+        virtual void runPass(const WGPURenderPassEncoder& renderPassEncoder);
 
     private:
-        const RenderManager& m_renderManager;
         RenderPassStage m_stage;
         std::vector<Pipeline> m_pipelines;
+
+    protected:
+        const RenderTargetTextureView& m_canvasTextureView;
+        const RenderTargetTextureView& m_depthTextureView;
     };
 }

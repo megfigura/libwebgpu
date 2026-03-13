@@ -52,7 +52,7 @@ namespace webgpu
 
         m_isFiltering = (samplerDesc.magFilter == WGPUFilterMode_Linear) || (samplerDesc.minFilter == WGPUFilterMode_Linear);
 
-        WGPUSampler sampler = wgpuDeviceCreateSampler(Application::get().getDevice()->get(), &samplerDesc);
+        WGPUSampler sampler = wgpuDeviceCreateSampler(Application::getDevice().get(), &samplerDesc);
         m_sampler = std::shared_ptr<WGPUSamplerImpl>(sampler, [](WGPUSampler s) { wgpuSamplerRelease(s); });
     }
 

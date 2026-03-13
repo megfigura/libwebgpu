@@ -2,16 +2,14 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "Application.h"
 
-#include "WebGpuInstance.h"
-#include "Adapter.h"
-#include "Device.h"
-#include "Window.h"
+#include "webgpu/Adapter.h"
+#include "webgpu/WebGpuInstance.h"
+#include "webgpu/Window.h"
 #include "event/EventManager.h"
 #include "input/Controller.h"
 #include "resource/Loader.h"
 #include "webgpu/Surface.h"
 #include "physics/Player.h"
-#include "game/Console.h"
 #include "input/InputManager.h"
 #include "resource/Settings.h"
 #include "SDL3/SDL.h"
@@ -22,8 +20,6 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
-
-using namespace webgpu;
 
 Application *Application::m_theAppInstance = nullptr;
 
@@ -38,79 +34,14 @@ Application::Application() : m_isShuttingDown{false}
 
 Application::~Application() = default;
 
-Application& Application::get()
-{
-    return *m_theAppInstance;
-}
-
 void Application::setShuttingDown()
 {
-    m_isShuttingDown = true;
+    m_theAppInstance->m_isShuttingDown = true;
 }
 
-bool Application::isShuttingDown() const
+bool Application::isShuttingDown()
 {
-    return m_isShuttingDown;
-}
-
-std::shared_ptr<resource::Loader> Application::getResourceLoader()
-{
-    return m_resourceLoader;
-}
-
-std::shared_ptr<resource::Settings> Application::getSettings()
-{
-    return m_settings;
-}
-
-std::shared_ptr<webgpu::WebGpuInstance> Application::getInstance()
-{
-    return m_instance;
-}
-
-std::shared_ptr<webgpu::Adapter> Application::getAdapter()
-{
-    return m_adapter;
-}
-
-std::shared_ptr<webgpu::Device> Application::getDevice()
-{
-    return m_device;
-}
-
-std::shared_ptr<webgpu::Window> Application::getWindow()
-{
-    return m_window;
-}
-
-std::shared_ptr<webgpu::Surface> Application::getSurface()
-{
-    return m_surface;
-}
-
-std::shared_ptr<input::Controller> Application::getController()
-{
-    return m_controller;
-}
-
-std::shared_ptr<physics::Player> Application::getPlayer()
-{
-    return m_player;
-}
-
-std::shared_ptr<game::Console> Application::getConsole()
-{
-    return m_console;
-}
-
-ModelManager& Application::getModelManager() const
-{
-    return *m_modelManager;
-}
-
-MaterialManager& Application::getMaterialManager() const
-{
-    return *m_materialManager;
+    return m_theAppInstance->m_isShuttingDown;
 }
 
 int Application::run()
@@ -122,36 +53,34 @@ int Application::run()
         return 1;
     }
 
-    m_resourceLoader = std::make_shared<resource::Loader>(std::filesystem::absolute("resources"));
-    m_settings = std::make_shared<resource::Settings>();
-    m_instance = std::make_shared<WebGpuInstance>();
-    m_eventManager = std::make_shared<event::EventManager>(m_instance);
-    m_controller = std::make_shared<input::Controller>(m_eventManager);
-    m_inputManager = std::make_shared<input::InputManager>(m_controller);
-    input::KeyMap keyMap{};
-    m_window = std::make_shared<Window>(m_eventManager, m_inputManager, keyMap);
-    m_surface = std::make_shared<Surface>(m_window, m_instance);
-    m_adapter = std::make_shared<Adapter>(m_instance, m_surface);
-    m_device = std::make_shared<Device>(m_instance, m_adapter);
-    m_player = std::make_shared<physics::Player>(0, keyMap, m_inputManager);
+    m_resourceLoader = std::make_unique<resource::Loader>(std::filesystem::absolute("resources"));
+    m_settings = std::make_unique<resource::Settings>();
+    m_webGpuInstance = std::make_unique<webgpu::WebGpuInstance>();
+    m_eventManager = std::make_unique<event::EventManager>();
+    m_controller = std::make_unique<input::Controller>();
+    m_inputManager = std::make_unique<input::InputManager>();
+    m_window = std::make_unique<webgpu::Window>();
+    m_surface = std::make_unique<webgpu::Surface>();
+    m_adapter = std::make_unique<webgpu::Adapter>();
+    m_device = std::make_unique<webgpu::Device>();
+    m_player = std::make_unique<physics::Player>(0);
 
     //m_adapter->print();
     //m_device->print();
 
     m_surface->configureSurface(m_window->getWidth(), m_window->getHeight());
 
-    m_console = std::make_shared<game::Console>(m_eventManager, m_inputManager, keyMap, m_device, m_window, m_surface->getTextureFormat(), WGPUTextureFormat_Depth24Plus /* TODO */);
-
     m_tickNanos = m_settings->getInt("physics.tickNanos").value_or(10000000);
     m_lastFrameTimestamp = m_lastTickTimestamp = SDL_GetTicksNS();
 
-    m_materialManager = std::make_shared<MaterialManager>();
+    m_materialManager = std::make_unique<webgpu::MaterialManager>();
 
-    m_modelManager = std::make_shared<ModelManager>();
+    m_modelManager = std::make_unique<webgpu::ModelManager>();
     m_modelManager->loadModels();
     m_modelManager->createBindGroups(); // TODO - move?
 
-    m_renderManager = std::make_shared<RenderManager>();
+    m_renderManager = std::make_unique<webgpu::RenderManager>();
+    m_renderManager->createRenderPasses();
 
 #ifdef __EMSCRIPTEN__
     auto emscriptenMainLoop = [](void *arg) { static_cast<Application*>(arg)->mainLoop(); };
@@ -207,8 +136,6 @@ bool Application::mainLoop()
         m_inputManager->processPartialInputTick(m_lastTickTimestamp, m_tickNanos, static_cast<int>(accumulator));
     }
 
-    //Frame frame(m_device, m_surface, m_pipelines, m_model, m_depthTextureView, m_msaaTextureView);
-    //frame.draw();
     m_renderManager->run();
 
     m_lastFrameTimestamp = now;

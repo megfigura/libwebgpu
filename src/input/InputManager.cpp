@@ -2,12 +2,13 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Application.h"
 #include "Controller.h"
 #include "InputConsumer.h"
 
 namespace input
 {
-    InputManager::InputManager(const std::shared_ptr<Controller>& controller) : m_controller{controller}
+    InputManager::InputManager()
     {
     }
 
@@ -21,7 +22,7 @@ namespace input
 
     bool InputManager::processInputTick(uint64_t tickStartTimestamp, int tickNanos) const
     {
-        ControllerState state = m_controller->getTickState(tickStartTimestamp, tickNanos);
+        ControllerState state = Application::getController().getTickState(tickStartTimestamp, tickNanos);
         bool continueProcessing = true;
         for (int iConsumer = 0; iConsumer < m_consumers.size() && continueProcessing; iConsumer++)
         {
@@ -33,7 +34,7 @@ namespace input
 
     void InputManager::processPartialInputTick(uint64_t tickStartTimestamp, int tickNanos, int intoTick) const
     {
-        ControllerState state = m_controller->getNextPartialState(tickStartTimestamp, tickNanos, intoTick);
+        ControllerState state = Application::getController().getNextPartialState(tickStartTimestamp, tickNanos, intoTick);
         bool continueProcessing = true;
         for (int iConsumer = 0; iConsumer < m_consumers.size() && continueProcessing; iConsumer++)
         {
@@ -54,5 +55,10 @@ namespace input
         {
             m_consumers.erase(el);
         }
+    }
+
+    const KeyMap& InputManager::getKeyMap()
+    {
+        return m_keyMap;
     }
 }

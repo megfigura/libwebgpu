@@ -6,15 +6,19 @@
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Device.h"
-#include "Window.h"
+#include "../webgpu/Device.h"
+#include "../webgpu/Window.h"
 #include "input/Controller.h"
+#include "input/InputManager.h"
 #include "input/InputTick.h"
 
 namespace game
 {
-    Console::Console(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap, const std::shared_ptr<webgpu::Device>& device, const std::shared_ptr<webgpu::Window>& window, WGPUTextureFormat surfaceFormat, WGPUTextureFormat depthFormat) :
-    EventConsumer{0, eventManager}, InputConsumer(0, inputManager), m_keyMap{keyMap.getPlayerKeyMap(0)}, m_isOpen{false}, m_commandInput{}
+    Console::Console(const webgpu::RenderTargetTextureView& m_canvasTextureView, const webgpu::RenderTargetTextureView& m_depthTextureView)
+    : EventConsumer{0},
+    InputConsumer(0),
+    RenderPass{"Console", webgpu::RenderPassStage::CONSOLE, m_canvasTextureView, m_depthTextureView},
+    m_keyMap{Application::getInputManager().getKeyMap().getPlayerKeyMap(0)}, m_isOpen{false}, m_commandInput{}
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -23,13 +27,13 @@ namespace game
         io.LogFilename = nullptr;
 
         ImGui_ImplWGPU_InitInfo info;
-        info.Device = device->get();
+        info.Device = Application::getDevice().get();
         info.NumFramesInFlight = 3;
-        info.RenderTargetFormat = surfaceFormat;
-        info.DepthStencilFormat = depthFormat;
+        info.RenderTargetFormat = m_canvasTextureView.getTextureFormat();
+        info.DepthStencilFormat = m_depthTextureView.getTextureFormat();
         info.PipelineMultisampleState.count = 4;
 
-        ImGui_ImplSDL3_InitForOther(window->get());
+        ImGui_ImplSDL3_InitForOther(Application::getWindow().get());
         ImGui_ImplWGPU_Init(&info);
     }
 
@@ -73,7 +77,7 @@ namespace game
         return continueProcessing;
     }
 
-    void Console::draw(WGPURenderPassEncoder renderPassEncoder)
+    void Console::runPass(const WGPURenderPassEncoder& renderPassEncoder)
     {
         if (m_isOpen)
         {

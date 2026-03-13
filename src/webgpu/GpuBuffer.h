@@ -12,7 +12,7 @@ namespace webgpu
     public:
         GpuBuffer(std::string_view name, WGPUBufferUsage usage);
         ~GpuBuffer() override;
-        void load(std::shared_ptr<Device> device) override;
+        void load() override;
         [[nodiscard]] WGPUBuffer getGpuBuffer() const;
         [[nodiscard]] WGPUIndexFormat getIndexFormat() const;
 

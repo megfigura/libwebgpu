@@ -6,6 +6,8 @@
 #include "StringView.h"
 #include <webgpu/webgpu.h>
 
+#include "Application.h"
+
 namespace webgpu
 {
     Texture::Texture(const std::string_view name, bool isSrgb)
@@ -13,14 +15,16 @@ namespace webgpu
     {
     }
 
-    void Texture::load(std::shared_ptr<Device> device)
+    void Texture::load()
     {
-        createTexture(device);
+        createTexture();
         createTextureView();
     }
 
-    void Texture::createTexture(const std::shared_ptr<Device>& device)
+    void Texture::createTexture()
     {
+        auto& device = Application::getDevice();
+
         int channels;
         unsigned char* image = stbi_load_from_memory(reinterpret_cast<stbi_uc const*>(m_tempData.data()), static_cast<int>(m_tempData.size()), &m_width, &m_height, &channels, 4);
         auto deleter = [](unsigned char* i) { stbi_image_free(i); };
@@ -39,7 +43,7 @@ namespace webgpu
         textureDesc.viewFormatCount = 0;
         textureDesc.viewFormats = nullptr;
 
-        WGPUTexture texture = wgpuDeviceCreateTexture(device->get(), &textureDesc);
+        WGPUTexture texture = wgpuDeviceCreateTexture(device.get(), &textureDesc);
         m_texture = std::shared_ptr<WGPUTextureImpl>(texture, [](WGPUTexture t) { wgpuTextureRelease(t); });
 
         WGPUTexelCopyTextureInfo dest{WGPU_TEXEL_COPY_TEXTURE_INFO_INIT};
@@ -58,7 +62,7 @@ namespace webgpu
         writeSize.height = m_height;
         writeSize.depthOrArrayLayers = 1;
 
-        wgpuQueueWriteTexture(device->getQueue(), &dest, imageData.get(), m_width * m_height * 4, &dataLayout, &writeSize);
+        wgpuQueueWriteTexture(device.getQueue(), &dest, imageData.get(), m_width * m_height * 4, &dataLayout, &writeSize);
     }
 
     void Texture::createTextureView()

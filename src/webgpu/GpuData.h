@@ -23,7 +23,7 @@ namespace webgpu
         void addAttribute(const resource::RawResource& srcRes, int elementSize, int elementCount, uint64_t srcOffset, int srcStride, uint64_t destElementIndex, int attributeOffset, int attributeSize);
         void addAttribute(const char* src, int elementSize, int elementCount, uint64_t srcOffset, int srcStride, uint64_t destElementIndex, int attributeOffset, int attributeSize);
 
-        virtual void load(std::shared_ptr<Device> device) = 0;
+        virtual void load() = 0;
         [[nodiscard]] uint64_t currentElementOffset() const;
         [[nodiscard]] uint64_t currentByteOffset() const;
         [[nodiscard]] int getElementSize() const;

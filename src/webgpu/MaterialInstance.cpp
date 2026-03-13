@@ -40,7 +40,7 @@ namespace webgpu
 
     void MaterialInstance::create()
     {
-        auto& materialManager = Application::get().getMaterialManager();
+        auto& materialManager = Application::getMaterialManager();
 
         std::vector<WGPUBindGroupEntry> bindGroupEntries;
 

@@ -11,9 +11,9 @@
 
 namespace webgpu
 {
-	Device::Device(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
+	Device::Device()
 	{
-		m_device = std::shared_ptr<WGPUDeviceImpl>(requestDevice(instance, adapter), [](WGPUDevice d) { wgpuDeviceRelease(d); });
+		m_device = std::shared_ptr<WGPUDeviceImpl>(requestDevice(), [](WGPUDevice d) { wgpuDeviceRelease(d); });
 		m_queue = std::shared_ptr<WGPUQueueImpl>(wgpuDeviceGetQueue(m_device.get()), [](WGPUQueue q) { wgpuQueueRelease(q); });
 	}
 
@@ -33,8 +33,11 @@ namespace webgpu
 		return {wgpuDeviceCreateCommandEncoder(m_device.get(), &commandEncoderDesc), [](WGPUCommandEncoder e) { wgpuCommandEncoderRelease(e); }};
 	}
 
-	WGPUDevice Device::requestDevice(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Adapter>& adapter)
+	WGPUDevice Device::requestDevice()
 	{
+		WebGpuInstance& instance = Application::getWebGpuInstance();
+		Adapter& adapter = Application::getAdapter();
+
 		struct UserData {
 			WGPUDevice device = nullptr;
 			bool requestEnded = false;
@@ -49,7 +52,7 @@ namespace webgpu
 			void* userdata1,
 			void* /* userdata2 */
 		) {
-			UserData& userData = *reinterpret_cast<UserData*>(userdata1);
+			UserData& userData = *static_cast<UserData*>(userdata1);
 			if (status == WGPURequestDeviceStatus_Success)
 			{
 				userData.device = device;
@@ -73,14 +76,14 @@ namespace webgpu
 		// Call to the WebGPU request adapter procedure
 		constexpr auto requiredLimits = WGPU_LIMITS_INIT;
 		auto descriptor = createDeviceDescriptor(requiredLimits);
-		wgpuAdapterRequestDevice(adapter->get(), &descriptor, callbackInfo);
+		wgpuAdapterRequestDevice(adapter.get(), &descriptor, callbackInfo);
 
 		// Hand the execution to the WebGPU instance until the request ended
-		instance->processEvents();
+		instance.processEvents();
 		while (!userData.requestEnded)
 		{
 			Util::sleep(50);
-			instance->processEvents();
+			instance.processEvents();
 		}
 
 		return userData.device;
@@ -106,7 +109,7 @@ namespace webgpu
 			void* /* userdata1 */,
 			void* /* userdata2 */
 		) {
-			if (!Application::get().isShuttingDown())
+			if (!Application::isShuttingDown())
 			{
 				spdlog::get("stderr")->error("Device was lost: {}", StringView(message).toString());
 			}
@@ -121,7 +124,7 @@ namespace webgpu
 			void* /* userdata1 */,
 			void* /* userdata2 */
 		) {
-			if (!Application::get().isShuttingDown())
+			if (!Application::isShuttingDown())
 			{
 				spdlog::get("stderr")->error("Uncaptured error in device: {}", StringView(message).toString());
 			}

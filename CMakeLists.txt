@@ -31,12 +31,6 @@ add_library(libwebgpu
         external/dear-imgui-bindings/imgui_impl_wgpu.cpp
         external/dear-imgui-bindings/imgui_impl_wgpu.h
 
-        include/Adapter.h
-        include/Device.h
-        include/StringView.h
-        include/WebGpuInstance.h
-        include/Window.h
-
         src/Application.cpp
         src/Application.h
 
@@ -88,6 +82,7 @@ add_library(libwebgpu
         src/resource/StringResource.h
 
         src/webgpu/Adapter.cpp
+        src/webgpu/Adapter.h
         src/webgpu/BasePass.cpp
         src/webgpu/BasePass.h
         src/webgpu/BindGroup.cpp
@@ -99,6 +94,7 @@ add_library(libwebgpu
         src/webgpu/ComputePass.cpp
         src/webgpu/ComputePass.h
         src/webgpu/Device.cpp
+        src/webgpu/Device.h
         src/webgpu/GLTypes.h
         src/webgpu/GpuBuffer.cpp
         src/webgpu/GpuBuffer.h
@@ -125,6 +121,7 @@ add_library(libwebgpu
         src/webgpu/Sampler.cpp
         src/webgpu/Sampler.h
         src/webgpu/StringView.cpp
+        src/webgpu/StringView.h
         src/webgpu/Surface.cpp
         src/webgpu/Surface.h
         src/webgpu/Texture.cpp
@@ -136,7 +133,9 @@ add_library(libwebgpu
         src/webgpu/Util.cpp
         src/webgpu/Util.h
         src/webgpu/WebGpuInstance.cpp
+        src/webgpu/WebGpuInstance.h
         src/webgpu/Window.cpp
+        src/webgpu/Window.h
 )
 
 target_include_directories(libwebgpu PUBLIC include)

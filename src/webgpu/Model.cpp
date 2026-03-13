@@ -42,7 +42,7 @@ namespace webgpu
             materialInstance.create();
 
             // TODO
-            Application::get().getMaterialManager().addMaterialInstance(materialInstance);
+            Application::getMaterialManager().addMaterialInstance(materialInstance);
         }
 
 
@@ -57,9 +57,9 @@ namespace webgpu
 
         calcAttributes();
 
-        m_indexBuffer->load(Application::get().getDevice());
-        m_vertexBuffer->load(Application::get().getDevice());
-        m_attributeBuffer->load(Application::get().getDevice());
+        m_indexBuffer->load();
+        m_vertexBuffer->load();
+        m_attributeBuffer->load();
     }
 
     void Model::calcAttributes() const
@@ -138,9 +138,9 @@ namespace webgpu
         const auto& bufferRes = gltfRes.getBuffers().at(buffer.uri);
 
         texture.addData(bufferRes, 1, bufferView.byteLength, bufferView.byteOffset, bufferView.byteStride);
-        texture.load(Application::get().getDevice());
+        texture.load();
 
-        int textureId = Application::get().getMaterialManager().addTexture(texture);
+        int textureId = Application::getMaterialManager().addTexture(texture);
         return std::make_optional(textureId);
     }
 
@@ -215,7 +215,7 @@ namespace webgpu
 
     Node::Node(const Model* model, const resource::JGltf& gltf, const resource::JNode& jNode, const glm::mat4& parentModelMatrix)
     {
-        auto& uniforms = Application::get().getModelManager().getModelUniforms();
+        auto& uniforms = Application::getModelManager().getModelUniforms();
         m_modelUniformIndex = uniforms.nextInstanceIndex();
         glm::mat4x4 modelMatrix = parentModelMatrix * loadModelMatrix(jNode);
         uniforms.getInstance(m_modelUniformIndex).matrix = modelMatrix;

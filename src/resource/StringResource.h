@@ -1,6 +1,6 @@
 #pragma once
 #include "RawResource.h"
-#include "StringView.h"
+#include "../webgpu/StringView.h"
 
 namespace resource
 {

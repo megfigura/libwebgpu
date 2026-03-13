@@ -12,27 +12,26 @@ namespace webgpu
     class Surface
     {
     public:
-        Surface(const std::shared_ptr<Window>& window, const std::shared_ptr<WebGpuInstance>& instance);
-        ~Surface();
+        Surface();
 
         [[nodiscard]] WGPUSurface get() const;
         [[nodiscard]] WGPUTextureFormat getTextureFormat() const;
-        int getWidth();
-        int getHeight();
+        int getWidth() const;
+        int getHeight() const;
 
         void configureSurface(int width, int height);
 
         void present() const;
 
     private:
-        WGPUSurface m_surface;
+        std::shared_ptr<WGPUSurfaceImpl> m_surface;
 
         bool m_isConfigured;
         WGPUTextureFormat m_surfaceFormat;
         int m_width;
         int m_height;
 
-        static WGPUSurface createSurface(const std::shared_ptr<WebGpuInstance>& instance, const std::shared_ptr<Window>& window);
-        static WGPUSurface createSurface(const std::shared_ptr<WebGpuInstance>& instance, WGPUChainedStruct* surfaceSourceDesc);
+        static WGPUSurface createSurface();
+        static WGPUSurface createSurface(WGPUChainedStruct* surfaceSourceDesc);
     };
 }

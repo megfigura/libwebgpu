@@ -1,16 +1,18 @@
 #include "InputConsumer.h"
+
+#include "Application.h"
 #include "InputManager.h"
 
 namespace input
 {
-    InputConsumer::InputConsumer(int priority, const std::shared_ptr<InputManager>& inputManager) : m_inputManager{inputManager}
+    InputConsumer::InputConsumer(int priority)
     {
-        m_inputManager->addConsumer(priority, this);
+        Application::getInputManager().addConsumer(priority, this);
     }
 
     InputConsumer::~InputConsumer()
     {
-        m_inputManager->removeConsumer(this);
+        Application::getInputManager().removeConsumer(this);
     }
 
     bool InputConsumer::processPartialInputTick(const ControllerState&, int, int)

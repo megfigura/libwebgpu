@@ -2,14 +2,14 @@
 
 #include <SDL3/SDL_events.h>
 #include <spdlog/spdlog.h>
-#include <WebGpuInstance.h>
 
 #include "Application.h"
 #include "EventConsumer.h"
+#include "webgpu/WebGpuInstance.h"
 
 namespace event
 {
-    EventManager::EventManager(const std::shared_ptr<webgpu::WebGpuInstance>& gpuInstance) : m_gpuInstance{gpuInstance}, m_shouldExit{false}
+    EventManager::EventManager() : m_shouldExit{false}
     {
     }
 
@@ -24,7 +24,7 @@ namespace event
     void EventManager::processEvents() const
     {
         // process webgpu events
-        m_gpuInstance->processEvents();
+        Application::getWebGpuInstance().processEvents();
 
         // process SDL events
         SDL_Event event;
@@ -40,7 +40,7 @@ namespace event
             {
                 if (event.type == SDL_EVENT_QUIT)
                 {
-                    Application::get().setShuttingDown();
+                    Application::setShuttingDown();
                 }
             }
         }

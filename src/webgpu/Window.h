@@ -2,10 +2,8 @@
 #include <memory>
 #include <SDL3/SDL.h>
 
-#include "event/EventManager.h"
 #include "event/EventConsumer.h"
 #include "input/InputConsumer.h"
-#include "input/InputManager.h"
 #include "input/KeyMap.h"
 
 namespace webgpu
@@ -18,7 +16,7 @@ namespace webgpu
     class Window : public event::EventConsumer, public input::InputConsumer
     {
     public:
-        explicit Window(const std::shared_ptr<event::EventManager>& eventManager, const std::shared_ptr<input::InputManager>& inputManager, const input::KeyMap& keyMap);
+        explicit Window();
         ~Window() override;
 
         [[nodiscard]] bool isFullscreen() const;

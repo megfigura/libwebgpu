@@ -6,15 +6,14 @@
 #include "Model.h"
 #include "Surface.h"
 #include "UniformsAndAttributes.h"
+#include "game/Console.h"
 #include "physics/Player.h"
 #include "resource/Loader.h"
 
 namespace webgpu
 {
     RenderManager::RenderManager()
-        : m_mainRenderPass{*this, "main", RenderPassStage::RENDER},
-          m_msaaRenderPass{*this, "msaa", RenderPassStage::MSAA},
-          m_msaaTextureView{createMsaaTextureView()},
+        : m_msaaTextureView{createMsaaTextureView()},
           m_depthTextureView{createDepthTextureView()}
     {
         m_frameBindGroupLayout.addUniform(m_frameUniform);
@@ -22,29 +21,33 @@ namespace webgpu
 
         m_frameBindGroup.addUniform(m_frameUniform, 0);
         m_frameBindGroup.create("Frame BindGroup", m_frameBindGroupLayout);
+    }
 
+    void RenderManager::createRenderPasses()
+    {
         // TODO
-        auto shaderSource = Application::get().getResourceLoader()->getShader("shader.wgsl");
+        auto shaderSource = Application::getResourceLoader().getShader("shader.wgsl");
         if (!shaderSource.has_value())
         {
             spdlog::error("Shader not loaded");
+            return;
         }
-        else
-        {
-            Pipeline pipeline{m_mainRenderPass, m_msaaTextureView.getTextureFormat(), shaderSource.value().getString()};
-            m_mainRenderPass.addPipeline(pipeline);
-        }
+
+        m_mainRenderPass = std::make_shared<RenderPass>("main", RenderPassStage::RENDER, m_msaaTextureView, m_depthTextureView);
+        m_consoleRenderPass = std::make_shared<game::Console>(m_msaaTextureView, m_depthTextureView);
+
+        Pipeline pipeline{*m_mainRenderPass.get(), m_msaaTextureView.getTextureFormat(), shaderSource.value().getString()};
+        m_mainRenderPass->addPipeline(pipeline);
     }
 
     RenderTargetTextureView RenderManager::createMsaaTextureView()
     {
-        auto device = Application::get().getDevice();
-        auto surface = Application::get().getSurface();
+        auto& surface = Application::getSurface();
 
         auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
-        wgpuSurfaceGetCurrentTexture(surface->get(), &surfaceTexture);
+        wgpuSurfaceGetCurrentTexture(surface.get(), &surfaceTexture);
         WGPUTextureFormat surfaceTextureFormat = wgpuTextureGetFormat(surfaceTexture.texture);
-        auto msaaTextureView = RenderTargetTextureView::create("msaa texture", surfaceTextureFormat, surface->getWidth(), surface->getHeight());
+        auto msaaTextureView = RenderTargetTextureView::create("msaa texture", surfaceTextureFormat, surface.getWidth(), surface.getHeight());
         wgpuTextureRelease(surfaceTexture.texture);
 
         return msaaTextureView;
@@ -52,21 +55,20 @@ namespace webgpu
 
     RenderTargetTextureView RenderManager::createDepthTextureView()
     {
-        auto device = Application::get().getDevice();
-        auto surface = Application::get().getSurface();
+        auto& surface = Application::getSurface();
 
         WGPUTextureFormat depthFormat  = WGPUTextureFormat_Depth24Plus;
-        return RenderTargetTextureView::create("depth texture", depthFormat, surface->getWidth(), surface->getHeight());
+        return RenderTargetTextureView::create("depth texture", depthFormat, surface.getWidth(), surface.getHeight());
     }
 
     bool RenderManager::run()
     {
-        const auto device = Application::get().getDevice();
-        const auto surface = Application::get().getSurface();
-        const auto player = Application::get().getPlayer(); // TODO
+        const auto& device = Application::getDevice();
+        auto& surface = Application::getSurface();
+        auto& player = Application::getPlayer(); // TODO
 
         auto surfaceTexture = WGPU_SURFACE_TEXTURE_INIT;
-        wgpuSurfaceGetCurrentTexture(Application::get().getSurface()->get(), &surfaceTexture);
+        wgpuSurfaceGetCurrentTexture(surface.get(), &surfaceTexture);
         if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessOptimal &&
             surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_SuccessSuboptimal)
         {
@@ -75,34 +77,48 @@ namespace webgpu
             return true;
         }
 
-        float aspect = static_cast<float>(surface->getWidth()) / static_cast<float>(surface->getHeight());
+        float aspect = static_cast<float>(surface.getWidth()) / static_cast<float>(surface.getHeight());
         glm::mat4x4 projection = glm::perspectiveZO(45.0f * 3.14159f / 180.0f, aspect, 0.01f, 100.0f);
 
         FrameUniform& frameUniform = m_frameUniform.getInstance();
         frameUniform.projection = projection;
-        frameUniform.view = player->m_view;
-        frameUniform.worldPosition = player->m_position;
+        frameUniform.view = player.m_view;
+        frameUniform.worldPosition = player.m_position;
         frameUniform.time = 1.0; // TODO
-        m_frameUniform.write(device->getQueue());
+        m_frameUniform.write(device.getQueue());
 
         auto canvasViewDescriptor = WGPU_TEXTURE_VIEW_DESCRIPTOR_INIT;
         canvasViewDescriptor.dimension = WGPUTextureViewDimension_2D;
         TextureView surfaceTextureView{surfaceTexture.texture, &canvasViewDescriptor};
 
-        auto colorAttachment = createColorAttachment(surface->getWidth(), surface->getHeight(), surfaceTextureView);
-        auto depthStencilAttachment = createDepthStencilAttachment(surface->getWidth(), surface->getHeight());
+        auto colorAttachment = createColorAttachment(surface.getWidth(), surface.getHeight(), surfaceTextureView);
+        auto depthStencilAttachment = createDepthStencilAttachment(surface.getWidth(), surface.getHeight());
 
         auto renderPassDesc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
         renderPassDesc.colorAttachmentCount = 1;
         renderPassDesc.colorAttachments = &colorAttachment;
         renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
 
-        auto commandEncoder = device->createCommandEncoder();
+        auto commandEncoder = device.createCommandEncoder();
 
         WGPURenderPassEncoder renderPassEncoder = wgpuCommandEncoderBeginRenderPass(commandEncoder.get(), &renderPassDesc);
-        m_mainRenderPass.runPass(renderPassEncoder);
+        m_mainRenderPass->runPass(renderPassEncoder);
         wgpuRenderPassEncoderEnd(renderPassEncoder);
         wgpuRenderPassEncoderRelease(renderPassEncoder);
+
+        // TODO
+        auto colorAttachment2 = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
+        colorAttachment2.view = m_msaaTextureView.update(surface.getWidth(), surface.getHeight()).get();
+        colorAttachment2.loadOp = WGPULoadOp_Load;
+        colorAttachment2.storeOp = WGPUStoreOp_Store;
+        colorAttachment2.clearValue = {1, 0, 0, 0};
+        colorAttachment2.resolveTarget = surfaceTextureView.get();
+        renderPassDesc.colorAttachments = &colorAttachment2;
+
+        WGPURenderPassEncoder renderPassEncoder2 = wgpuCommandEncoderBeginRenderPass(commandEncoder.get(), &renderPassDesc);
+        m_consoleRenderPass->runPass(renderPassEncoder2);
+        wgpuRenderPassEncoderEnd(renderPassEncoder2);
+        wgpuRenderPassEncoderRelease(renderPassEncoder2);
 
         //m_msaaRenderPass.runPass(encoder, colorAttachment, depthStencilAttachment); // TODO
 
@@ -110,14 +126,14 @@ namespace webgpu
         cmdBufferDescriptor.label = StringView("Command buffer");
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(commandEncoder.get(), &cmdBufferDescriptor);
 
-        wgpuQueueSubmit(device->getQueue(), 1, &command);
+        wgpuQueueSubmit(device.getQueue(), 1, &command);
         wgpuCommandBufferRelease(command);
 
         wgpuTextureRelease(surfaceTexture.texture);
 
 #ifndef __EMSCRIPTEN__
         //Util::sleep(50);
-        surface->present();
+        surface.present();
 #endif
 
         return true;
@@ -165,6 +181,6 @@ namespace webgpu
     WGPUCommandEncoder RenderManager::createCommandEncoder()
     {
         auto encoderDesc = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
-        return wgpuDeviceCreateCommandEncoder(Application::get().getDevice()->get(), &encoderDesc);
+        return wgpuDeviceCreateCommandEncoder(Application::getDevice().get(), &encoderDesc);
     }
 }

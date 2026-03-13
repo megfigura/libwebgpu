@@ -33,8 +33,8 @@ namespace webgpu
             m_descriptor.size.width = width;
             m_descriptor.size.height = height;
 
-            auto device = Application::get().getDevice();
-            WGPUTexture texture = wgpuDeviceCreateTexture(device->get(), &m_descriptor);
+            auto& device = Application::getDevice();
+            WGPUTexture texture = wgpuDeviceCreateTexture(device.get(), &m_descriptor);
             m_texture.reset(texture, [](WGPUTexture t) { wgpuTextureDestroy(t); });
 
             WGPUTextureView textureView = wgpuTextureCreateView(texture, nullptr);
@@ -64,7 +64,7 @@ namespace webgpu
 
     WGPUTexture RenderTargetTextureView::createTexture(const WGPUTextureDescriptor& textureDescriptor)
     {
-        auto device = Application::get().getDevice();
-        return wgpuDeviceCreateTexture(device->get(), &textureDescriptor);
+        auto& device = Application::getDevice();
+        return wgpuDeviceCreateTexture(device.get(), &textureDescriptor);
     }
 }

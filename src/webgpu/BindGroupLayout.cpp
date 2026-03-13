@@ -51,13 +51,13 @@ namespace webgpu
         }
         else
         {
-            auto device = Application::get().getDevice();
+            auto& device = Application::getDevice();
 
             WGPUBindGroupLayoutDescriptor bindGroupLayoutDescriptor = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
             bindGroupLayoutDescriptor.entryCount = m_bindGroupLayoutEntries.size();
             bindGroupLayoutDescriptor.entries = m_bindGroupLayoutEntries.data();
             bindGroupLayoutDescriptor.label = StringView(label);
-            WGPUBindGroupLayout bindGroupLayout = wgpuDeviceCreateBindGroupLayout(device->get(), &bindGroupLayoutDescriptor);
+            WGPUBindGroupLayout bindGroupLayout = wgpuDeviceCreateBindGroupLayout(device.get(), &bindGroupLayoutDescriptor);
             m_bindGroupLayout = std::shared_ptr<WGPUBindGroupLayoutImpl>(bindGroupLayout, [](WGPUBindGroupLayout b) { wgpuBindGroupLayoutRelease(b); });
         }
     }

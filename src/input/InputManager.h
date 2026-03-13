@@ -2,6 +2,8 @@
 #include <memory>
 #include <vector>
 
+#include "KeyMap.h"
+
 namespace input
 {
     class InputConsumer;
@@ -10,17 +12,19 @@ namespace input
     class InputManager
     {
     public:
-        InputManager(const std::shared_ptr<Controller>& controller);
+        explicit InputManager();
         ~InputManager();
 
-        bool processInputTick(uint64_t tickStartTimestamp, int tickNanos) const;
+        [[nodiscard]] bool processInputTick(uint64_t tickStartTimestamp, int tickNanos) const;
         void processPartialInputTick(uint64_t tickStartTimestamp, int tickNanos, int intoTick) const;
 
         void addConsumer(int priority, InputConsumer* listener);
         void removeConsumer(InputConsumer* listener);
 
+        const KeyMap& getKeyMap();
+
     private:
-        std::shared_ptr<Controller> m_controller;
+        KeyMap m_keyMap;
         std::vector<InputConsumer*> m_consumers;
     };
 }

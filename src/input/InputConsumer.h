@@ -10,13 +10,10 @@ namespace input
     class InputConsumer
     {
     public:
-        InputConsumer(int priority, const std::shared_ptr<InputManager>& inputManager);
+        InputConsumer(int priority);
         virtual ~InputConsumer();
 
         virtual bool processInputTick(const ControllerState& controllerState, int tickNanos) = 0;
         virtual bool processPartialInputTick(const ControllerState& controllerState, int tickNanos, int intoTick);
-
-    private:
-        std::shared_ptr<InputManager> m_inputManager;
     };
 }

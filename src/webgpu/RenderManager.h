@@ -15,6 +15,8 @@ namespace webgpu
     public:
         RenderManager();
 
+        void createRenderPasses();
+
         bool run();
 
         Uniform<FrameUniform>& getFrameUniform();
@@ -25,10 +27,10 @@ namespace webgpu
         Uniform<FrameUniform> m_frameUniform;
         BindGroupLayout m_frameBindGroupLayout;
         BindGroup m_frameBindGroup;
-        RenderPass m_mainRenderPass;
-        RenderPass m_msaaRenderPass;
         RenderTargetTextureView m_msaaTextureView;
         RenderTargetTextureView m_depthTextureView;
+        std::shared_ptr<RenderPass> m_mainRenderPass;
+        std::shared_ptr<RenderPass> m_consoleRenderPass;
 
         static RenderTargetTextureView createMsaaTextureView();
         static RenderTargetTextureView createDepthTextureView();
