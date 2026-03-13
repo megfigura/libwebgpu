@@ -41,39 +41,39 @@ namespace webgpu
 
     WGPUSurface Surface::createSurface()
     {
+        Window& window = Application::getWindow();
+
 #ifdef __EMSCRIPTEN__
         WGPUEmscriptenSurfaceSourceCanvasHTMLSelector selector = WGPU_EMSCRIPTEN_SURFACE_SOURCE_CANVAS_HTML_SELECTOR_INIT;
         selector.selector = StringView("#canvas");
-        return createSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&selector));
+        return createSurface(reinterpret_cast<WGPUChainedStruct*>(&selector));
 #elif __linux__
         if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
         {
-            auto *x11Display = static_cast<x11::Display*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window->get()), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr));
-            auto x11Window = static_cast<x11::Window>(SDL_GetNumberProperty(SDL_GetWindowProperties(window->get()), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0));
+            auto *x11Display = static_cast<x11::Display*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr));
+            auto x11Window = static_cast<x11::Window>(SDL_GetNumberProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0));
 
             WGPUSurfaceSourceXlibWindow x11SurfaceDesc = WGPU_SURFACE_SOURCE_XLIB_WINDOW_INIT;
             x11SurfaceDesc.display = x11Display;
             x11SurfaceDesc.window = x11Window;
-            return createSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&x11SurfaceDesc));
+            return createSurface(reinterpret_cast<WGPUChainedStruct*>(&x11SurfaceDesc));
         }
 
         if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
         {
-            auto *waylandDisplay = static_cast<struct wl_display*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window->get()), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr));
-            auto *waylandSurface = static_cast<struct wl_surface*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window->get()), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr));
+            auto *waylandDisplay = static_cast<struct wl_display*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr));
+            auto *waylandSurface = static_cast<struct wl_surface*>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr));
 
             WGPUSurfaceSourceWaylandSurface waylandSurfaceDesc = WGPU_SURFACE_SOURCE_WAYLAND_SURFACE_INIT;
             waylandSurfaceDesc.display = waylandDisplay;
             waylandSurfaceDesc.surface = waylandSurface;
-            return createSurface(instance, reinterpret_cast<WGPUChainedStruct*>(&waylandSurfaceDesc));
+            return createSurface(reinterpret_cast<WGPUChainedStruct*>(&waylandSurfaceDesc));
         }
 
         spdlog::get("stderr")->critical("Unknown SDL video driver: {}", SDL_GetCurrentVideoDriver());
         return nullptr;
 
 #elif _WIN32
-        Window& window = Application::getWindow();
-
         auto hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
         auto hinst = static_cast<HINSTANCE>(SDL_GetPointerProperty(SDL_GetWindowProperties(window.get()), SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER, nullptr));
         WGPUSurfaceSourceWindowsHWND windowsSurfaceDesc = WGPU_SURFACE_SOURCE_WINDOWS_HWND_INIT;
