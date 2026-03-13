@@ -1,5 +1,4 @@
 #pragma once
-#include <memory>
 #include <SDL3/SDL_events.h>
 #include <vector>
 
@@ -48,6 +47,8 @@ namespace input
         X,
         Y,
         Z,
+        WHEEL_X,
+        WHEEL_Y,
     };
 
     struct KeyboardState
@@ -68,7 +69,8 @@ namespace input
         std::vector<int> buttonActiveNanos;
         float dx;
         float dy;
-        // TODO - wheel, etc
+        int wheelX;
+        int wheelY;
 
         void init(const size_t numButtons)
         {
@@ -79,7 +81,6 @@ namespace input
 
     struct GamePadState
     {
-        // TODO
     };
 
     struct ControllerState

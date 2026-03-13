@@ -147,6 +147,11 @@ namespace input
                         mouseState.dy += event.motion.yrel;
                         break;
 
+                    case SDL_EVENT_MOUSE_WHEEL:
+                        mouseState.wheelX += event.wheel.integer_x;
+                        mouseState.wheelY += event.wheel.integer_y;
+                        break;
+
                     case SDL_EVENT_MOUSE_BUTTON_DOWN:
                         mouseState.buttonIsNew[event.button.button] = true;
                         m_mouseButtonDownTimes[event.button.button] = event.button.timestamp;

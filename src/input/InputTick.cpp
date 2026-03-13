@@ -85,6 +85,7 @@ namespace input
                 case InputDeviceType::MOUSE:
                 {
                     constexpr float mouseSpeed = 1;
+                    constexpr float wheelSpeed = 1;
                     switch (deviceAxisBinding.direction)
                     {
                         case Direction::X:
@@ -93,6 +94,14 @@ namespace input
 
                         case Direction::Y:
                             axisValue.value += mouseSpeed * deviceAxisBinding.intensity * (state.mouseState.dy / static_cast<float>(Application::getWindow().getHeight()));
+                            break;
+
+                        case Direction::WHEEL_X:
+                            axisValue.value += wheelSpeed * deviceAxisBinding.intensity * static_cast<float>(state.mouseState.wheelX);
+                            break;
+
+                        case Direction::WHEEL_Y:
+                            axisValue.value += wheelSpeed * deviceAxisBinding.intensity * static_cast<float>(state.mouseState.wheelY);
                             break;
 
                         default:

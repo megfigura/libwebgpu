@@ -250,19 +250,19 @@ namespace input
                 {
                     if (jBinding.keys.size() != 2)
                     {
-                        spdlog::warn("Expected 2 keys for axis {}, action: {}", errorContext, magic_enum::enum_name(axis));
+                        spdlog::warn("Expected 2 keys for {}", errorContext);
                         return std::nullopt;
                     }
                     binding.keys.key1 = SDL_GetScancodeFromName(jBinding.keys.at(0).c_str());
                     if (binding.keys.key1 == SDL_SCANCODE_UNKNOWN)
                     {
-                        spdlog::warn("Unknown keyName '{}' for {}, axis: {}", jBinding.keys.at(0), errorContext, magic_enum::enum_name(axis));
+                        spdlog::warn("Unknown keyName '{}' for {}", jBinding.keys.at(0), errorContext);
                         return std::nullopt;
                     }
                     binding.keys.key2 = SDL_GetScancodeFromName(jBinding.keys.at(1).c_str());
                     if (binding.keys.key2 == SDL_SCANCODE_UNKNOWN)
                     {
-                        spdlog::warn("Unknown keyName '{}' for {}, axis: {}", jBinding.keys.at(1), errorContext, magic_enum::enum_name(axis));
+                        spdlog::warn("Unknown keyName '{}' for {}", jBinding.keys.at(1), errorContext);
                         return std::nullopt;
                     }
 
@@ -274,7 +274,7 @@ namespace input
                     binding.direction = magic_enum::enum_cast<Direction>(jBinding.direction, magic_enum::case_insensitive).value_or(Direction::INVALID);
                     if (binding.direction == Direction::INVALID)
                     {
-                        spdlog::warn("Unknown direction '{}' for {}, axis: {}", jBinding.direction, errorContext, magic_enum::enum_name(axis));
+                        spdlog::warn("Unknown direction '{}' for {}", jBinding.direction, errorContext);
                     }
 
                     return binding;
